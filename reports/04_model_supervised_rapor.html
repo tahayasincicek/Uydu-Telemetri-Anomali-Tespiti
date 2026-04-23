@@ -7510,13 +7510,13 @@ a.anchor-link {
 <!-- End of mermaid configuration --></head>
 <body class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
 <main>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=88c7abd4">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=36a73074">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h1 id="%F0%9F%A4%96-04---G%C3%B6zetimli-Makine-%C3%96%C4%9Frenmesi-(Supervised-Learning)">🤖 04 - Gözetimli Makine Öğrenmesi (Supervised Learning)<a class="anchor-link" href="#%F0%9F%A4%96-04---G%C3%B6zetimli-Makine-%C3%96%C4%9Frenmesi-(Supervised-Learning)">¶</a></h1><h2 id="Uydu-Telemetri-Anomali-Tespiti">Uydu Telemetri Anomali Tespiti<a class="anchor-link" href="#Uydu-Telemetri-Anomali-Tespiti">¶</a></h2><p><strong>Amaç:</strong> Özellik mühendisliği aşamasında (03) zenginleştirilmiş veriyi kullanarak gözetimli anomali tespiti modellerini eğitmek ve uzay sistemleri (Reaction Wheels) kriterlerine göre değerlendirmek.</p>
+<h1 id="%F0%9F%A4%96-04---G%C3%B6zetimli-Makine-%C3%96%C4%9Frenmesi-(Supervised-Learning)">🤖 04 - Gözetimli Makine Öğrenmesi (Supervised Learning)<a class="anchor-link" href="#%F0%9F%A4%96-04---G%C3%B6zetimli-Makine-%C3%96%C4%9Frenmesi-(Supervised-Learning)">¶</a></h1><h2 id="Uydu-Telemetri-Anomali-Tespiti">Uydu Telemetri Anomali Tespiti<a class="anchor-link" href="#Uydu-Telemetri-Anomali-Tespiti">¶</a></h2><p><strong>Amaç:</strong> Özellik mühendisliği aşamasında zenginleştirilmiş tüm veri setini (Tüm Sensörler) kullanarak gözetimli anomali tespiti modellerini eğitmek ve uzay sistemleri kriterlerine göre değerlendirmek.</p>
 <h3 id="Modeller:">Modeller:<a class="anchor-link" href="#Modeller:">¶</a></h3><ol>
 <li>Random Forest (Ensemble)</li>
 <li>Support Vector Machine (SVM)</li>
@@ -7526,7 +7526,7 @@ a.anchor-link {
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=317ff047">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=620fcccc">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7534,18 +7534,15 @@ a.anchor-link {
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-python"><pre><span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 <span class="kn">import</span> <span class="nn">seaborn</span> <span class="k">as</span> <span class="nn">sns</span>
 <span class="kn">import</span> <span class="nn">plotly.express</span> <span class="k">as</span> <span class="nn">px</span>
 <span class="kn">import</span> <span class="nn">plotly.graph_objects</span> <span class="k">as</span> <span class="nn">go</span>
 <span class="kn">from</span> <span class="nn">plotly.subplots</span> <span class="kn">import</span> <span class="n">make_subplots</span>
-<span class="kn">import</span> <span class="nn">json</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
-
-<span class="c1"># Sklearn Metrics</span>
-<span class="kn">from</span> <span class="nn">sklearn.metrics</span> <span class="kn">import</span> <span class="n">classification_report</span><span class="p">,</span> <span class="n">confusion_matrix</span><span class="p">,</span> <span class="n">roc_curve</span><span class="p">,</span> <span class="n">precision_recall_curve</span><span class="p">,</span> <span class="n">auc</span>
+<span class="kn">from</span> <span class="nn">sklearn.metrics</span> <span class="kn">import</span> <span class="n">classification_report</span><span class="p">,</span> <span class="n">confusion_matrix</span><span class="p">,</span> <span class="n">roc_curve</span><span class="p">,</span> <span class="n">auc</span>
 
 <span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s1">'ignore'</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s1">'seaborn-v0_8-darkgrid'</span><span class="p">)</span>
@@ -7561,18 +7558,18 @@ a.anchor-link {
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=535ccfa6">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=04f23e90">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <hr/>
-<h2 id="%F0%9F%93%A5-B%C3%B6l%C3%BCm-1:-Veri-Haz%C4%B1rlama-ve-Baseline">📥 Bölüm 1: Veri Hazırlama ve Baseline<a class="anchor-link" href="#%F0%9F%93%A5-B%C3%B6l%C3%BCm-1:-Veri-Haz%C4%B1rlama-ve-Baseline">¶</a></h2><p>Ön işleme (02) adımında ayrılan Train/Validation/Test setlerini ve Özellik Mühendisliği (03) adımında üretilen özellikleri yükleyeceğiz. (Basitlik için 03'te üretilen tüm matrisi parçalayarak kullanıyoruz).</p>
+<h2 id="%F0%9F%93%A5-B%C3%B6l%C3%BCm-1:-Veri-Haz%C4%B1rlama,-S%C4%B1z%C4%B1nt%C4%B1-Korumal%C4%B1-B%C3%B6lme-ve-%C3%96l%C3%A7eklendirme">📥 Bölüm 1: Veri Hazırlama, Sızıntı Korumalı Bölme ve Ölçeklendirme<a class="anchor-link" href="#%F0%9F%93%A5-B%C3%B6l%C3%BCm-1:-Veri-Haz%C4%B1rlama,-S%C4%B1z%C4%B1nt%C4%B1-Korumal%C4%B1-B%C3%B6lme-ve-%C3%96l%C3%A7eklendirme">¶</a></h2><p>Zaman serilerinde en büyük hata, farklı olayların (segmentlerin) yarısını eğitime yarısını teste koymaktır. Bu durumu <strong>Data Leakage (Veri Sızıntısı)</strong> oluşturur. Bu sorunu çözmek için veriyi <code>Segment ID</code>'sine göre (GroupShuffleSplit) böleceğiz.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=09571b47">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=5539c6aa">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7580,39 +7577,53 @@ a.anchor-link {
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-python"><pre><span></span><span class="c1"># 03'te kaydedilen özellikleri yükle</span>
-<span class="k">try</span><span class="p">:</span>
-    <span class="n">df_features</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_parquet</span><span class="p">(</span><span class="s1">'../data/features/reaction_wheel_features.parquet'</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"📊 Özellik Matrisi Yüklendi: </span><span class="si">{</span><span class="n">df_features</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-<span class="k">except</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">"Özellik matrisi bulunamadı! Lütfen 03_feature_engineering notebook'unu çalıştırın."</span><span class="p">)</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># 03'te kaydedilen özellikleri yükle</span>
+<span class="n">df_features</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_parquet</span><span class="p">(</span><span class="s1">'../data/features/reaction_wheel_features.parquet'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"📊 Özellik Matrisi Yüklendi: </span><span class="si">{</span><span class="n">df_features</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
-<span class="c1"># Veriyi X ve y olarak ayır</span>
-<span class="n">drop_cols</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'timestamp'</span><span class="p">,</span> <span class="s1">'segment'</span><span class="p">,</span> <span class="s1">'label'</span><span class="p">,</span> <span class="s1">'train'</span><span class="p">,</span> <span class="s1">'channel'</span><span class="p">,</span> <span class="s1">'anomaly'</span><span class="p">]</span>
-<span class="n">feature_cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">df_features</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">drop_cols</span><span class="p">]</span>
+<span class="c1"># Gereksiz/Meta Sütunları Ayır</span>
+<span class="n">drop_cols</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'timestamp'</span><span class="p">,</span> <span class="s1">'label'</span><span class="p">,</span> <span class="s1">'train'</span><span class="p">,</span> <span class="s1">'channel'</span><span class="p">,</span> <span class="s1">'anomaly'</span><span class="p">]</span>
+<span class="n">feature_cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">df_features</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">drop_cols</span> <span class="ow">and</span> <span class="n">c</span> <span class="o">!=</span> <span class="s1">'segment'</span><span class="p">]</span>
 
-<span class="n">X</span> <span class="o">=</span> <span class="n">df_features</span><span class="p">[</span><span class="n">feature_cols</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">X</span> <span class="o">=</span> <span class="n">df_features</span><span class="p">[</span><span class="n">feature_cols</span> <span class="o">+</span> <span class="p">[</span><span class="s1">'segment'</span><span class="p">]]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="c1"># segment'i gruplama için geçici tutuyoruz</span>
 <span class="n">y</span> <span class="o">=</span> <span class="n">df_features</span><span class="p">[</span><span class="s1">'anomaly'</span><span class="p">]</span>
 
-<span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="kn">import</span> <span class="n">train_test_split</span>
+<span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="kn">import</span> <span class="n">GroupShuffleSplit</span>
+<span class="kn">from</span> <span class="nn">sklearn.preprocessing</span> <span class="kn">import</span> <span class="n">RobustScaler</span>
+<span class="kn">from</span> <span class="nn">imblearn.over_sampling</span> <span class="kn">import</span> <span class="n">SMOTE</span>
 
-<span class="c1"># Shuffle False yapıyoruz ki zaman serisi sırası bozulmasın</span>
-<span class="n">X_train_val</span><span class="p">,</span> <span class="n">X_test</span><span class="p">,</span> <span class="n">y_train_val</span><span class="p">,</span> <span class="n">y_test</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="mf">0.15</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-<span class="n">X_train</span><span class="p">,</span> <span class="n">X_val</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">y_val</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span><span class="n">X_train_val</span><span class="p">,</span> <span class="n">y_train_val</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="mf">0.176</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="c1"># 1. Aşama: Veriyi Olaylara (Segment) Göre Ayırma</span>
+<span class="n">gss</span> <span class="o">=</span> <span class="n">GroupShuffleSplit</span><span class="p">(</span><span class="n">n_splits</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="mf">0.30</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
+<span class="n">train_idx</span><span class="p">,</span> <span class="n">temp_idx</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">gss</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">groups</span><span class="o">=</span><span class="n">X</span><span class="p">[</span><span class="s1">'segment'</span><span class="p">]))</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Train: </span><span class="si">{</span><span class="n">X_train</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, Val: </span><span class="si">{</span><span class="n">X_val</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, Test: </span><span class="si">{</span><span class="n">X_test</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="n">X_train_raw</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">train_idx</span><span class="p">]</span>
+<span class="n">y_train_raw</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">train_idx</span><span class="p">]</span>
 
-<span class="c1"># Sınıf Dağılımı Grafiği</span>
-<span class="n">fig</span> <span class="o">=</span> <span class="n">px</span><span class="o">.</span><span class="n">pie</span><span class="p">(</span><span class="n">values</span><span class="o">=</span><span class="n">y_train</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s1">'Normal (0)'</span><span class="p">,</span> <span class="s1">'Anomali (1)'</span><span class="p">],</span> 
-             <span class="n">title</span><span class="o">=</span><span class="s1">'Eğitim Seti Sınıf Dağılımı'</span><span class="p">,</span> <span class="n">color_discrete_sequence</span><span class="o">=</span><span class="p">[</span><span class="s1">'#2ecc71'</span><span class="p">,</span> <span class="s1">'#e74c3c'</span><span class="p">])</span>
-<span class="n">fig</span><span class="o">.</span><span class="n">update_layout</span><span class="p">(</span><span class="n">height</span><span class="o">=</span><span class="mi">400</span><span class="p">,</span> <span class="n">template</span><span class="o">=</span><span class="s1">'plotly_dark'</span><span class="p">)</span>
-<span class="n">fig</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+<span class="n">X_temp_raw</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">temp_idx</span><span class="p">]</span>
+<span class="n">y_temp_raw</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">temp_idx</span><span class="p">]</span>
+
+<span class="c1"># 2. Aşama: Test ve Validation Ayırma</span>
+<span class="n">gss_val</span> <span class="o">=</span> <span class="n">GroupShuffleSplit</span><span class="p">(</span><span class="n">n_splits</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="mf">0.50</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
+<span class="n">val_idx</span><span class="p">,</span> <span class="n">test_idx</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">gss_val</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">X_temp_raw</span><span class="p">,</span> <span class="n">y_temp_raw</span><span class="p">,</span> <span class="n">groups</span><span class="o">=</span><span class="n">X_temp_raw</span><span class="p">[</span><span class="s1">'segment'</span><span class="p">]))</span>
+
+<span class="n">X_val_raw</span> <span class="o">=</span> <span class="n">X_temp_raw</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">val_idx</span><span class="p">]</span>
+<span class="n">y_val</span> <span class="o">=</span> <span class="n">y_temp_raw</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">val_idx</span><span class="p">]</span>
+
+<span class="n">X_test_raw</span> <span class="o">=</span> <span class="n">X_temp_raw</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">test_idx</span><span class="p">]</span>
+<span class="n">y_test</span> <span class="o">=</span> <span class="n">y_temp_raw</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">test_idx</span><span class="p">]</span>
+
+<span class="c1"># Gruplama için kullandığımız segment bilgisini siliyoruz</span>
+<span class="n">X_train_pure</span> <span class="o">=</span> <span class="n">X_train_raw</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">'segment'</span><span class="p">])</span>
+<span class="n">X_val_pure</span> <span class="o">=</span> <span class="n">X_val_raw</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">'segment'</span><span class="p">])</span>
+<span class="n">X_test_pure</span> <span class="o">=</span> <span class="n">X_test_raw</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">'segment'</span><span class="p">])</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Train: </span><span class="si">{</span><span class="n">X_train_pure</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, Val: </span><span class="si">{</span><span class="n">X_val_pure</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, Test: </span><span class="si">{</span><span class="n">X_test_pure</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=1f46bc04">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=5f25d90d">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7620,33 +7631,41 @@ a.anchor-link {
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-python"><pre><span></span><span class="kn">from</span> <span class="nn">sklearn.dummy</span> <span class="kn">import</span> <span class="n">DummyClassifier</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># 3. Aşama: SMOTE (Sadece Eğitim Setine)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"SMOTE Öncesi Eğitim Sınıf Dağılımı:"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">y_train_raw</span><span class="o">.</span><span class="n">value_counts</span><span class="p">())</span>
 
-<span class="c1"># Baseline oluştur (Sadece çoğunluk sınıfını tahmin eden aptal model)</span>
-<span class="n">baseline</span> <span class="o">=</span> <span class="n">DummyClassifier</span><span class="p">(</span><span class="n">strategy</span><span class="o">=</span><span class="s1">'most_frequent'</span><span class="p">)</span>
-<span class="n">baseline</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">)</span>
-<span class="n">base_acc</span> <span class="o">=</span> <span class="n">baseline</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">X_test</span><span class="p">,</span> <span class="n">y_test</span><span class="p">)</span>
+<span class="n">smote</span> <span class="o">=</span> <span class="n">SMOTE</span><span class="p">(</span><span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
+<span class="n">X_train_smote</span><span class="p">,</span> <span class="n">y_train</span> <span class="o">=</span> <span class="n">smote</span><span class="o">.</span><span class="n">fit_resample</span><span class="p">(</span><span class="n">X_train_pure</span><span class="p">,</span> <span class="n">y_train_raw</span><span class="p">)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"🎯 Baseline (Majority Class) Accuracy: %</span><span class="si">{</span><span class="n">base_acc</span><span class="o">*</span><span class="mi">100</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">"Geliştireceğimiz modellerin metrikleri (özellikle F1 ve Recall) bu baseline'dan çok daha iyi olmalıdır."</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">SMOTE Sonrası Eğitim Sınıf Dağılımı:"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">y_train</span><span class="o">.</span><span class="n">value_counts</span><span class="p">())</span>
+
+<span class="c1"># 4. Aşama: Ölçeklendirme (Scaling)</span>
+<span class="n">scaler</span> <span class="o">=</span> <span class="n">RobustScaler</span><span class="p">()</span>
+<span class="n">X_train</span> <span class="o">=</span> <span class="n">scaler</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">X_train_smote</span><span class="p">)</span>
+<span class="n">X_val</span> <span class="o">=</span> <span class="n">scaler</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">X_val_pure</span><span class="p">)</span>
+<span class="n">X_test</span> <span class="o">=</span> <span class="n">scaler</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">X_test_pure</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">✅ Veri Bölme, Dengeleme ve Ölçeklendirme Başarıyla Tamamlandı!"</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=d3c1b6e4">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=9db74ba5">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <hr/>
-<h2 id="%F0%9F%8C%B2-B%C3%B6l%C3%BCm-2:-Random-Forest-ve-XGBoost-E%C4%9Fitimi">🌲 Bölüm 2: Random Forest ve XGBoost Eğitimi<a class="anchor-link" href="#%F0%9F%8C%B2-B%C3%B6l%C3%BCm-2:-Random-Forest-ve-XGBoost-E%C4%9Fitimi">¶</a></h2><p>Model eğitici sınıfımızı (SupervisedAnomalyDetector) kullanarak ağaç tabanlı modellerimizi eğitelim.</p>
+<h2 id="%F0%9F%8C%B2-B%C3%B6l%C3%BCm-2:-Random-Forest-ve-XGBoost-E%C4%9Fitimi">🌲 Bölüm 2: Random Forest ve XGBoost Eğitimi<a class="anchor-link" href="#%F0%9F%8C%B2-B%C3%B6l%C3%BCm-2:-Random-Forest-ve-XGBoost-E%C4%9Fitimi">¶</a></h2>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=aeb977d8">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=f13b2ff0">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7654,54 +7673,31 @@ a.anchor-link {
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-python"><pre><span></span><span class="n">detector</span> <span class="o">=</span> <span class="n">SupervisedAnomalyDetector</span><span class="p">(</span><span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="n">detector</span> <span class="o">=</span> <span class="n">SupervisedAnomalyDetector</span><span class="p">(</span><span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
 
-<span class="c1"># 1. Random Forest (Tune kapalı hızlı eğitim için)</span>
+<span class="c1"># Random Forest</span>
 <span class="n">rf_model</span> <span class="o">=</span> <span class="n">detector</span><span class="o">.</span><span class="n">train_random_forest</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">tune</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
-<span class="c1"># 2. XGBoost</span>
+<span class="c1"># XGBoost</span>
 <span class="n">xgb_model</span> <span class="o">=</span> <span class="n">detector</span><span class="o">.</span><span class="n">train_xgboost</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">X_val</span><span class="p">,</span> <span class="n">y_val</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=5090304f">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
-<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-python"><pre><span></span><span class="c1"># Feature Importance (Özellik Önemi) Görselleştirme (Random Forest için)</span>
-<span class="n">importances</span> <span class="o">=</span> <span class="n">rf_model</span><span class="o">.</span><span class="n">feature_importances_</span>
-<span class="n">indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">importances</span><span class="p">)[</span><span class="o">-</span><span class="mi">15</span><span class="p">:]</span> <span class="c1"># En iyi 15 özellik</span>
-
-<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">'En Önemli 15 Özellik (Random Forest)'</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">barh</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">)),</span> <span class="n">importances</span><span class="p">[</span><span class="n">indices</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s1">'indigo'</span><span class="p">,</span> <span class="n">align</span><span class="o">=</span><span class="s1">'center'</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">yticks</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">)),</span> <span class="p">[</span><span class="n">feature_cols</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">])</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">'Göreceli Önem (Relative Importance)'</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
-</pre></div>
-</div>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=2fc440d9">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=c69da230">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <hr/>
-<h2 id="%E2%9A%94%EF%B8%8F-B%C3%B6l%C3%BCm-3:-Support-Vector-Machine-(SVM)">⚔️ Bölüm 3: Support Vector Machine (SVM)<a class="anchor-link" href="#%E2%9A%94%EF%B8%8F-B%C3%B6l%C3%BCm-3:-Support-Vector-Machine-(SVM)">¶</a></h2><p>SVM, hiperdüzlemler arası marjı maksimize eder. Radial Basis Function (RBF) çekirdeği karmaşık anomali uzaylarında etkilidir.</p>
+<h2 id="%E2%9A%94%EF%B8%8F-B%C3%B6l%C3%BCm-3:-Support-Vector-Machine-(SVM)">⚔️ Bölüm 3: Support Vector Machine (SVM)<a class="anchor-link" href="#%E2%9A%94%EF%B8%8F-B%C3%B6l%C3%BCm-3:-Support-Vector-Machine-(SVM)">¶</a></h2>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=146c1b30">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=4b7bfab4">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7709,11 +7705,11 @@ a.anchor-link {
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-python"><pre><span></span><span class="c1"># SVM eğitimi (Standart veri seti çok büyükse uzun sürebilir, örneklem alıyoruz)</span>
-<span class="c1"># Hızlandırmak için train verisinin %10'unu kullanalım</span>
-<span class="n">sample_size</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">X_train</span><span class="p">),</span> <span class="mi">5000</span><span class="p">)</span>
-<span class="n">X_train_svm</span> <span class="o">=</span> <span class="n">X_train</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="n">sample_size</span><span class="p">]</span>
-<span class="n">y_train_svm</span> <span class="o">=</span> <span class="n">y_train</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="n">sample_size</span><span class="p">]</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># SVM eğitimi (Hızlı olması için örneklem alıyoruz)</span>
+<span class="n">sample_size</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">X_train</span><span class="p">),</span> <span class="mi">10000</span><span class="p">)</span>
+<span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">X_train</span><span class="p">),</span> <span class="n">sample_size</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">X_train_svm</span> <span class="o">=</span> <span class="n">X_train</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+<span class="n">y_train_svm</span> <span class="o">=</span> <span class="n">y_train</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
 
 <span class="n">svm_model</span> <span class="o">=</span> <span class="n">detector</span><span class="o">.</span><span class="n">train_svm</span><span class="p">(</span><span class="n">X_train_svm</span><span class="p">,</span> <span class="n">y_train_svm</span><span class="p">,</span> <span class="n">kernel</span><span class="o">=</span><span class="s1">'rbf'</span><span class="p">)</span>
 </pre></div>
@@ -7722,18 +7718,18 @@ a.anchor-link {
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=68f25c46">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=ffa25aef">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <hr/>
-<h2 id="%F0%9F%A7%A0-B%C3%B6l%C3%BCm-4:-LSTM-(Derin-%C3%96%C4%9Frenme)-Zaman-Serisi-E%C4%9Fitimi">🧠 Bölüm 4: LSTM (Derin Öğrenme) Zaman Serisi Eğitimi<a class="anchor-link" href="#%F0%9F%A7%A0-B%C3%B6l%C3%BCm-4:-LSTM-(Derin-%C3%96%C4%9Frenme)-Zaman-Serisi-E%C4%9Fitimi">¶</a></h2><p>Zaman serisinin geçmişe bağımlılığını (memory) çözmek için 60 adımlık pencereler kullanacağız.</p>
+<h2 id="%F0%9F%A7%A0-B%C3%B6l%C3%BCm-4:-LSTM-(Derin-%C3%96%C4%9Frenme)">🧠 Bölüm 4: LSTM (Derin Öğrenme)<a class="anchor-link" href="#%F0%9F%A7%A0-B%C3%B6l%C3%BCm-4:-LSTM-(Derin-%C3%96%C4%9Frenme)">¶</a></h2>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=e2ce8882">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=8f3415a9">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7741,25 +7737,21 @@ a.anchor-link {
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-python"><pre><span></span><span class="n">seq_length</span> <span class="o">=</span> <span class="mi">30</span> <span class="c1"># RAM ve hız optimizasyonu için 30 adım (window) kullanıyoruz.</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="n">seq_length</span> <span class="o">=</span> <span class="mi">30</span> 
 
-<span class="c1"># Veriyi Numpy matrisine çeviriyoruz (LSTM formatı)</span>
-<span class="n">X_tr_np</span> <span class="o">=</span> <span class="n">X_train</span><span class="o">.</span><span class="n">values</span>
+<span class="n">X_tr_np</span> <span class="o">=</span> <span class="n">X_train</span>
 <span class="n">y_tr_np</span> <span class="o">=</span> <span class="n">y_train</span><span class="o">.</span><span class="n">values</span>
-<span class="n">X_v_np</span> <span class="o">=</span> <span class="n">X_val</span><span class="o">.</span><span class="n">values</span>
+<span class="n">X_v_np</span> <span class="o">=</span> <span class="n">X_val</span>
 <span class="n">y_v_np</span> <span class="o">=</span> <span class="n">y_val</span><span class="o">.</span><span class="n">values</span>
-<span class="n">X_te_np</span> <span class="o">=</span> <span class="n">X_test</span><span class="o">.</span><span class="n">values</span>
+<span class="n">X_te_np</span> <span class="o">=</span> <span class="n">X_test</span>
 <span class="n">y_te_np</span> <span class="o">=</span> <span class="n">y_test</span><span class="o">.</span><span class="n">values</span>
 
-<span class="c1"># Uyarı: LSTM eğitimi ekran kartı (GPU) olmadan biraz zaman alabilir (Epoch başına 10-20 sn)</span>
-<span class="c1"># Hızlı demo için epoch'u düşük tutuyoruz.</span>
 <span class="n">lstm_model</span><span class="p">,</span> <span class="n">history</span> <span class="o">=</span> <span class="n">detector</span><span class="o">.</span><span class="n">train_lstm</span><span class="p">(</span>
     <span class="n">X_tr_np</span><span class="p">,</span> <span class="n">y_tr_np</span><span class="p">,</span> 
     <span class="n">X_v_np</span><span class="p">,</span> <span class="n">y_v_np</span><span class="p">,</span> 
     <span class="n">seq_len</span><span class="o">=</span><span class="n">seq_length</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">128</span>
 <span class="p">)</span>
 
-<span class="c1"># Training Curve Görselleştirme</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">history</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s1">'loss'</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s1">'Train Loss'</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">'blue'</span><span class="p">)</span>
@@ -7779,18 +7771,18 @@ a.anchor-link {
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=a828c4be">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=bdd6c98e">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <hr/>
-<h2 id="%F0%9F%93%8A-B%C3%B6l%C3%BCm-5:-Modellerin-Kar%C5%9F%C4%B1la%C5%9Ft%C4%B1r%C4%B1lmas%C4%B1-ve-De%C4%9Ferlendirme">📊 Bölüm 5: Modellerin Karşılaştırılması ve Değerlendirme<a class="anchor-link" href="#%F0%9F%93%8A-B%C3%B6l%C3%BCm-5:-Modellerin-Kar%C5%9F%C4%B1la%C5%9Ft%C4%B1r%C4%B1lmas%C4%B1-ve-De%C4%9Ferlendirme">¶</a></h2><p>Bütün modellerin test seti üzerindeki başarılarını kıyaslayacağız. Uzay görevlerinde Yanlış Alarm Oranı (<strong>FAR - False Alarm Rate</strong>) kritik öneme sahiptir.</p>
+<h2 id="%F0%9F%93%8A-B%C3%B6l%C3%BCm-5:-Modellerin-Kar%C5%9F%C4%B1la%C5%9Ft%C4%B1r%C4%B1lmas%C4%B1-ve-De%C4%9Ferlendirme">📊 Bölüm 5: Modellerin Karşılaştırılması ve Değerlendirme<a class="anchor-link" href="#%F0%9F%93%8A-B%C3%B6l%C3%BCm-5:-Modellerin-Kar%C5%9F%C4%B1la%C5%9Ft%C4%B1r%C4%B1lmas%C4%B1-ve-De%C4%9Ferlendirme">¶</a></h2>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=f3df8b62">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=871fd355">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7798,16 +7790,14 @@ a.anchor-link {
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-python"><pre><span></span><span class="c1"># LSTM için Test setini de sequence formatına sokmamız gerekiyor</span>
-<span class="n">X_test_seq</span><span class="p">,</span> <span class="n">y_test_seq</span> <span class="o">=</span> <span class="n">detector</span><span class="o">.</span><span class="n">prepare_lstm_data</span><span class="p">(</span><span class="n">X_te_np</span><span class="p">,</span> <span class="n">y_te_np</span><span class="p">,</span> <span class="n">seq_length</span><span class="p">)</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="n">X_test_seq</span><span class="p">,</span> <span class="n">y_test_seq</span> <span class="o">=</span> <span class="n">detector</span><span class="o">.</span><span class="n">prepare_lstm_data</span><span class="p">(</span><span class="n">X_te_np</span><span class="p">,</span> <span class="n">y_te_np</span><span class="p">,</span> <span class="n">seq_length</span><span class="p">)</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="s2">"=== Modeller Değerlendiriliyor ==="</span><span class="p">)</span>
 <span class="n">detector</span><span class="o">.</span><span class="n">evaluate_model</span><span class="p">(</span><span class="s1">'RandomForest'</span><span class="p">,</span> <span class="n">X_test</span><span class="p">,</span> <span class="n">y_test</span><span class="p">)</span>
 <span class="n">detector</span><span class="o">.</span><span class="n">evaluate_model</span><span class="p">(</span><span class="s1">'XGBoost'</span><span class="p">,</span> <span class="n">X_test</span><span class="p">,</span> <span class="n">y_test</span><span class="p">)</span>
 <span class="n">detector</span><span class="o">.</span><span class="n">evaluate_model</span><span class="p">(</span><span class="s1">'SVM'</span><span class="p">,</span> <span class="n">X_test</span><span class="p">,</span> <span class="n">y_test</span><span class="p">)</span>
-<span class="n">detector</span><span class="o">.</span><span class="n">evaluate_model</span><span class="p">(</span><span class="s1">'LSTM'</span><span class="p">,</span> <span class="n">X_test_seq</span><span class="p">,</span> <span class="n">y_test_seq</span><span class="p">)</span> <span class="c1"># LSTM için özel sekans matrisi ve etiketleri</span>
+<span class="n">detector</span><span class="o">.</span><span class="n">evaluate_model</span><span class="p">(</span><span class="s1">'LSTM'</span><span class="p">,</span> <span class="n">X_test_seq</span><span class="p">,</span> <span class="n">y_test_seq</span><span class="p">)</span>
 
-<span class="c1"># Sonuçları Tabloya Dök</span>
 <span class="n">results_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">detector</span><span class="o">.</span><span class="n">metrics</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
 <span class="n">display</span><span class="p">(</span><span class="n">results_df</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">background_gradient</span><span class="p">(</span><span class="n">cmap</span><span class="o">=</span><span class="s1">'Blues'</span><span class="p">))</span>
 </pre></div>
@@ -7815,7 +7805,7 @@ a.anchor-link {
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=f337fd94">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=4b018e7c">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7823,7 +7813,7 @@ a.anchor-link {
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-python"><pre><span></span><span class="k">def</span> <span class="nf">plot_confusion_matrices</span><span class="p">(</span><span class="n">detector</span><span class="p">,</span> <span class="n">X_test</span><span class="p">,</span> <span class="n">y_test</span><span class="p">,</span> <span class="n">X_test_seq</span><span class="p">,</span> <span class="n">y_test_seq</span><span class="p">):</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="k">def</span> <span class="nf">plot_confusion_matrices</span><span class="p">(</span><span class="n">detector</span><span class="p">,</span> <span class="n">X_test</span><span class="p">,</span> <span class="n">y_test</span><span class="p">,</span> <span class="n">X_test_seq</span><span class="p">,</span> <span class="n">y_test_seq</span><span class="p">):</span>
     <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
     <span class="n">axes</span> <span class="o">=</span> <span class="n">axes</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
     
@@ -7837,8 +7827,7 @@ a.anchor-link {
             <span class="n">y_pred</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>
             <span class="n">y_true</span> <span class="o">=</span> <span class="n">y_test</span>
             
-        <span class="n">cm</span> <span class="o">=</span> <span class="n">confusion_matrix</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="s1">'true'</span><span class="p">)</span> <span class="c1"># Yüzdelik Oran (Recall bazlı)</span>
-        
+        <span class="n">cm</span> <span class="o">=</span> <span class="n">confusion_matrix</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="s1">'true'</span><span class="p">)</span>
         <span class="n">sns</span><span class="o">.</span><span class="n">heatmap</span><span class="p">(</span><span class="n">cm</span><span class="p">,</span> <span class="n">annot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s1">'.2%'</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">'Reds'</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> 
                     <span class="n">xticklabels</span><span class="o">=</span><span class="p">[</span><span class="s1">'Normal'</span><span class="p">,</span> <span class="s1">'Anomali'</span><span class="p">],</span> <span class="n">yticklabels</span><span class="o">=</span><span class="p">[</span><span class="s1">'Normal'</span><span class="p">,</span> <span class="s1">'Anomali'</span><span class="p">])</span>
         <span class="n">axes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">model_name</span><span class="si">}</span><span class="s1"> Confusion Matrix (Normalized)'</span><span class="p">)</span>
@@ -7855,18 +7844,18 @@ a.anchor-link {
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=e9b82ea3">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=e409660f">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <hr/>
-<h2 id="%F0%9F%94%8D-B%C3%B6l%C3%BCm-6:-ROC-ve-Precision-Recall-E%C4%9Frileri">🔍 Bölüm 6: ROC ve Precision-Recall Eğrileri<a class="anchor-link" href="#%F0%9F%94%8D-B%C3%B6l%C3%BCm-6:-ROC-ve-Precision-Recall-E%C4%9Frileri">¶</a></h2>
+<h2 id="%F0%9F%92%BE-B%C3%B6l%C3%BCm-6:-Kaydetme">💾 Bölüm 6: Kaydetme<a class="anchor-link" href="#%F0%9F%92%BE-B%C3%B6l%C3%BCm-6:-Kaydetme">¶</a></h2>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=b1d48274">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=72054763">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7874,84 +7863,28 @@ a.anchor-link {
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-python"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
-
-<span class="k">for</span> <span class="n">model_name</span><span class="p">,</span> <span class="n">model</span> <span class="ow">in</span> <span class="n">detector</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-    <span class="k">if</span> <span class="n">model_name</span> <span class="o">==</span> <span class="s1">'LSTM'</span><span class="p">:</span>
-        <span class="n">y_prob</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X_test_seq</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
-        <span class="n">y_true</span> <span class="o">=</span> <span class="n">y_test_seq</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">"predict_proba"</span><span class="p">):</span>
-            <span class="n">y_prob</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="n">X_test</span><span class="p">)[:,</span> <span class="mi">1</span><span class="p">]</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">y_prob</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">decision_function</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>
-        <span class="n">y_true</span> <span class="o">=</span> <span class="n">y_test</span>
-        
-    <span class="n">fpr</span><span class="p">,</span> <span class="n">tpr</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">roc_curve</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_prob</span><span class="p">)</span>
-    <span class="n">roc_auc</span> <span class="o">=</span> <span class="n">auc</span><span class="p">(</span><span class="n">fpr</span><span class="p">,</span> <span class="n">tpr</span><span class="p">)</span>
-    
-    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">fpr</span><span class="p">,</span> <span class="n">tpr</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">model_name</span><span class="si">}</span><span class="s1"> (AUC = </span><span class="si">{</span><span class="n">roc_auc</span><span class="si">:</span><span class="s1">.3f</span><span class="si">}</span><span class="s1">)'</span><span class="p">)</span>
-
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s1">'gray'</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">'--'</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.05</span><span class="p">])</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">'False Positive Rate (Yanlış Alarm)'</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">'True Positive Rate (Yakalanan Anomali)'</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">'ROC Eğrisi Karşılaştırması'</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s2">"lower right"</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
-</pre></div>
-</div>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=68d4bbd1">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
-</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<hr/>
-<h2 id="%F0%9F%92%BE-B%C3%B6l%C3%BCm-7:-Modeli-ve-Metrikleri-Kaydetme">💾 Bölüm 7: Modeli ve Metrikleri Kaydetme<a class="anchor-link" href="#%F0%9F%92%BE-B%C3%B6l%C3%BCm-7:-Modeli-ve-Metrikleri-Kaydetme">¶</a></h2>
-</div>
-</div>
-</div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=69a4c488">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
-<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-python"><pre><span></span><span class="c1"># Modelleri kaydet</span>
-<span class="n">detector</span><span class="o">.</span><span class="n">save_model</span><span class="p">(</span><span class="s1">'RandomForest'</span><span class="p">,</span> <span class="s1">'../models/rf_model.joblib'</span><span class="p">)</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="n">detector</span><span class="o">.</span><span class="n">save_model</span><span class="p">(</span><span class="s1">'RandomForest'</span><span class="p">,</span> <span class="s1">'../models/rf_model.joblib'</span><span class="p">)</span>
 <span class="n">detector</span><span class="o">.</span><span class="n">save_model</span><span class="p">(</span><span class="s1">'XGBoost'</span><span class="p">,</span> <span class="s1">'../models/xgb_model.joblib'</span><span class="p">)</span>
 <span class="n">detector</span><span class="o">.</span><span class="n">save_model</span><span class="p">(</span><span class="s1">'SVM'</span><span class="p">,</span> <span class="s1">'../models/svm_model.joblib'</span><span class="p">)</span>
-<span class="c1"># detector.save_model('LSTM', '../models/lstm_model.h5') # Tensorflow h5 formatında</span>
-
-<span class="c1"># Metrikleri JSON'a yaz</span>
 <span class="n">detector</span><span class="o">.</span><span class="n">save_metadata</span><span class="p">(</span><span class="s1">'../reports/metrics/supervised_metrics.json'</span><span class="p">)</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="s2">"✅ Tüm modeller eğitildi, değerlendirildi ve klasörlere kaydedildi."</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"✅ İşlem Tamam."</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=a7460de5">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=51772f56">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h3 id="7.1-HTML-Rapor-Export">7.1 HTML Rapor Export<a class="anchor-link" href="#7.1-HTML-Rapor-Export">¶</a></h3>
+<h3 id="6.1-HTML-Rapor-Export">6.1 HTML Rapor Export<a class="anchor-link" href="#6.1-HTML-Rapor-Export">¶</a></h3>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=58688d6c">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=e1ffab44">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7959,10 +7892,8 @@ a.anchor-link {
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-python"><pre><span></span><span class="c1"># HTML Rapor Olusturma</span>
-<span class="o">%</span><span class="n">pip</span> <span class="n">install</span> <span class="n">jupyter</span> <span class="n">nbconvert</span> <span class="o">-</span><span class="n">q</span>
-<span class="err">!</span><span class="n">jupyter</span> <span class="n">nbconvert</span> <span class="o">--</span><span class="n">to</span> <span class="n">html</span> <span class="mi">04</span><span class="n">_model_supervised</span><span class="o">.</span><span class="n">ipynb</span> <span class="o">--</span><span class="n">output</span> <span class="o">../</span><span class="n">reports</span><span class="o">/</span><span class="mi">04</span><span class="n">_model_supervised_rapor</span><span class="o">.</span><span class="n">html</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">"HTML Raporu reports/04_model_supervised_rapor.html konumuna kaydedildi."</span><span class="p">)</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="o">%</span><span class="k">pip</span> install jupyter nbconvert -q
+<span class="o">!</span>jupyter<span class="w"> </span>nbconvert<span class="w"> </span>--to<span class="w"> </span>html<span class="w"> </span>04_model_supervised.ipynb<span class="w"> </span>--output<span class="w"> </span>../reports/04_model_supervised_rapor.html
 </pre></div>
 </div>
 </div>

@@ -139,31 +139,20 @@ class SupervisedAnomalyDetector:
         self.models['XGBoost'] = model
         return model
 
-    def prepare_lstm_data(self, X: np.ndarray, y: np.ndarray, seq_len: int) -> Tuple[np.ndarray, np.ndarray]:
-        """Zaman serisini LSTM için 3 boyutlu (samples, time_steps, features) formata dönüştürür."""
-        X_seq, y_seq = [], []
-        for i in range(len(X) - seq_len):
-            X_seq.append(X[i:(i + seq_len)])
-            y_seq.append(y[i + seq_len])
-        return np.array(X_seq), np.array(y_seq)
-
-    def train_lstm(self, X_train: np.ndarray, y_train: np.ndarray, X_val: np.ndarray, y_val: np.ndarray, 
-                   seq_len: int = 60, epochs: int = 50, batch_size: int = 64):
-        """LSTM Derin Öğrenme modelini eğitir."""
+    def train_mlp(self, X_train: np.ndarray, y_train: np.ndarray, X_val: np.ndarray, y_val: np.ndarray, 
+                   epochs: int = 50, batch_size: int = 64):
+        """Derin Öğrenme (MLP) modelini eğitir."""
         if Sequential is None:
             raise ImportError("TensorFlow/Keras bulunamadı.")
             
-        print("🧠 LSTM eğitiliyor...")
+        print("🧠 MLP eğitiliyor...")
         
-        X_train_seq, y_train_seq = self.prepare_lstm_data(X_train, y_train, seq_len)
-        X_val_seq, y_val_seq = self.prepare_lstm_data(X_val, y_val, seq_len)
-
         model = Sequential([
-            LSTM(64, return_sequences=True, input_shape=(seq_len, X_train_seq.shape[2])),
+            Dense(128, activation='relu', input_shape=(X_train.shape[1],)),
+            Dropout(0.3),
+            Dense(64, activation='relu'),
             Dropout(0.2),
-            LSTM(32),
-            Dropout(0.2),
-            Dense(16, activation='relu'),
+            Dense(32, activation='relu'),
             Dense(1, activation='sigmoid')
         ])
 
@@ -172,15 +161,15 @@ class SupervisedAnomalyDetector:
         early_stop = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
         
         history = model.fit(
-            X_train_seq, y_train_seq,
-            validation_data=(X_val_seq, y_val_seq),
+            X_train, y_train,
+            validation_data=(X_val, y_val),
             epochs=epochs,
             batch_size=batch_size,
             callbacks=[early_stop],
             verbose=1
         )
         
-        self.models['LSTM'] = model
+        self.models['MLP'] = model
         return model, history
 
     def evaluate_model(self, name: str, X_test: np.ndarray, y_test: np.ndarray, threshold: float = 0.5) -> Dict[str, float]:
@@ -190,8 +179,8 @@ class SupervisedAnomalyDetector:
             
         model = self.models[name]
         
-        # LSTM prediction şekli farklıdır
-        if name == 'LSTM':
+        # MLP prediction şekli farklıdır
+        if name == 'MLP':
             y_pred_prob = model.predict(X_test).flatten()
         elif hasattr(model, "predict_proba"):
             y_pred_prob = model.predict_proba(X_test)[:, 1]
@@ -228,10 +217,7 @@ class SupervisedAnomalyDetector:
     def evaluate_all(self, X_test: np.ndarray, y_test: np.ndarray) -> pd.DataFrame:
         """Kayıtlı tüm modelleri değerlendirip tablo olarak döndürür."""
         for name in self.models.keys():
-            # LSTM için özel veri hazırlığı gerekir, bu metodda LSTM hariç tutulur veya
-            # parametreler dışarıdan önceden hazırlanmış sekilde verilebilir.
-            if name != 'LSTM':
-                self.evaluate_model(name, X_test, y_test)
+            self.evaluate_model(name, X_test, y_test)
                 
         df_metrics = pd.DataFrame(self.metrics).T
         if not df_metrics.empty:
@@ -244,7 +230,7 @@ class SupervisedAnomalyDetector:
             raise ValueError(f"Model bulunamadı: {name}")
             
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
-        if name == 'LSTM':
+        if name == 'MLP':
             self.models[name].save(filepath)
         else:
             joblib.dump(self.models[name], filepath)

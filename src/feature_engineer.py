@@ -267,6 +267,35 @@ class ReactionWheelFeatureEngineer:
         
         return work_df[final_cols], feature_cols
 
+    def extract_segment_features(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Zaman serisini segment (olay) bazlı gruplayarak her olay için
+        tek satırlık özet özellikler (RMS, Peak-to-Peak vb.) çıkarır.
+        """
+        print("Segment bazlı istatistikler ve sinyal özellikleri çıkarılıyor...")
+        
+        def calculate_segment_stats(group):
+            val = group['value'].values
+            
+            rms = np.sqrt(np.mean(val**2)) if len(val) > 0 else 0
+            p2p = np.ptp(val) if len(val) > 0 else 0
+            crest_factor = (np.max(np.abs(val)) / rms) if rms > 0 else 0
+            
+            # Zero crossing rate
+            zcr = np.sum(np.diff(np.sign(val)) != 0) / len(val) if len(val) > 1 else 0
+            
+            return pd.Series({
+                'custom_rms': rms,
+                'custom_p2p': p2p,
+                'custom_crest_factor': crest_factor,
+                'custom_zcr': zcr,
+                'anomaly': group['anomaly'].iloc[0],
+                'channel': group['channel'].iloc[0]
+            })
+            
+        segment_features = df.groupby('segment').apply(calculate_segment_stats).reset_index()
+        return segment_features
+
     def transform(self, df: pd.DataFrame, columns: List[str], target_col: Optional[str] = 'anomaly', fit: bool = True) -> pd.DataFrame:
         """
         Tüm özellik mühendisliği aşamalarını (Time, Freq, Physical, Multi, Lag, Select)
