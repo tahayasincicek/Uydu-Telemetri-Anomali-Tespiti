@@ -1,210 +1,273 @@
 """
-Veri Ön İşleme Modülü
-======================
+Veri Ön İşleme Modülü (Time Series Preprocessing)
+==================================================
 
-Uydu telemetri verilerinin temizlenmesi, dönüştürülmesi ve
-model eğitimine hazırlanması işlemlerini gerçekleştirir.
+Zaman serisi telemetri verilerinin temizlenmesi, gürültüden arındırılması,
+aykırı değerlerin tespiti, eksik verilerin doldurulması ve model eğitimi
+için ölçeklendirilmesi işlemlerini gerçekleştirir.
 """
 
-import pandas as pd
+import os
+import json
+import joblib
 import numpy as np
-from typing import Optional, List, Tuple
-from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
-from sklearn.impute import SimpleImputer, KNNImputer
+import pandas as pd
+from typing import Optional, List, Dict, Tuple, Union
+from scipy import signal
+from sklearn.preprocessing import MinMaxScaler, StandardScaler, RobustScaler
+from sklearn.impute import KNNImputer
 
 
-class TelemetryPreprocessor:
+class TelemetriPreprocessor:
     """
-    Uydu telemetri verilerini ön işleme tabi tutan sınıf.
+    Zaman serisi uydu telemetri verileri için özel ön işleme sınıfı.
 
-    İşlem adımları:
-        1. Eksik veri doldurma
-        2. Aykırı değer tespiti ve işleme
-        3. Normalizasyon / Standartlaştırma
-        4. Zaman damgası işleme
-
-    Attributes:
-        scaler: Kullanılan ölçeklendirici.
-        imputer: Kullanılan eksik veri doldurma yöntemi.
+    Özellikler:
+        - Eksik veri doldurma (Forward fill, Interpolation, KNN)
+        - Gürültü temizleme (Savitzky-Golay, Butterworth, Median)
+        - Aykırı değer (Outlier) tespiti ve işleme (IQR, Z-score, Modified Z-score)
+        - Normalizasyon (RobustScaler, StandardScaler, MinMaxScaler)
+        - Parametre ve metrik takibi (Metadata export)
     """
 
-    def __init__(
-        self,
-        scaling_method: str = "standard",
-        impute_method: str = "median",
-        outlier_method: str = "iqr",
-    ):
+    def __init__(self,
+                 impute_method: str = "linear",
+                 filter_method: Optional[str] = "savgol",
+                 outlier_method: str = "iqr",
+                 scaling_method: str = "robust",
+                 window_length: int = 51,
+                 polyorder: int = 3,
+                 outlier_threshold: float = 3.5):
         """
         Args:
-            scaling_method (str): Ölçeklendirme yöntemi
-                ('standard', 'minmax', 'robust').
-            impute_method (str): Eksik veri doldurma yöntemi
-                ('mean', 'median', 'knn', 'forward_fill').
-            outlier_method (str): Aykırı değer tespiti yöntemi
-                ('iqr', 'zscore', 'isolation_forest').
+            impute_method (str): Eksik veri yöntemi ('ffill', 'linear', 'spline', 'knn').
+            filter_method (str): Gürültü filtresi ('savgol', 'butterworth', 'median', None).
+            outlier_method (str): Aykırı değer tespit yöntemi ('iqr', 'zscore', 'mod_zscore').
+            scaling_method (str): Ölçeklendirme ('robust', 'standard', 'minmax').
+            window_length (int): Filtreler için pencere boyutu (tek sayı olmalı).
+            polyorder (int): Savitzky-Golay filtresi polinom derecesi.
+            outlier_threshold (float): Z-score ve modified Z-score eşik değeri.
         """
-        self.scaling_method = scaling_method
         self.impute_method = impute_method
+        self.filter_method = filter_method
         self.outlier_method = outlier_method
+        self.scaling_method = scaling_method
+        self.window_length = window_length if window_length % 2 != 0 else window_length + 1
+        self.polyorder = polyorder
+        self.outlier_threshold = outlier_threshold
+
         self.scaler = None
-        self.imputer = None
         self.is_fitted = False
+        self.numeric_columns = []
+        self.metadata: Dict[str, Any] = {
+            "impute_method": impute_method,
+            "filter_method": filter_method,
+            "outlier_method": outlier_method,
+            "scaling_method": scaling_method,
+            "outliers_detected": {},
+            "missing_filled": 0
+        }
 
         self._init_scaler()
-        self._init_imputer()
 
     def _init_scaler(self):
-        """Ölçeklendiriciyi başlatır."""
+        """Seçilen ölçeklendirme yöntemini başlatır."""
         scalers = {
-            "standard": StandardScaler(),
-            "minmax": MinMaxScaler(),
             "robust": RobustScaler(),
+            "standard": StandardScaler(),
+            "minmax": MinMaxScaler()
         }
         self.scaler = scalers.get(self.scaling_method)
         if self.scaler is None:
             raise ValueError(f"Geçersiz ölçeklendirme yöntemi: {self.scaling_method}")
 
-    def _init_imputer(self):
-        """Eksik veri doldurucu başlatır."""
-        if self.impute_method == "knn":
-            self.imputer = KNNImputer(n_neighbors=5)
-        elif self.impute_method in ["mean", "median"]:
-            self.imputer = SimpleImputer(strategy=self.impute_method)
-        elif self.impute_method == "forward_fill":
-            self.imputer = None  # pandas ffill kullanılacak
-        else:
-            raise ValueError(f"Geçersiz doldurma yöntemi: {self.impute_method}")
-
-    def fit(self, data: pd.DataFrame, numeric_columns: Optional[List[str]] = None):
+    def fit(self, data: pd.DataFrame, numeric_columns: Optional[List[str]] = None) -> 'TelemetriPreprocessor':
         """
-        Ön işleme parametrelerini veriye göre öğrenir.
+        Ölçeklendiriciyi eğitir.
 
         Args:
-            data (pd.DataFrame): Eğitim verisi.
-            numeric_columns (list, optional): Sayısal sütunlar.
+            data (pd.DataFrame): Eğitim verisi (Eksik veri ve outlier işlendikten sonra çağrılmalı).
+            numeric_columns (list): Sayısal sütun adları.
+
+        Returns:
+            self
         """
         if numeric_columns is None:
             numeric_columns = data.select_dtypes(include=[np.number]).columns.tolist()
+            # Hedef değişkenleri (label, anomaly) ve kategorik verileri çıkar
+            exclude_cols = ['anomaly', 'label', 'segment', 'train']
+            self.numeric_columns = [col for col in numeric_columns if col not in exclude_cols]
+        else:
+            self.numeric_columns = numeric_columns
 
-        self.numeric_columns = numeric_columns
-
-        # Imputer fit
-        if self.imputer is not None:
-            self.imputer.fit(data[numeric_columns])
-
-        # Scaler fit
-        self.scaler.fit(data[numeric_columns])
-
+        self.scaler.fit(data[self.numeric_columns])
         self.is_fitted = True
-        print("✅ Preprocessor fit işlemi tamamlandı.")
+        return self
 
     def transform(self, data: pd.DataFrame) -> pd.DataFrame:
         """
-        Veriye ön işleme uygular.
+        Eksik veri doldurma, filtreleme, aykırı değer kırpma ve ölçeklendirme
+        adımlarını veriye uygular.
 
         Args:
             data (pd.DataFrame): Dönüştürülecek veri.
 
         Returns:
-            pd.DataFrame: Ön işlenmiş veri.
+            pd.DataFrame: İşlenmiş veri.
         """
-        if not self.is_fitted:
-            raise RuntimeError("Önce fit() çağırılmalı.")
-
         df = data.copy()
 
-        # Eksik veri doldurma
-        df = self._handle_missing(df)
+        # 1. Eksik Veri Doldurma
+        df = self._impute_missing(df)
 
-        # Aykırı değer işleme
+        # 2. Gürültü Temizleme
+        if self.filter_method is not None:
+            df = self._apply_filter(df)
+
+        # 3. Aykırı Değer İşleme (Kırpma - Clipping)
         df = self._handle_outliers(df)
 
-        # Ölçeklendirme
+        # 4. Ölçeklendirme
+        if not self.is_fitted:
+            raise RuntimeError("Ölçeklendirme için önce fit() çağrılmalı!")
+        
         df[self.numeric_columns] = self.scaler.transform(df[self.numeric_columns])
-
-        print("✅ Veri dönüşümü tamamlandı.")
+        
         return df
 
-    def fit_transform(self, data: pd.DataFrame, **kwargs) -> pd.DataFrame:
-        """Fit ve transform işlemlerini sırasıyla uygular."""
-        self.fit(data, **kwargs)
-        return self.transform(data)
-
-    def _handle_missing(self, data: pd.DataFrame) -> pd.DataFrame:
-        """Eksik verileri doldurur."""
+    def fit_transform(self, data: pd.DataFrame, numeric_columns: Optional[List[str]] = None) -> pd.DataFrame:
+        """Fit ve transform adımlarını sırasıyla uygular."""
         df = data.copy()
+        
+        # Sayısal sütunları belirle
+        if numeric_columns is None:
+            numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+            exclude_cols = ['anomaly', 'label', 'segment', 'train']
+            self.numeric_columns = [col for col in numeric_cols if col not in exclude_cols]
+        else:
+            self.numeric_columns = numeric_columns
 
-        if self.impute_method == "forward_fill":
+        # Önce veri hazırlığı (Fit'in sağlıklı olması için)
+        df = self._impute_missing(df)
+        if self.filter_method is not None:
+            df = self._apply_filter(df)
+        df = self._handle_outliers(df)
+
+        # Scaler fit
+        self.fit(df, self.numeric_columns)
+        
+        # Scaler transform
+        df[self.numeric_columns] = self.scaler.transform(df[self.numeric_columns])
+        
+        return df
+
+    def _impute_missing(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Eksik verileri seçilen yöntemle doldurur."""
+        missing_count = df[self.numeric_columns].isnull().sum().sum()
+        self.metadata["missing_filled"] += int(missing_count)
+
+        if missing_count == 0:
+            return df
+
+        if self.impute_method == 'ffill':
             df[self.numeric_columns] = df[self.numeric_columns].ffill().bfill()
-        elif self.imputer is not None:
-            df[self.numeric_columns] = self.imputer.transform(
-                df[self.numeric_columns]
-            )
-
-        remaining = df[self.numeric_columns].isnull().sum().sum()
-        if remaining > 0:
-            print(f"⚠️  {remaining} eksik değer hâlâ mevcut.")
-
+        elif self.impute_method == 'linear':
+            df[self.numeric_columns] = df[self.numeric_columns].interpolate(method='linear').bfill()
+        elif self.impute_method == 'spline':
+            df[self.numeric_columns] = df[self.numeric_columns].interpolate(method='spline', order=3).bfill()
+        elif self.impute_method == 'knn':
+            imputer = KNNImputer(n_neighbors=5)
+            df[self.numeric_columns] = imputer.fit_transform(df[self.numeric_columns])
+        else:
+            raise ValueError(f"Geçersiz doldurma yöntemi: {self.impute_method}")
+            
         return df
 
-    def _handle_outliers(
-        self, data: pd.DataFrame, threshold: float = 1.5
-    ) -> pd.DataFrame:
-        """
-        Aykırı değerleri tespit edip kırpar (clip).
+    def _apply_filter(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Zaman serisine sinyal filtresi uygular (sadece sürekli sayısal verilere)."""
+        for col in self.numeric_columns:
+            if self.filter_method == 'savgol':
+                df[col] = signal.savgol_filter(df[col], self.window_length, self.polyorder)
+            elif self.filter_method == 'median':
+                df[col] = signal.medfilt(df[col], kernel_size=self.window_length)
+            elif self.filter_method == 'butterworth':
+                # Basit bir low-pass filter
+                b, a = signal.butter(4, 0.2, 'lowpass')
+                df[col] = signal.filtfilt(b, a, df[col])
+        return df
 
-        Args:
-            data (pd.DataFrame): Veri.
-            threshold (float): IQR çarpanı (varsayılan 1.5).
-
-        Returns:
-            pd.DataFrame: Aykırı değerleri kırpılmış veri.
-        """
-        df = data.copy()
-
-        if self.outlier_method == "iqr":
-            for col in self.numeric_columns:
+    def _handle_outliers(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Aykırı değerleri tespit eder ve üst/alt sınırlarla kırpar (clip)."""
+        for col in self.numeric_columns:
+            if self.outlier_method == 'iqr':
                 Q1 = df[col].quantile(0.25)
                 Q3 = df[col].quantile(0.75)
                 IQR = Q3 - Q1
-                lower = Q1 - threshold * IQR
-                upper = Q3 + threshold * IQR
-                df[col] = df[col].clip(lower=lower, upper=upper)
-
-        elif self.outlier_method == "zscore":
-            for col in self.numeric_columns:
+                lower_bound = Q1 - 1.5 * IQR
+                upper_bound = Q3 + 1.5 * IQR
+                
+            elif self.outlier_method == 'zscore':
                 mean = df[col].mean()
                 std = df[col].std()
-                lower = mean - 3 * std
-                upper = mean + 3 * std
-                df[col] = df[col].clip(lower=lower, upper=upper)
+                lower_bound = mean - self.outlier_threshold * std
+                upper_bound = mean + self.outlier_threshold * std
+                
+            elif self.outlier_method == 'mod_zscore':
+                median = df[col].median()
+                mad = np.median(np.abs(df[col] - median))
+                if mad == 0: mad = 1e-6
+                # modified_z = 0.6745 * (x - median) / mad
+                # x = (modified_z * mad / 0.6745) + median
+                margin = (self.outlier_threshold * mad) / 0.6745
+                lower_bound = median - margin
+                upper_bound = median + margin
 
+            # Outlier sayısını kaydet
+            outliers_count = ((df[col] < lower_bound) | (df[col] > upper_bound)).sum()
+            self.metadata["outliers_detected"][col] = int(outliers_count)
+            
+            # Değerleri kırp (clipping)
+            df[col] = df[col].clip(lower=lower_bound, upper=upper_bound)
+            
         return df
 
-    @staticmethod
-    def parse_timestamps(
-        data: pd.DataFrame, timestamp_col: str = "timestamp"
-    ) -> pd.DataFrame:
-        """
-        Zaman damgası sütununu ayrıştırır ve ek özellikler çıkarır.
+    def save_scaler(self, filepath: str):
+        """Eğitilmiş scaler objesini kaydeder."""
+        if not self.is_fitted:
+            raise RuntimeError("Kaydedilecek eğitilmiş bir scaler yok!")
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        joblib.dump(self.scaler, filepath)
+        print(f"✅ Scaler {filepath} konumuna kaydedildi.")
 
-        Args:
-            data (pd.DataFrame): Veri.
-            timestamp_col (str): Zaman damgası sütun adı.
+    def load_scaler(self, filepath: str):
+        """Daha önceden kaydedilmiş scaler objesini yükler."""
+        if not os.path.exists(filepath):
+            raise FileNotFoundError(f"Dosya bulunamadı: {filepath}")
+        self.scaler = joblib.load(filepath)
+        self.is_fitted = True
+        print(f"✅ Scaler {filepath} konumundan yüklendi.")
 
-        Returns:
-            pd.DataFrame: Zaman özellikleri eklenmiş veri.
-        """
-        df = data.copy()
-
-        if timestamp_col in df.columns:
-            df[timestamp_col] = pd.to_datetime(df[timestamp_col])
-            df["saat"] = df[timestamp_col].dt.hour
-            df["gun"] = df[timestamp_col].dt.day
-            df["hafta_gunu"] = df[timestamp_col].dt.dayofweek
-            df["ay"] = df[timestamp_col].dt.month
-            print("✅ Zaman damgası özellikleri çıkarıldı.")
-        else:
-            print(f"⚠️  '{timestamp_col}' sütunu bulunamadı.")
-
-        return df
+    def generate_report(self, filepath: Optional[str] = None) -> Dict:
+        """Uygulanan ön işleme adımlarının özetini JSON formatında döndürür ve kaydeder."""
+        report = {
+            "class": self.__class__.__name__,
+            "is_fitted": self.is_fitted,
+            "parameters": {
+                "impute_method": self.impute_method,
+                "filter_method": self.filter_method,
+                "outlier_method": self.outlier_method,
+                "scaling_method": self.scaling_method,
+                "window_length": self.window_length,
+                "polyorder": self.polyorder,
+                "outlier_threshold": self.outlier_threshold
+            },
+            "stats": self.metadata
+        }
+        
+        if filepath:
+            os.makedirs(os.path.dirname(filepath), exist_ok=True)
+            with open(filepath, 'w', encoding='utf-8') as f:
+                json.dump(report, f, indent=4, ensure_ascii=False)
+            print(f"📝 Ön işleme raporu kaydedildi: {filepath}")
+            
+        return report
