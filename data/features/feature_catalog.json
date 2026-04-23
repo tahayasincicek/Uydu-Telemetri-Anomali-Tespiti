@@ -1,0 +1,34 @@
+{
+    "feature_count": 13,
+    "features_list": [
+        "sampling",
+        "value_roll_skew_30",
+        "value_roll_kurt_30",
+        "value_crest_30",
+        "value_roll_skew_60",
+        "value_roll_kurt_60",
+        "value_crest_60",
+        "value_roll_skew_120",
+        "value_roll_kurt_120",
+        "value_crest_120",
+        "value_zcr_30",
+        "value_zcr_60",
+        "value_zcr_120"
+    ],
+    "dropped_correlated": [],
+    "parameters_used": {
+        "rolling_windows": [
+            30,
+            60,
+            120
+        ],
+        "lags": [
+            1,
+            5,
+            10,
+            30,
+            60
+        ],
+        "pca_components": 3
+    }
+}
