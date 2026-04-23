@@ -1,0 +1,1 @@
+# Uydu-Telemetri-Anomali-Tespiti
