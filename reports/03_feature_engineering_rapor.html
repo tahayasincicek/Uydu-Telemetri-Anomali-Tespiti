@@ -7510,17 +7510,17 @@ a.anchor-link {
 <!-- End of mermaid configuration --></head>
 <body class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
 <main>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=43a99e9c">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=46e73d6e">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h1 id="%E2%9A%99%EF%B8%8F-03---%C3%96zellik-M%C3%BChendisli%C4%9Fi-(Feature-Engineering)">⚙️ 03 - Özellik Mühendisliği (Feature Engineering)<a class="anchor-link" href="#%E2%9A%99%EF%B8%8F-03---%C3%96zellik-M%C3%BChendisli%C4%9Fi-(Feature-Engineering)">¶</a></h1><h2 id="Uydu-Telemetri-Anomali-Tespiti">Uydu Telemetri Anomali Tespiti<a class="anchor-link" href="#Uydu-Telemetri-Anomali-Tespiti">¶</a></h2><p><strong>Amaç:</strong> Ön işleme adımında temizlenen ham segment verilerinden (tüm kanallar dahil) makine öğrenmesi modelleri için zaman alanı, gecikmeli ve türevsel özellikler çıkarmak.</p>
+<h1 id="%E2%9A%99%EF%B8%8F-03---%C3%96zellik-M%C3%BChendisli%C4%9Fi-(Segment-Level-Feature-Engineering)">⚙️ 03 - Özellik Mühendisliği (Segment-Level Feature Engineering)<a class="anchor-link" href="#%E2%9A%99%EF%B8%8F-03---%C3%96zellik-M%C3%BChendisli%C4%9Fi-(Segment-Level-Feature-Engineering)">¶</a></h1><h2 id="Uydu-Telemetri-Anomali-Tespiti">Uydu Telemetri Anomali Tespiti<a class="anchor-link" href="#Uydu-Telemetri-Anomali-Tespiti">¶</a></h2><p><strong>Amaç:</strong> Zaman serisindeki saniyelik gürültüleri ortadan kaldırmak için anomali tespitini <strong>Olay (Segment) Bazlı</strong> hale getirmek. ESA'nın orijinal özellik matrisi (<code>dataset.csv</code>) ile kendi ürettiğimiz Sinyal İşleme özelliklerini (RMS, Peak-to-Peak, ZCR) birleştireceğiz.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=72d7c62f">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=c8f34a8b">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7533,8 +7533,6 @@ a.anchor-link {
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 <span class="kn">import</span> <span class="nn">seaborn</span> <span class="k">as</span> <span class="nn">sns</span>
 <span class="kn">import</span> <span class="nn">plotly.express</span> <span class="k">as</span> <span class="nn">px</span>
-<span class="kn">from</span> <span class="nn">plotly.subplots</span> <span class="kn">import</span> <span class="n">make_subplots</span>
-<span class="kn">import</span> <span class="nn">plotly.graph_objects</span> <span class="k">as</span> <span class="nn">go</span>
 <span class="kn">import</span> <span class="nn">json</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
@@ -7552,18 +7550,18 @@ a.anchor-link {
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=997a2008">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=f20ee133">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <hr/>
-<h2 id="%F0%9F%93%A5-Veri-Y%C3%BCkleme">📥 Veri Yükleme<a class="anchor-link" href="#%F0%9F%93%A5-Veri-Y%C3%BCkleme">¶</a></h2>
+<h2 id="%F0%9F%93%A5-Veri-Y%C3%BCkleme-(Raw-Segments-&amp;-Pre-Extracted-Features)">📥 Veri Yükleme (Raw Segments &amp; Pre-Extracted Features)<a class="anchor-link" href="#%F0%9F%93%A5-Veri-Y%C3%BCkleme-(Raw-Segments-&amp;-Pre-Extracted-Features)">¶</a></h2>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=6d3eb8dc">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=4115bf48">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7571,30 +7569,32 @@ a.anchor-link {
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="n">df_segments</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s1">'../data/raw/segments.csv'</span><span class="p">)</span>
-<span class="n">df_segments</span><span class="p">[</span><span class="s1">'timestamp'</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">df_segments</span><span class="p">[</span><span class="s1">'timestamp'</span><span class="p">])</span>
-<span class="n">df_segments</span> <span class="o">=</span> <span class="n">df_segments</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">by</span><span class="o">=</span><span class="p">[</span><span class="s1">'channel'</span><span class="p">,</span> <span class="s1">'timestamp'</span><span class="p">])</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># Orijinal zaman serisi verisini yükle (Özel özellikler çıkarmak için)</span>
+<span class="n">df_segments</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s1">'../data/raw/segments.csv'</span><span class="p">)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">'📊 Yüklenen veri boyutu: </span><span class="si">{</span><span class="n">df_segments</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>
-<span class="n">display</span><span class="p">(</span><span class="n">df_segments</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
+<span class="c1"># ESA tarafından hazırlanan segment-bazlı istatistiksel özellikleri yükle</span>
+<span class="n">df_dataset</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s1">'../data/raw/dataset.csv'</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">'📊 Zaman Serisi (Segments) Boyutu: </span><span class="si">{</span><span class="n">df_segments</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">'📊 Hedef Olay (Dataset) Boyutu: </span><span class="si">{</span><span class="n">df_dataset</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=16afd47f">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=56d8cdeb">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <hr/>
-<h2 id="%F0%9F%9A%80-S%C4%B1n%C4%B1f%C4%B1-Ba%C5%9Flatma-ve-%C3%96zellik-%C3%87%C4%B1kar%C4%B1m%C4%B1-(T%C3%BCm-Kanallar-%C3%9Czerinde)">🚀 Sınıfı Başlatma ve Özellik Çıkarımı (Tüm Kanallar Üzerinde)<a class="anchor-link" href="#%F0%9F%9A%80-S%C4%B1n%C4%B1f%C4%B1-Ba%C5%9Flatma-ve-%C3%96zellik-%C3%87%C4%B1kar%C4%B1m%C4%B1-(T%C3%BCm-Kanallar-%C3%9Czerinde)">¶</a></h2><p>Eskiden sadece 1 kanalı işliyorduk, artık <strong>tüm veri seti</strong> işlenecek.</p>
+<h2 id="%F0%9F%9A%80-Segment-Bazl%C4%B1-%C3%96zel-%C3%96zellik-%C3%87%C4%B1kar%C4%B1m%C4%B1-(Custom-Feature-Extraction)">🚀 Segment Bazlı Özel Özellik Çıkarımı (Custom Feature Extraction)<a class="anchor-link" href="#%F0%9F%9A%80-Segment-Bazl%C4%B1-%C3%96zel-%C3%96zellik-%C3%87%C4%B1kar%C4%B1m%C4%B1-(Custom-Feature-Extraction)">¶</a></h2><p>Her bir olay (segment) için Sinyal İşleme metriklerini hesaplıyoruz.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=ae76e55d">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=8dc83cd3">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7602,45 +7602,69 @@ a.anchor-link {
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="n">telemetry_channels</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'value'</span><span class="p">]</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="n">engineer</span> <span class="o">=</span> <span class="n">ReactionWheelFeatureEngineer</span><span class="p">()</span>
 
-<span class="n">engineer</span> <span class="o">=</span> <span class="n">ReactionWheelFeatureEngineer</span><span class="p">(</span>
-    <span class="n">rolling_windows</span><span class="o">=</span><span class="p">[</span><span class="mi">30</span><span class="p">,</span> <span class="mi">60</span><span class="p">,</span> <span class="mi">120</span><span class="p">],</span>
-    <span class="n">lags</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">60</span><span class="p">],</span>
-    <span class="n">n_pca_components</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
-    <span class="n">corr_threshold</span><span class="o">=</span><span class="mf">0.95</span>
-<span class="p">)</span>
+<span class="c1"># df_segments üzerinden her segment için RMS, P2P, Crest Factor, ZCR hesapla</span>
+<span class="n">df_custom_features</span> <span class="o">=</span> <span class="n">engineer</span><span class="o">.</span><span class="n">extract_segment_features</span><span class="p">(</span><span class="n">df_segments</span><span class="p">)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"İşlenecek tüm veri boyutu: </span><span class="si">{</span><span class="n">df_segments</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'</span><span class="se">\n</span><span class="s1">=== Üretilen Özel Özelliklerin İlk 5 Satırı ==='</span><span class="p">)</span>
+<span class="n">display</span><span class="p">(</span><span class="n">df_custom_features</span><span class="o">.</span><span class="n">head</span><span class="p">())</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=832a025a">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<hr/>
+<h2 id="%F0%9F%94%84-%C3%96zellik-Birle%C5%9Ftirme-(Data-Merging)">🔄 Özellik Birleştirme (Data Merging)<a class="anchor-link" href="#%F0%9F%94%84-%C3%96zellik-Birle%C5%9Ftirme-(Data-Merging)">¶</a></h2><p>ESA'nın sağladığı <code>mean</code>, <code>var</code>, <code>skew</code> gibi istatistiksel özelliklerle, bizim ürettiğimiz <code>custom_rms</code>, <code>custom_zcr</code> gibi Sinyal özelliklerini birleştiriyoruz.</p>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=ba1fd183">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># Dataset ile Custom özelliklerimizi 'segment' sütunu üzerinden birleştiriyoruz</span>
+<span class="c1"># İki tabloda da 'anomaly' ve 'channel' var, çakışmayı önlemek için drop ediyoruz</span>
+<span class="n">df_custom_features</span> <span class="o">=</span> <span class="n">df_custom_features</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">'anomaly'</span><span class="p">,</span> <span class="s1">'channel'</span><span class="p">])</span>
 
-<span class="c1"># Tüm veriyi işle</span>
-<span class="n">df_features</span> <span class="o">=</span> <span class="n">engineer</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">df_segments</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">telemetry_channels</span><span class="p">,</span> <span class="n">target_col</span><span class="o">=</span><span class="s1">'anomaly'</span><span class="p">,</span> <span class="n">fit</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">df_final</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">df_dataset</span><span class="p">,</span> <span class="n">df_custom_features</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s1">'segment'</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">'inner'</span><span class="p">)</span>
 
 <span class="c1"># Kanal (Sensör) adlarını modellerin anlayabilmesi için sayısal ID'lere çevirelim</span>
 <span class="kn">from</span> <span class="nn">sklearn.preprocessing</span> <span class="kn">import</span> <span class="n">LabelEncoder</span>
 <span class="n">le</span> <span class="o">=</span> <span class="n">LabelEncoder</span><span class="p">()</span>
-<span class="n">df_features</span><span class="p">[</span><span class="s1">'channel_id'</span><span class="p">]</span> <span class="o">=</span> <span class="n">le</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">df_features</span><span class="p">[</span><span class="s1">'channel'</span><span class="p">])</span>
+<span class="n">df_final</span><span class="p">[</span><span class="s1">'channel_id'</span><span class="p">]</span> <span class="o">=</span> <span class="n">le</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">df_final</span><span class="p">[</span><span class="s1">'channel'</span><span class="p">])</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="s1">'</span><span class="se">\n</span><span class="s1">=== Üretilen Özelliklerin İlk 5 Satırı ==='</span><span class="p">)</span>
-<span class="n">display</span><span class="p">(</span><span class="n">df_features</span><span class="o">.</span><span class="n">head</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"✅ Birleştirilmiş Zengin Veri Seti Boyutu: </span><span class="si">{</span><span class="n">df_final</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="n">display</span><span class="p">(</span><span class="n">df_final</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=4e392d67">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=d0447ddf">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <hr/>
-<h2 id="%F0%9F%93%8A-1.-G%C3%B6rselle%C5%9Ftirme-(Safe-Plotting)">📊 1. Görselleştirme (Safe Plotting)<a class="anchor-link" href="#%F0%9F%93%8A-1.-G%C3%B6rselle%C5%9Ftirme-(Safe-Plotting)">¶</a></h2>
+<h2 id="%F0%9F%92%BE-%C3%96zellik-Matrisini-ve-Katalo%C4%9Fu-Kaydetme">💾 Özellik Matrisini ve Kataloğu Kaydetme<a class="anchor-link" href="#%F0%9F%92%BE-%C3%96zellik-Matrisini-ve-Katalo%C4%9Fu-Kaydetme">¶</a></h2>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=b876a970">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=4377afbd">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7648,76 +7672,35 @@ a.anchor-link {
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="n">time_cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">df_features</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="s1">'roll_mean'</span> <span class="ow">in</span> <span class="n">c</span> <span class="ow">or</span> <span class="s1">'roll_std'</span> <span class="ow">in</span> <span class="n">c</span> <span class="ow">or</span> <span class="s1">'rms'</span> <span class="ow">in</span> <span class="n">c</span><span class="p">]</span>
-
-<span class="n">fig</span> <span class="o">=</span> <span class="n">go</span><span class="o">.</span><span class="n">Figure</span><span class="p">()</span>
-<span class="k">if</span> <span class="s1">'value'</span> <span class="ow">in</span> <span class="n">df_features</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
-    <span class="n">fig</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span><span class="n">go</span><span class="o">.</span><span class="n">Scatter</span><span class="p">(</span><span class="n">y</span><span class="o">=</span><span class="n">df_features</span><span class="p">[</span><span class="s1">'value'</span><span class="p">][:</span><span class="mi">1000</span><span class="p">],</span> <span class="n">mode</span><span class="o">=</span><span class="s1">'lines'</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">'Ham Sinyal'</span><span class="p">,</span> <span class="n">line</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="s1">'gray'</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">1</span><span class="p">)))</span>
-<span class="k">if</span> <span class="s1">'value_roll_mean_60'</span> <span class="ow">in</span> <span class="n">df_features</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
-    <span class="n">fig</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span><span class="n">go</span><span class="o">.</span><span class="n">Scatter</span><span class="p">(</span><span class="n">y</span><span class="o">=</span><span class="n">df_features</span><span class="p">[</span><span class="s1">'value_roll_mean_60'</span><span class="p">][:</span><span class="mi">1000</span><span class="p">],</span> <span class="n">mode</span><span class="o">=</span><span class="s1">'lines'</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">'Rolling Mean (w=60)'</span><span class="p">,</span> <span class="n">line</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="s1">'red'</span><span class="p">)))</span>
-<span class="k">if</span> <span class="s1">'value_rms_60'</span> <span class="ow">in</span> <span class="n">df_features</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
-    <span class="n">fig</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span><span class="n">go</span><span class="o">.</span><span class="n">Scatter</span><span class="p">(</span><span class="n">y</span><span class="o">=</span><span class="n">df_features</span><span class="p">[</span><span class="s1">'value_rms_60'</span><span class="p">][:</span><span class="mi">1000</span><span class="p">],</span> <span class="n">mode</span><span class="o">=</span><span class="s1">'lines'</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">'RMS (w=60)'</span><span class="p">,</span> <span class="n">line</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="s1">'blue'</span><span class="p">)))</span>
-<span class="n">fig</span><span class="o">.</span><span class="n">update_layout</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s1">'Zaman Alanı Özellikleri (Mean ve RMS) - İlk 1000 Örnek'</span><span class="p">,</span> <span class="n">template</span><span class="o">=</span><span class="s1">'plotly_dark'</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">500</span><span class="p">)</span>
-<span class="n">fig</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
-</pre></div>
-</div>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=8a7c9b2e">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
-</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<hr/>
-<h2 id="%F0%9F%92%BE-2.-%C3%96zellik-Matrisini-ve-Katalo%C4%9Fu-Kaydetme">💾 2. Özellik Matrisini ve Kataloğu Kaydetme<a class="anchor-link" href="#%F0%9F%92%BE-2.-%C3%96zellik-Matrisini-ve-Katalo%C4%9Fu-Kaydetme">¶</a></h2>
-</div>
-</div>
-</div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=fdf0c772">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
-<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># Tüm kanalların features matrisini kaydet.</span>
-<span class="n">df_features</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="s1">'../data/features/reaction_wheel_features.parquet'</span><span class="p">)</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># Tüm segmentlerin features matrisini kaydet.</span>
+<span class="n">df_final</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="s1">'../data/features/segment_features.parquet'</span><span class="p">)</span>
 
 <span class="n">catalog</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">"feature_count"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">engineer</span><span class="o">.</span><span class="n">selected_features</span><span class="p">),</span>
-    <span class="s2">"features_list"</span><span class="p">:</span> <span class="n">engineer</span><span class="o">.</span><span class="n">selected_features</span><span class="p">,</span>
-    <span class="s2">"dropped_correlated"</span><span class="p">:</span> <span class="n">engineer</span><span class="o">.</span><span class="n">feature_metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'dropped_correlated'</span><span class="p">,</span> <span class="p">[]),</span>
-    <span class="s2">"parameters_used"</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">"rolling_windows"</span><span class="p">:</span> <span class="n">engineer</span><span class="o">.</span><span class="n">rolling_windows</span><span class="p">,</span>
-        <span class="s2">"lags"</span><span class="p">:</span> <span class="n">engineer</span><span class="o">.</span><span class="n">lags</span><span class="p">,</span>
-        <span class="s2">"pca_components"</span><span class="p">:</span> <span class="n">engineer</span><span class="o">.</span><span class="n">n_pca_components</span>
-    <span class="p">}</span>
+    <span class="s2">"total_segments"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">df_final</span><span class="p">),</span>
+    <span class="s2">"features_list"</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">df_final</span><span class="o">.</span><span class="n">columns</span><span class="p">),</span>
+    <span class="s2">"method"</span><span class="p">:</span> <span class="s2">"Segment-Level Aggregation &amp; Merging"</span>
 <span class="p">}</span>
 <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">'../data/features/feature_catalog.json'</span><span class="p">,</span> <span class="s1">'w'</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">'utf-8'</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
     <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">catalog</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="s1">'✅ Özellik Matrisi ve Katalog başarıyla kaydedildi.'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'✅ Olay Bazlı (Segment-Level) Özellik Matrisi başarıyla kaydedildi.'</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=51beb7b9">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=6d6bb644">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h3 id="3.-HTML-Rapor-Export">3. HTML Rapor Export<a class="anchor-link" href="#3.-HTML-Rapor-Export">¶</a></h3>
+<h3 id="HTML-Rapor-Export">HTML Rapor Export<a class="anchor-link" href="#HTML-Rapor-Export">¶</a></h3>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=56b1f58f">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=3a0dacf3">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
