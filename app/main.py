@@ -205,13 +205,26 @@ elif page == "⚙️ Analiz":
             if not selected:
                 st.error("En az bir model seçin!")
             else:
-                drop_cols = ['segment','anomaly','train','channel']
-                feature_cols = [c for c in df.columns if c not in drop_cols]
+                # Kaydedilmiş feature listesini kullan (eğitimle birebir aynı)
+                test_data_path = os.path.join(ROOT, "models", "test_data.joblib")
+                if os.path.exists(test_data_path):
+                    saved = joblib.load(test_data_path)
+                    feature_cols = saved["feature_cols"]
+                else:
+                    drop_cols = ['segment','anomaly','train','channel']
+                    feature_cols = [c for c in df.columns if c not in drop_cols]
+
+                # Eksik sütunları 0 ile doldur, fazla sütunları çıkar
+                for col in feature_cols:
+                    if col not in df.columns:
+                        df[col] = 0
                 X = df[feature_cols].fillna(0).values
 
                 if scaler is not None:
                     try: X_scaled = scaler.transform(X)
-                    except: X_scaled = X
+                    except Exception as e:
+                        st.warning(f"Scaler uyarısı: {e}. Ham veri kullanılacak.")
+                        X_scaled = X
                 else:
                     X_scaled = X
 
