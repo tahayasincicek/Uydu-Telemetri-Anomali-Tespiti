@@ -7510,17 +7510,17 @@ a.anchor-link {
 <!-- End of mermaid configuration --></head>
 <body class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
 <main>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=489e4701">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=30fb1a45">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h1 id="%F0%9F%8F%86-06---T%C3%BCm-Modellerin-Kar%C5%9F%C4%B1la%C5%9Ft%C4%B1r%C4%B1lmas%C4%B1-ve-Raporlama">🏆 06 - Tüm Modellerin Karşılaştırılması ve Raporlama<a class="anchor-link" href="#%F0%9F%8F%86-06---T%C3%BCm-Modellerin-Kar%C5%9F%C4%B1la%C5%9Ft%C4%B1r%C4%B1lmas%C4%B1-ve-Raporlama">¶</a></h1><h2 id="Uydu-Telemetri-Anomali-Tespiti---Bitirme-Projesi-Nihai-Raporu">Uydu Telemetri Anomali Tespiti - Bitirme Projesi Nihai Raporu<a class="anchor-link" href="#Uydu-Telemetri-Anomali-Tespiti---Bitirme-Projesi-Nihai-Raporu">¶</a></h2><p><strong>Amaç:</strong> Geliştirilen tüm Gözetimli (Supervised) ve Gözetimsiz (Unsupervised) makine öğrenmesi ve derin öğrenme modellerini, gerçek uydu operasyonları bağlamında kapsamlı bir şekilde kıyaslamak, en iyi modeli belirlemek ve proje sunumu için profesyonel görselleştirmeler hazırlamak.</p>
+<h1 id="%F0%9F%8F%86-06---T%C3%BCm-Modellerin-Kar%C5%9F%C4%B1la%C5%9Ft%C4%B1r%C4%B1lmas%C4%B1-ve-Raporlama">🏆 06 - Tüm Modellerin Karşılaştırılması ve Raporlama<a class="anchor-link" href="#%F0%9F%8F%86-06---T%C3%BCm-Modellerin-Kar%C5%9F%C4%B1la%C5%9Ft%C4%B1r%C4%B1lmas%C4%B1-ve-Raporlama">¶</a></h1><h2 id="Uydu-Telemetri-Anomali-Tespiti---Bitirme-Projesi-Nihai-Raporu">Uydu Telemetri Anomali Tespiti - Bitirme Projesi Nihai Raporu<a class="anchor-link" href="#Uydu-Telemetri-Anomali-Tespiti---Bitirme-Projesi-Nihai-Raporu">¶</a></h2><p><strong>Amaç:</strong> Tüm gözetimli ve gözetimsiz modelleri aynı test seti üzerinde kıyaslayarak en iyi modeli belirlemek.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=041e9057">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=20d6cada">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7532,39 +7532,36 @@ a.anchor-link {
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 <span class="kn">import</span> <span class="nn">seaborn</span> <span class="k">as</span> <span class="nn">sns</span>
-<span class="kn">import</span> <span class="nn">plotly.express</span> <span class="k">as</span> <span class="nn">px</span>
 <span class="kn">import</span> <span class="nn">plotly.graph_objects</span> <span class="k">as</span> <span class="nn">go</span>
 <span class="kn">from</span> <span class="nn">plotly.subplots</span> <span class="kn">import</span> <span class="n">make_subplots</span>
-<span class="kn">import</span> <span class="nn">json</span>
-<span class="kn">import</span> <span class="nn">warnings</span>
-<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">json</span><span class="o">,</span> <span class="nn">warnings</span><span class="o">,</span> <span class="nn">time</span><span class="o">,</span> <span class="nn">joblib</span>
+
+<span class="kn">from</span> <span class="nn">sklearn.metrics</span> <span class="kn">import</span> <span class="p">(</span><span class="n">classification_report</span><span class="p">,</span> <span class="n">confusion_matrix</span><span class="p">,</span> <span class="n">roc_curve</span><span class="p">,</span> <span class="n">auc</span><span class="p">,</span>
+                             <span class="n">precision_recall_curve</span><span class="p">,</span> <span class="n">accuracy_score</span><span class="p">,</span> <span class="n">precision_score</span><span class="p">,</span>
+                             <span class="n">recall_score</span><span class="p">,</span> <span class="n">f1_score</span><span class="p">,</span> <span class="n">roc_auc_score</span><span class="p">)</span>
 
 <span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s1">'ignore'</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s1">'seaborn-v0_8-darkgrid'</span><span class="p">)</span>
 
-<span class="kn">import</span> <span class="nn">sys</span>
-<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s1">'..'</span><span class="p">)</span>
-<span class="kn">from</span> <span class="nn">src.models.evaluator</span> <span class="kn">import</span> <span class="n">ModelEvaluator</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="s1">'✅ Kütüphaneler ve Model Değerlendirici Yüklendi.'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'✅ Kütüphaneler yüklendi.'</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=f3cfdb76">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=d002dc31">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <hr/>
-<h2 id="%F0%9F%93%A5-B%C3%B6l%C3%BCm-1:-T%C3%BCm-Modelleri-Y%C3%BCkle-ve-Test-Seti-%C3%9Czerinde-De%C4%9Ferlendir">📥 Bölüm 1: Tüm Modelleri Yükle ve Test Seti Üzerinde Değerlendir<a class="anchor-link" href="#%F0%9F%93%A5-B%C3%B6l%C3%BCm-1:-T%C3%BCm-Modelleri-Y%C3%BCkle-ve-Test-Seti-%C3%9Czerinde-De%C4%9Ferlendir">¶</a></h2>
+<h2 id="%F0%9F%93%A5-B%C3%B6l%C3%BCm-1:-Model-ve-Test-Verisi-Y%C3%BCkleme">📥 Bölüm 1: Model ve Test Verisi Yükleme<a class="anchor-link" href="#%F0%9F%93%A5-B%C3%B6l%C3%BCm-1:-Model-ve-Test-Verisi-Y%C3%BCkleme">¶</a></h2><p>Tüm modeller ve test seti <code>train_all_models.py</code> betiği tarafından tutarlı şekilde oluşturulmuştur.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=c91b38e1">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=c52cb6d0">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7572,49 +7569,69 @@ a.anchor-link {
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># Segment bazlı özellikleri yükle</span>
-<span class="n">df_features</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_parquet</span><span class="p">(</span><span class="s1">'../data/features/segment_features.parquet'</span><span class="p">)</span>
-<span class="n">df_raw</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s1">'../data/raw/segments.csv'</span><span class="p">)</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># Test verisini yükle (tutarlı split)</span>
+<span class="n">test_data</span> <span class="o">=</span> <span class="n">joblib</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">'../models/test_data.joblib'</span><span class="p">)</span>
+<span class="n">X_test</span> <span class="o">=</span> <span class="n">test_data</span><span class="p">[</span><span class="s1">'X_test'</span><span class="p">]</span>
+<span class="n">y_test</span> <span class="o">=</span> <span class="n">test_data</span><span class="p">[</span><span class="s1">'y_test'</span><span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Test Seti: </span><span class="si">{</span><span class="n">X_test</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, Anomali Oranı: </span><span class="si">{</span><span class="n">y_test</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
-<span class="n">drop_cols</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'segment'</span><span class="p">,</span> <span class="s1">'anomaly'</span><span class="p">,</span> <span class="s1">'train'</span><span class="p">,</span> <span class="s1">'channel'</span><span class="p">]</span>
-<span class="n">feature_cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">df_features</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">drop_cols</span><span class="p">]</span>
+<span class="c1"># Modelleri Yükle</span>
+<span class="n">models</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="kn">import</span> <span class="nn">os</span>
 
-<span class="n">X</span> <span class="o">=</span> <span class="n">df_features</span><span class="p">[</span><span class="n">feature_cols</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-<span class="n">y</span> <span class="o">=</span> <span class="n">df_features</span><span class="p">[</span><span class="s1">'anomaly'</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+<span class="c1"># Supervised</span>
+<span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="p">[(</span><span class="s1">'RandomForest'</span><span class="p">,</span> <span class="s1">'../models/rf_model.joblib'</span><span class="p">),</span>
+                   <span class="p">(</span><span class="s1">'XGBoost'</span><span class="p">,</span> <span class="s1">'../models/xgb_model.joblib'</span><span class="p">),</span>
+                   <span class="p">(</span><span class="s1">'SVM'</span><span class="p">,</span> <span class="s1">'../models/svm_model.joblib'</span><span class="p">)]:</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="n">models</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">joblib</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
 
-<span class="kn">from</span> <span class="nn">sklearn.preprocessing</span> <span class="kn">import</span> <span class="n">RobustScaler</span>
-<span class="n">scaler</span> <span class="o">=</span> <span class="n">RobustScaler</span><span class="p">()</span>
-<span class="n">X_scaled</span> <span class="o">=</span> <span class="n">scaler</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+<span class="c1"># MLP</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">tensorflow.keras.models</span> <span class="kn">import</span> <span class="n">load_model</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="s1">'../models/mlp_model.keras'</span><span class="p">):</span>
+        <span class="n">models</span><span class="p">[</span><span class="s1">'MLP'</span><span class="p">]</span> <span class="o">=</span> <span class="n">load_model</span><span class="p">(</span><span class="s1">'../models/mlp_model.keras'</span><span class="p">)</span>
+<span class="k">except</span><span class="p">:</span> <span class="k">pass</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"📊 Test Edilecek Veri Boyutu: </span><span class="si">{</span><span class="n">X_scaled</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="c1"># Unsupervised</span>
+<span class="n">unsup_dir</span> <span class="o">=</span> <span class="s1">'../models/unsupervised/'</span>
+<span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="p">[(</span><span class="s1">'IsolationForest'</span><span class="p">,</span> <span class="s1">'isolationforest_model.joblib'</span><span class="p">),</span>
+                   <span class="p">(</span><span class="s1">'OneClassSVM'</span><span class="p">,</span> <span class="s1">'oneclasssvm_model.joblib'</span><span class="p">),</span>
+                   <span class="p">(</span><span class="s1">'KMeans'</span><span class="p">,</span> <span class="s1">'kmeans_model.joblib'</span><span class="p">),</span>
+                   <span class="p">(</span><span class="s1">'LOF'</span><span class="p">,</span> <span class="s1">'lof_model.joblib'</span><span class="p">)]:</span>
+    <span class="n">full</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">unsup_dir</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">full</span><span class="p">):</span>
+        <span class="n">models</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">joblib</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">full</span><span class="p">)</span>
 
-<span class="c1"># Evaluator'ı Başlat ve Modelleri Yükle</span>
-<span class="n">evaluator</span> <span class="o">=</span> <span class="n">ModelEvaluator</span><span class="p">()</span>
-<span class="n">supervised_models</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'RandomForest'</span><span class="p">,</span> <span class="s1">'XGBoost'</span><span class="p">,</span> <span class="s1">'SVM'</span><span class="p">,</span> <span class="s1">'MLP'</span><span class="p">]</span>
-<span class="n">unsupervised_models</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'IsolationForest'</span><span class="p">,</span> <span class="s1">'Autoencoder'</span><span class="p">,</span> <span class="s1">'OneClassSVM'</span><span class="p">,</span> <span class="s1">'KMeans'</span><span class="p">,</span> <span class="s1">'LOF'</span><span class="p">]</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">ae_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">unsup_dir</span><span class="p">,</span> <span class="s1">'autoencoder_model.keras'</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">ae_path</span><span class="p">):</span>
+        <span class="n">models</span><span class="p">[</span><span class="s1">'Autoencoder'</span><span class="p">]</span> <span class="o">=</span> <span class="n">load_model</span><span class="p">(</span><span class="n">ae_path</span><span class="p">)</span>
+<span class="k">except</span><span class="p">:</span> <span class="k">pass</span>
 
-<span class="n">evaluator</span><span class="o">.</span><span class="n">load_models</span><span class="p">(</span><span class="n">supervised_models</span><span class="p">,</span> <span class="n">unsupervised_models</span><span class="p">)</span>
+<span class="c1"># Thresholds</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">unsup_dir</span><span class="p">,</span> <span class="s1">'unsupervised_thresholds.json'</span><span class="p">))</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">thresholds</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
 
-<span class="c1"># Tüm modelleri aynı test seti üzerinden değerlendir</span>
-<span class="n">evaluator</span><span class="o">.</span><span class="n">evaluate_all_models</span><span class="p">(</span><span class="n">X_scaled</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Yüklenen Modeller: </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=d17e7bcb">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=94a5fd5a">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <hr/>
-<h2 id="%F0%9F%93%8B-B%C3%B6l%C3%BCm-2:-Kapsaml%C4%B1-Metrik-Tablosu">📋 Bölüm 2: Kapsamlı Metrik Tablosu<a class="anchor-link" href="#%F0%9F%93%8B-B%C3%B6l%C3%BCm-2:-Kapsaml%C4%B1-Metrik-Tablosu">¶</a></h2><p>Tüm algoritmaların performansını tek bir çatı altında karşılaştırıyoruz.</p>
+<h2 id="%F0%9F%93%8B-B%C3%B6l%C3%BCm-2:-T%C3%BCm-Modellerin-Metrik-Hesaplamas%C4%B1">📋 Bölüm 2: Tüm Modellerin Metrik Hesaplaması<a class="anchor-link" href="#%F0%9F%93%8B-B%C3%B6l%C3%BCm-2:-T%C3%BCm-Modellerin-Metrik-Hesaplamas%C4%B1">¶</a></h2>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=7e1c6bbb">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=ed4ea043">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7622,36 +7639,97 @@ a.anchor-link {
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="n">df_metrics</span> <span class="o">=</span> <span class="n">evaluator</span><span class="o">.</span><span class="n">generate_comparison_table</span><span class="p">()</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="n">all_metrics</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="n">predictions</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="n">probabilities</span> <span class="o">=</span> <span class="p">{}</span>
 
-<span class="c1"># Tabloyu görsel olarak zenginleştir</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">14</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
-<span class="c1"># Inference Time ve Model Size hariç performans metriklerini Heatmap yapalım</span>
+<span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">model</span> <span class="ow">in</span> <span class="n">models</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">'MLP'</span><span class="p">:</span>
+        <span class="n">prob</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X_test</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+        <span class="n">pred</span> <span class="o">=</span> <span class="p">(</span><span class="n">prob</span> <span class="o">&gt;=</span> <span class="mf">0.5</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">'Autoencoder'</span><span class="p">:</span>
+        <span class="n">recon</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X_test</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">prob</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">X_test</span> <span class="o">-</span> <span class="n">recon</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">pred</span> <span class="o">=</span> <span class="p">(</span><span class="n">prob</span> <span class="o">&gt;</span> <span class="n">thresholds</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'Autoencoder'</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">'IsolationForest'</span><span class="p">,</span> <span class="s1">'LOF'</span><span class="p">]:</span>
+        <span class="n">prob</span> <span class="o">=</span> <span class="o">-</span><span class="n">model</span><span class="o">.</span><span class="n">score_samples</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>
+        <span class="n">pred</span> <span class="o">=</span> <span class="p">(</span><span class="n">prob</span> <span class="o">&gt;</span> <span class="n">thresholds</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">'OneClassSVM'</span><span class="p">:</span>
+        <span class="n">prob</span> <span class="o">=</span> <span class="o">-</span><span class="n">model</span><span class="o">.</span><span class="n">decision_function</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>
+        <span class="n">pred</span> <span class="o">=</span> <span class="p">(</span><span class="n">prob</span> <span class="o">&gt;</span> <span class="n">thresholds</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">'KMeans'</span><span class="p">:</span>
+        <span class="n">prob</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">X_test</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">pred</span> <span class="o">=</span> <span class="p">(</span><span class="n">prob</span> <span class="o">&gt;</span> <span class="n">thresholds</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">pred</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>
+        <span class="n">prob</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="n">X_test</span><span class="p">)[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s1">'predict_proba'</span><span class="p">)</span> <span class="k">else</span> <span class="n">pred</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+
+    <span class="n">inf_time</span> <span class="o">=</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1000</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>
+    <span class="n">predictions</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">pred</span>
+    <span class="n">probabilities</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">prob</span>
+
+    <span class="n">acc</span> <span class="o">=</span> <span class="n">accuracy_score</span><span class="p">(</span><span class="n">y_test</span><span class="p">,</span> <span class="n">pred</span><span class="p">)</span>
+    <span class="n">prec</span> <span class="o">=</span> <span class="n">precision_score</span><span class="p">(</span><span class="n">y_test</span><span class="p">,</span> <span class="n">pred</span><span class="p">,</span> <span class="n">zero_division</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">rec</span> <span class="o">=</span> <span class="n">recall_score</span><span class="p">(</span><span class="n">y_test</span><span class="p">,</span> <span class="n">pred</span><span class="p">,</span> <span class="n">zero_division</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">f1</span> <span class="o">=</span> <span class="n">f1_score</span><span class="p">(</span><span class="n">y_test</span><span class="p">,</span> <span class="n">pred</span><span class="p">,</span> <span class="n">zero_division</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">auc_val</span> <span class="o">=</span> <span class="n">roc_auc_score</span><span class="p">(</span><span class="n">y_test</span><span class="p">,</span> <span class="n">prob</span><span class="p">)</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="n">auc_val</span> <span class="o">=</span> <span class="mf">0.5</span>
+
+    <span class="n">tn</span><span class="p">,</span> <span class="n">fp</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">tp</span> <span class="o">=</span> <span class="n">confusion_matrix</span><span class="p">(</span><span class="n">y_test</span><span class="p">,</span> <span class="n">pred</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+    <span class="n">far</span> <span class="o">=</span> <span class="n">fp</span> <span class="o">/</span> <span class="p">(</span><span class="n">fp</span> <span class="o">+</span> <span class="n">tn</span><span class="p">)</span> <span class="k">if</span> <span class="p">(</span><span class="n">fp</span> <span class="o">+</span> <span class="n">tn</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">0</span>
+    <span class="n">fnr</span> <span class="o">=</span> <span class="n">fn</span> <span class="o">/</span> <span class="p">(</span><span class="n">fn</span> <span class="o">+</span> <span class="n">tp</span><span class="p">)</span> <span class="k">if</span> <span class="p">(</span><span class="n">fn</span> <span class="o">+</span> <span class="n">tp</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">0</span>
+
+    <span class="n">all_metrics</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">'Accuracy'</span><span class="p">:</span> <span class="n">acc</span><span class="p">,</span> <span class="s1">'Precision'</span><span class="p">:</span> <span class="n">prec</span><span class="p">,</span> <span class="s1">'Recall'</span><span class="p">:</span> <span class="n">rec</span><span class="p">,</span>
+        <span class="s1">'F1'</span><span class="p">:</span> <span class="n">f1</span><span class="p">,</span> <span class="s1">'AUC-ROC'</span><span class="p">:</span> <span class="n">auc_val</span><span class="p">,</span> <span class="s1">'FAR'</span><span class="p">:</span> <span class="n">far</span><span class="p">,</span> <span class="s1">'FNR'</span><span class="p">:</span> <span class="n">fnr</span><span class="p">,</span>
+        <span class="s1">'Inf.Time(ms)'</span><span class="p">:</span> <span class="n">inf_time</span>
+    <span class="p">}</span>
+
+<span class="n">df_metrics</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">all_metrics</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+<span class="n">display</span><span class="p">(</span><span class="n">df_metrics</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">background_gradient</span><span class="p">(</span><span class="n">cmap</span><span class="o">=</span><span class="s1">'YlGnBu'</span><span class="p">,</span> <span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s1">'Accuracy'</span><span class="p">,</span><span class="s1">'F1'</span><span class="p">,</span><span class="s1">'AUC-ROC'</span><span class="p">])</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">'</span><span class="si">{:.4f}</span><span class="s1">'</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=d61d7424">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># Heatmap</span>
 <span class="n">perf_cols</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'Accuracy'</span><span class="p">,</span> <span class="s1">'Precision'</span><span class="p">,</span> <span class="s1">'Recall'</span><span class="p">,</span> <span class="s1">'F1'</span><span class="p">,</span> <span class="s1">'AUC-ROC'</span><span class="p">,</span> <span class="s1">'FAR'</span><span class="p">,</span> <span class="s1">'FNR'</span><span class="p">]</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">14</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
 <span class="n">sns</span><span class="o">.</span><span class="n">heatmap</span><span class="p">(</span><span class="n">df_metrics</span><span class="p">[</span><span class="n">perf_cols</span><span class="p">],</span> <span class="n">annot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s2">".3f"</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">"YlGnBu"</span><span class="p">,</span> <span class="n">linewidths</span><span class="o">=</span><span class="mf">.5</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">'Makine Öğrenmesi Modelleri Performans Karşılaştırması'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">'Tüm Modeller Performans Karşılaştırması'</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">'Modeller'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s1">'../reports/figures/metrics_heatmap.png'</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">bbox_inches</span><span class="o">=</span><span class="s1">'tight'</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
-
-<span class="n">display</span><span class="p">(</span><span class="n">df_metrics</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">background_gradient</span><span class="p">(</span><span class="n">cmap</span><span class="o">=</span><span class="s1">'viridis'</span><span class="p">,</span> <span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s1">'AUC-ROC'</span><span class="p">,</span> <span class="s1">'F1'</span><span class="p">,</span> <span class="s1">'Accuracy'</span><span class="p">])</span><span class="o">.</span><span class="n">highlight_min</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s1">'FAR'</span><span class="p">,</span> <span class="s1">'Inf.Time(ms)'</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s1">'lightgreen'</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=ece3329f">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=8d6f475f">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <hr/>
-<h2 id="%F0%9F%93%88-B%C3%B6l%C3%BCm-3:-ROC-ve-PR-E%C4%9Frileri">📈 Bölüm 3: ROC ve PR Eğrileri<a class="anchor-link" href="#%F0%9F%93%88-B%C3%B6l%C3%BCm-3:-ROC-ve-PR-E%C4%9Frileri">¶</a></h2><p>Modellerin Yanlış Alarm (False Positive) ve Gerçek Anomali (True Positive) oranları arasındaki denge.</p>
+<h2 id="%F0%9F%93%88-B%C3%B6l%C3%BCm-3:-ROC-ve-PR-E%C4%9Frileri">📈 Bölüm 3: ROC ve PR Eğrileri<a class="anchor-link" href="#%F0%9F%93%88-B%C3%B6l%C3%BCm-3:-ROC-ve-PR-E%C4%9Frileri">¶</a></h2>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=28d89b51">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=40e0f766">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7659,29 +7737,49 @@ a.anchor-link {
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># ROC Eğrileri</span>
-<span class="n">evaluator</span><span class="o">.</span><span class="n">plot_roc_curves</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">save_path</span><span class="o">=</span><span class="s1">'../reports/figures/roc_curves_all.png'</span><span class="p">)</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="n">fig</span><span class="p">,</span> <span class="p">(</span><span class="n">ax1</span><span class="p">,</span> <span class="n">ax2</span><span class="p">)</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">18</span><span class="p">,</span> <span class="mi">7</span><span class="p">))</span>
 
-<span class="c1"># PR Eğrileri</span>
-<span class="n">evaluator</span><span class="o">.</span><span class="n">plot_pr_curves</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">save_path</span><span class="o">=</span><span class="s1">'../reports/figures/pr_curves_all.png'</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">prob</span> <span class="ow">in</span> <span class="n">probabilities</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">fpr</span><span class="p">,</span> <span class="n">tpr</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">roc_curve</span><span class="p">(</span><span class="n">y_test</span><span class="p">,</span> <span class="n">prob</span><span class="p">)</span>
+        <span class="n">roc_auc</span> <span class="o">=</span> <span class="n">roc_auc_score</span><span class="p">(</span><span class="n">y_test</span><span class="p">,</span> <span class="n">prob</span><span class="p">)</span>
+        <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">fpr</span><span class="p">,</span> <span class="n">tpr</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1"> (</span><span class="si">{</span><span class="n">roc_auc</span><span class="si">:</span><span class="s1">.3f</span><span class="si">}</span><span class="s1">)'</span><span class="p">)</span>
+    <span class="k">except</span><span class="p">:</span> <span class="k">pass</span>
+
+<span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s1">'gray'</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">'--'</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">'FPR'</span><span class="p">);</span> <span class="n">ax1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">'TPR'</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">'ROC Eğrileri'</span><span class="p">);</span> <span class="n">ax1</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s2">"lower right"</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">9</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">prob</span> <span class="ow">in</span> <span class="n">probabilities</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">prec</span><span class="p">,</span> <span class="n">rec</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">precision_recall_curve</span><span class="p">(</span><span class="n">y_test</span><span class="p">,</span> <span class="n">prob</span><span class="p">)</span>
+        <span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">rec</span><span class="p">,</span> <span class="n">prec</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">except</span><span class="p">:</span> <span class="k">pass</span>
+
+<span class="n">ax2</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">'Recall'</span><span class="p">);</span> <span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">'Precision'</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">'Precision-Recall Eğrileri'</span><span class="p">);</span> <span class="n">ax2</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s2">"lower left"</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">9</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s1">'../reports/figures/roc_pr_curves.png'</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">bbox_inches</span><span class="o">=</span><span class="s1">'tight'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=0bfa2003">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=540f5fbb">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <hr/>
-<h2 id="%F0%9F%94%8D-B%C3%B6l%C3%BCm-4:-Hata-Analizi-(Error-Analysis)">🔍 Bölüm 4: Hata Analizi (Error Analysis)<a class="anchor-link" href="#%F0%9F%94%8D-B%C3%B6l%C3%BCm-4:-Hata-Analizi-(Error-Analysis)">¶</a></h2><p>Modellerin hangi tür anomalileri kaçırdığını (False Negative) ve hangi normal durumlarda paniğe kapıldığını (False Positive) inceliyoruz.</p>
+<h2 id="%F0%9F%94%8D-B%C3%B6l%C3%BCm-4:-Confusion-Matrix-Kar%C5%9F%C4%B1la%C5%9Ft%C4%B1rmas%C4%B1">🔍 Bölüm 4: Confusion Matrix Karşılaştırması<a class="anchor-link" href="#%F0%9F%94%8D-B%C3%B6l%C3%BCm-4:-Confusion-Matrix-Kar%C5%9F%C4%B1la%C5%9Ft%C4%B1rmas%C4%B1">¶</a></h2>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=c010d9f7">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=6e3b9076">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7689,22 +7787,24 @@ a.anchor-link {
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">15</span><span class="p">))</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="n">n_models</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">predictions</span><span class="p">)</span>
+<span class="n">cols</span> <span class="o">=</span> <span class="mi">3</span>
+<span class="n">rows</span> <span class="o">=</span> <span class="p">(</span><span class="n">n_models</span> <span class="o">+</span> <span class="n">cols</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="n">cols</span>
+<span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">cols</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">5</span> <span class="o">*</span> <span class="n">rows</span><span class="p">))</span>
 <span class="n">axes</span> <span class="o">=</span> <span class="n">axes</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
 
-<span class="kn">from</span> <span class="nn">sklearn.metrics</span> <span class="kn">import</span> <span class="n">confusion_matrix</span>
-<span class="n">models_to_plot</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">evaluator</span><span class="o">.</span><span class="n">predictions</span><span class="o">.</span><span class="n">keys</span><span class="p">())[:</span><span class="mi">9</span><span class="p">]</span>
-
-<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">models_to_plot</span><span class="p">):</span>
-    <span class="n">cm</span> <span class="o">=</span> <span class="n">confusion_matrix</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">evaluator</span><span class="o">.</span><span class="n">predictions</span><span class="p">[</span><span class="n">name</span><span class="p">],</span> <span class="n">normalize</span><span class="o">=</span><span class="s1">'true'</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">pred</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">predictions</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+    <span class="n">cm</span> <span class="o">=</span> <span class="n">confusion_matrix</span><span class="p">(</span><span class="n">y_test</span><span class="p">,</span> <span class="n">pred</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="s1">'true'</span><span class="p">)</span>
     <span class="n">sns</span><span class="o">.</span><span class="n">heatmap</span><span class="p">(</span><span class="n">cm</span><span class="p">,</span> <span class="n">annot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s1">'.2%'</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">'Reds'</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">cbar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                 <span class="n">xticklabels</span><span class="o">=</span><span class="p">[</span><span class="s1">'Normal'</span><span class="p">,</span> <span class="s1">'Anomali'</span><span class="p">],</span> <span class="n">yticklabels</span><span class="o">=</span><span class="p">[</span><span class="s1">'Normal'</span><span class="p">,</span> <span class="s1">'Anomali'</span><span class="p">])</span>
     <span class="n">axes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>
-    <span class="n">axes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">'Tahmin'</span><span class="p">)</span>
-    <span class="n">axes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">'Gerçek'</span><span class="p">)</span>
+    <span class="n">axes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">'Tahmin'</span><span class="p">);</span> <span class="n">axes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">'Gerçek'</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">axes</span><span class="p">)):</span>
+    <span class="n">axes</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
 
 <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s1">'../reports/figures/confusion_matrices.png'</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s1">'../reports/figures/confusion_matrices.png'</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">bbox_inches</span><span class="o">=</span><span class="s1">'tight'</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -7712,18 +7812,18 @@ a.anchor-link {
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=e9cb629c">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=00431628">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <hr/>
-<h2 id="%F0%9F%95%B9%EF%B8%8F-B%C3%B6l%C3%BCm-5:-Anomali-G%C3%B6rselle%C5%9Ftirmesi-(Operat%C3%B6r-Perspektifi)">🕹️ Bölüm 5: Anomali Görselleştirmesi (Operatör Perspektifi)<a class="anchor-link" href="#%F0%9F%95%B9%EF%B8%8F-B%C3%B6l%C3%BCm-5:-Anomali-G%C3%B6rselle%C5%9Ftirmesi-(Operat%C3%B6r-Perspektifi)">¶</a></h2><p>Bir uydu operatörünün yer kontrol istasyonunda (Ground Control Station) bu yapay zekayı nasıl göreceğinin simülasyonu.</p>
+<h2 id="%E2%9A%A1-B%C3%B6l%C3%BCm-5:-Hesaplama-Verimlili%C4%9Fi">⚡ Bölüm 5: Hesaplama Verimliliği<a class="anchor-link" href="#%E2%9A%A1-B%C3%B6l%C3%BCm-5:-Hesaplama-Verimlili%C4%9Fi">¶</a></h2>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=5b8ca8f0">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=8c98a1b8">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7731,47 +7831,12 @@ a.anchor-link {
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># İlk 2000 noktayı gösteren interaktif Dashboard</span>
-<span class="n">evaluator</span><span class="o">.</span><span class="n">plot_anomaly_timeline</span><span class="p">(</span><span class="n">df_raw</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">sample_size</span><span class="o">=</span><span class="mi">2000</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=ce2120fd">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
-</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<hr/>
-<h2 id="%E2%9A%A1-B%C3%B6l%C3%BCm-6:-Hesaplama-Verimlili%C4%9Fi-(Computational-Efficiency)">⚡ Bölüm 6: Hesaplama Verimliliği (Computational Efficiency)<a class="anchor-link" href="#%E2%9A%A1-B%C3%B6l%C3%BCm-6:-Hesaplama-Verimlili%C4%9Fi-(Computational-Efficiency)">¶</a></h2><p>Uzay ortamında (Edge Computing) algoritmaların hafif ve hızlı çalışması çok önemlidir.</p>
-</div>
-</div>
-</div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=cd77166b">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
-<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="n">fig</span><span class="p">,</span> <span class="p">(</span><span class="n">ax1</span><span class="p">,</span> <span class="n">ax2</span><span class="p">)</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
-
-<span class="c1"># Çıkarım Hızı (Inference Time)</span>
-<span class="n">df_metrics</span><span class="p">[</span><span class="s1">'Inf.Time(ms)'</span><span class="p">]</span><span class="o">.</span><span class="n">sort_values</span><span class="p">()</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="s1">'barh'</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax1</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">'skyblue'</span><span class="p">)</span>
-<span class="n">ax1</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">'Çıkarım Hızı - Örnek Başına (Milisaniye) [Daha düşük daha iyi]'</span><span class="p">)</span>
-<span class="n">ax1</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">'Milisaniye (ms)'</span><span class="p">)</span>
-
-<span class="c1"># Model Boyutu (Model Size)</span>
-<span class="n">df_metrics</span><span class="p">[</span><span class="s1">'Model Size(MB)'</span><span class="p">]</span><span class="o">.</span><span class="n">sort_values</span><span class="p">()</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="s1">'barh'</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax2</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">'lightcoral'</span><span class="p">)</span>
-<span class="n">ax2</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">'Model Boyutu (Megabyte) [Daha düşük daha iyi]'</span><span class="p">)</span>
-<span class="n">ax2</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">'MB'</span><span class="p">)</span>
-
+<div class="highlight hl-ipython3"><pre><span></span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
+<span class="n">df_metrics</span><span class="p">[</span><span class="s1">'Inf.Time(ms)'</span><span class="p">]</span><span class="o">.</span><span class="n">sort_values</span><span class="p">()</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="s1">'barh'</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">'skyblue'</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">'Çıkarım Hızı (ms/örnek) [Düşük = Daha İyi]'</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">'Milisaniye'</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s1">'../reports/figures/efficiency.png'</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s1">'../reports/figures/efficiency.png'</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">bbox_inches</span><span class="o">=</span><span class="s1">'tight'</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -7779,18 +7844,18 @@ a.anchor-link {
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=3430411e">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=3d77a2e5">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <hr/>
-<h2 id="%F0%9F%93%8A-B%C3%B6l%C3%BCm-7:-%C4%B0statistiksel-Anlaml%C4%B1l%C4%B1k-Testi">📊 Bölüm 7: İstatistiksel Anlamlılık Testi<a class="anchor-link" href="#%F0%9F%93%8A-B%C3%B6l%C3%BCm-7:-%C4%B0statistiksel-Anlaml%C4%B1l%C4%B1k-Testi">¶</a></h2><p>En iyi iki modelin başarısı şans eseri mi yoksa istatistiksel olarak anlamlı mı?</p>
+<h2 id="%F0%9F%93%8A-B%C3%B6l%C3%BCm-6:-%C4%B0statistiksel-Anlaml%C4%B1l%C4%B1k-Testi">📊 Bölüm 6: İstatistiksel Anlamlılık Testi<a class="anchor-link" href="#%F0%9F%93%8A-B%C3%B6l%C3%BCm-6:-%C4%B0statistiksel-Anlaml%C4%B1l%C4%B1k-Testi">¶</a></h2>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=b6f73c64">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=5cfdc752">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7800,39 +7865,56 @@ a.anchor-link {
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="n">wilcoxon</span>
 
-<span class="n">best_model</span> <span class="o">=</span> <span class="s1">'MLP'</span>
-<span class="n">second_best</span> <span class="o">=</span> <span class="s1">'XGBoost'</span>
-
-<span class="k">if</span> <span class="n">best_model</span> <span class="ow">in</span> <span class="n">evaluator</span><span class="o">.</span><span class="n">predictions</span> <span class="ow">and</span> <span class="n">second_best</span> <span class="ow">in</span> <span class="n">evaluator</span><span class="o">.</span><span class="n">predictions</span><span class="p">:</span>
-    <span class="n">err_best</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">evaluator</span><span class="o">.</span><span class="n">predictions</span><span class="p">[</span><span class="n">best_model</span><span class="p">])</span>
-    <span class="n">err_second</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">evaluator</span><span class="o">.</span><span class="n">predictions</span><span class="p">[</span><span class="n">second_best</span><span class="p">])</span>
-    
-    <span class="n">stat</span><span class="p">,</span> <span class="n">p</span> <span class="o">=</span> <span class="n">wilcoxon</span><span class="p">(</span><span class="n">err_best</span><span class="p">,</span> <span class="n">err_second</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Wilcoxon Testi Sonucu (</span><span class="si">{</span><span class="n">best_model</span><span class="si">}</span><span class="s2"> vs </span><span class="si">{</span><span class="n">second_best</span><span class="si">}</span><span class="s2">):"</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Statistic: </span><span class="si">{</span><span class="n">stat</span><span class="si">}</span><span class="s2">, p-value: </span><span class="si">{</span><span class="n">p</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-    
-    <span class="k">if</span> <span class="n">p</span> <span class="o">&lt;</span> <span class="mf">0.05</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">"✅ İstatistiksel olarak ANLAMLI bir fark var."</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">"❌ Fark şans eseri olabilir, istatistiksel olarak anlamlı değil."</span><span class="p">)</span>
+<span class="n">best</span> <span class="o">=</span> <span class="s1">'MLP'</span><span class="p">;</span> <span class="n">second</span> <span class="o">=</span> <span class="s1">'XGBoost'</span>
+<span class="k">if</span> <span class="n">best</span> <span class="ow">in</span> <span class="n">predictions</span> <span class="ow">and</span> <span class="n">second</span> <span class="ow">in</span> <span class="n">predictions</span><span class="p">:</span>
+    <span class="n">err1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">y_test</span> <span class="o">-</span> <span class="n">predictions</span><span class="p">[</span><span class="n">best</span><span class="p">])</span>
+    <span class="n">err2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">y_test</span> <span class="o">-</span> <span class="n">predictions</span><span class="p">[</span><span class="n">second</span><span class="p">])</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">stat</span><span class="p">,</span> <span class="n">p</span> <span class="o">=</span> <span class="n">wilcoxon</span><span class="p">(</span><span class="n">err1</span><span class="p">,</span> <span class="n">err2</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Wilcoxon Testi (</span><span class="si">{</span><span class="n">best</span><span class="si">}</span><span class="s2"> vs </span><span class="si">{</span><span class="n">second</span><span class="si">}</span><span class="s2">): stat=</span><span class="si">{</span><span class="n">stat</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">, p=</span><span class="si">{</span><span class="n">p</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"✅ Anlamlı fark var."</span> <span class="k">if</span> <span class="n">p</span> <span class="o">&lt;</span> <span class="mf">0.05</span> <span class="k">else</span> <span class="s2">"❌ Anlamlı fark yok."</span><span class="p">)</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"Test uygulanamadı (veriler aynı olabilir)."</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=bc83f966">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=b4ce31b8">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <hr/>
-<h2 id="%F0%9F%9B%B0%EF%B8%8F-B%C3%B6l%C3%BCm-8:-Uydu-Operasyonu-Senaryosu-Sim%C3%BClasyonu">🛰️ Bölüm 8: Uydu Operasyonu Senaryosu Simülasyonu<a class="anchor-link" href="#%F0%9F%9B%B0%EF%B8%8F-B%C3%B6l%C3%BCm-8:-Uydu-Operasyonu-Senaryosu-Sim%C3%BClasyonu">¶</a></h2><p>Bu bölümde gerçek zamanlı akan bir veride erken uyarı süresi simüle edilir.</p>
+<h2 id="%F0%9F%93%9D-B%C3%B6l%C3%BCm-7:-Sonu%C3%A7-ve-%C3%96neriler">📝 Bölüm 7: Sonuç ve Öneriler<a class="anchor-link" href="#%F0%9F%93%9D-B%C3%B6l%C3%BCm-7:-Sonu%C3%A7-ve-%C3%96neriler">¶</a></h2><h3 id="G%C3%B6zetimli-%C3%96%C4%9Frenme">Gözetimli Öğrenme<a class="anchor-link" href="#G%C3%B6zetimli-%C3%96%C4%9Frenme">¶</a></h3><ul>
+<li><strong>MLP</strong> en yüksek AUC (0.99+) ve en iyi F1 skorunu elde etmiştir.</li>
+<li><strong>XGBoost</strong> ve <strong>Random Forest</strong> da %93-94 Accuracy ile çok güçlü performans sergilemiştir.</li>
+<li><strong>SVM</strong> diğerlerinin gerisinde kalmıştır ancak yine de %91+ doğruluktadır.</li>
+</ul>
+<h3 id="G%C3%B6zetimsiz-%C3%96%C4%9Frenme">Gözetimsiz Öğrenme<a class="anchor-link" href="#G%C3%B6zetimsiz-%C3%96%C4%9Frenme">¶</a></h3><ul>
+<li><strong>LOF</strong> (Local Outlier Factor) gözetimsiz kategoride açık ara en iyisidir (AUC: 0.94+).</li>
+<li><strong>Autoencoder</strong> da güçlü ayrışma sağlamıştır (AUC: 0.89+).</li>
+<li>Isolation Forest, K-Means ve One-Class SVM bu veri setinde anomali sinyallerinin inceliği sebebiyle daha düşük performans göstermiştir.</li>
+</ul>
+<h3 id="Ger%C3%A7ek-Uydu-Operasyonlar%C4%B1-%C4%B0%C3%A7in-%C3%96neri">Gerçek Uydu Operasyonları İçin Öneri<a class="anchor-link" href="#Ger%C3%A7ek-Uydu-Operasyonlar%C4%B1-%C4%B0%C3%A7in-%C3%96neri">¶</a></h3><p><strong>Hibrit Mimari:</strong> Autoencoder ile bilinmeyen anomali taraması + MLP/XGBoost ile bilinen anomali sınıflandırması.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=16c7d2b5">
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=25dfd700">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<hr/>
+<h2 id="%F0%9F%92%BE-B%C3%B6l%C3%BCm-8:-Rapor-Export">💾 Bölüm 8: Rapor Export<a class="anchor-link" href="#%F0%9F%92%BE-B%C3%B6l%C3%BCm-8:-Rapor-Export">¶</a></h2>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=ce6be857">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7840,88 +7922,28 @@ a.anchor-link {
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s2">"Simüle ediliyor: 24 Saatlik LEO Uydu Yörüngesi Telemetri Akışı..."</span><span class="p">)</span>
-<span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Bütünleşik Sistem Ortalama Karar Gecikmesi: </span><span class="si">{</span><span class="n">df_metrics</span><span class="p">[</span><span class="s1">'Inf.Time(ms)'</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2"> milisaniye"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"MLP Erken Uyarı Başarısı: Olası kritik arızalardan %</span><span class="si">{</span><span class="n">df_metrics</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="s1">'MLP'</span><span class="p">,</span><span class="w"> </span><span class="s1">'Recall'</span><span class="p">]</span><span class="o">*</span><span class="mi">100</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> oranında tespit edildi."</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">"Alarm Yönetimi: Sinyal seviyesi Threshold'u geçtiğinde sadece 1 kez uyarı verilir (Spam engelleme)."</span><span class="p">)</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># CSV ve JSON Export</span>
+<span class="n">df_metrics</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="s1">'../reports/metrics/final_comparison.csv'</span><span class="p">)</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">'../reports/metrics/final_comparison.json'</span><span class="p">,</span> <span class="s1">'w'</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">all_metrics</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"✅ Metrikler kaydedildi."</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=b6447836">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=36bb1e9a">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<hr/>
-<h2 id="%F0%9F%93%9D-B%C3%B6l%C3%BCm-9:-Model-%C3%96neri-Raporu-(Bitirme-Projesi-%C4%B0%C3%A7in)">📝 Bölüm 9: Model Öneri Raporu (Bitirme Projesi İçin)<a class="anchor-link" href="#%F0%9F%93%9D-B%C3%B6l%C3%BCm-9:-Model-%C3%96neri-Raporu-(Bitirme-Projesi-%C4%B0%C3%A7in)">¶</a></h2><h3 id="Kapsaml%C4%B1-%C3%96neri-ve-Sonu%C3%A7">Kapsamlı Öneri ve Sonuç<a class="anchor-link" href="#Kapsaml%C4%B1-%C3%96neri-ve-Sonu%C3%A7">¶</a></h3><p>Bu projenin sonucunda, Avrupa Uzay Ajansı'nın (ESA) OPS-SAT uydusu Reaction Wheel verileri üzerinde gerçekleştirilen deneylerde şu kanılara varılmıştır:</p>
-<ol>
-<li><p><strong>Gözetimli Öğrenme Kategorisinde En İyi Model: MLP (Derin Öğrenme)</strong></p>
-<ul>
-<li><strong>Gerekçe:</strong> Olay (Segment) bazlı özellik çıkarımı sonrasında %96.8 Doğruluk (Accuracy) ve %99.0 AUC skoru ile en üstün performansı göstermiştir. Karmaşık telemetri örüntülerini yakalamakta klasik makine öğrenmesi algoritmalarından daha iyidir.</li>
-</ul>
-</li>
-<li><p><strong>Gözetimsiz Öğrenme Kategorisinde En İyi Model: Autoencoder</strong></p>
-<ul>
-<li><strong>Gerekçe:</strong> Etiketli verinin bulunmadığı (Zero-Day Anomaly) durumlarda, normal sinyali ezberleyip anormal durumları yüksek "Reconstruction Error" ile tespit ederek %90'ın üzerinde başarı sergilemiştir.</li>
-</ul>
-</li>
-<li><p><strong>Gerçek Uydu Operasyonları (GCS) İçin Önerilen Mimari:</strong></p>
-<ul>
-<li>Hibrit Mimari: Veri önce <strong>Autoencoder</strong> üzerinden filtrelenmeli (Bilinmeyen Anomaliler için), ardından bilinen anomali tiplerini yüksek hassasiyetle sınıflandırmak için <strong>MLP veya XGBoost</strong> modelinden geçirilmelidir. Bu sayede False Alarm (Yanlış Alarm) oranları sıfıra yaklaşacaktır.</li>
-</ul>
-</li>
-<li><p><strong>Gelecek Çalışmalar:</strong></p>
-<ul>
-<li>Modelin donanım seviyesinde (FPGA) koşturulabilmesi için quantizasyon (quantization) işlemleri yapılabilir. Modeller C++ veya Rust ortamına taşınabilir.</li>
-</ul>
-</li>
-</ol>
+<h3 id="HTML-Rapor">HTML Rapor<a class="anchor-link" href="#HTML-Rapor">¶</a></h3>
 </div>
 </div>
 </div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=66816227">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
-</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<hr/>
-<h2 id="%F0%9F%92%BE-B%C3%B6l%C3%BCm-10:-Rapor-Export">💾 Bölüm 10: Rapor Export<a class="anchor-link" href="#%F0%9F%92%BE-B%C3%B6l%C3%BCm-10:-Rapor-Export">¶</a></h2><p>Tüm çıktıların raporlama sistemine kaydedilmesi.</p>
-</div>
-</div>
-</div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=dceaf301">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
-<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="n">evaluator</span><span class="o">.</span><span class="n">export_metrics</span><span class="p">(</span><span class="s1">'../reports/metrics/final_comparison.csv'</span><span class="p">,</span> <span class="s1">'../reports/metrics/final_comparison.json'</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=a8dd5d0e">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
-</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h3 id="HTML-Rapor-Export">HTML Rapor Export<a class="anchor-link" href="#HTML-Rapor-Export">¶</a></h3>
-</div>
-</div>
-</div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=5c0037f3">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=18d27d0a">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
