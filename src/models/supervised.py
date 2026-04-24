@@ -31,7 +31,7 @@ except ImportError:
 
 try:
     from tensorflow.keras.models import Sequential
-    from tensorflow.keras.layers import LSTM, Dense, Dropout
+    from tensorflow.keras.layers import LSTM, Dense, Dropout, BatchNormalization
     from tensorflow.keras.optimizers import Adam
     from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 except ImportError:
@@ -148,8 +148,12 @@ class SupervisedAnomalyDetector:
         print("🧠 MLP eğitiliyor...")
         
         model = Sequential([
-            Dense(128, activation='relu', input_shape=(X_train.shape[1],)),
+            Dense(256, activation='relu', input_shape=(X_train.shape[1],)),
+            BatchNormalization(),
             Dropout(0.3),
+            Dense(128, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.2),
             Dense(64, activation='relu'),
             Dropout(0.2),
             Dense(32, activation='relu'),
@@ -158,7 +162,7 @@ class SupervisedAnomalyDetector:
 
         model.compile(optimizer=Adam(learning_rate=0.001), loss='binary_crossentropy', metrics=['accuracy'])
         
-        early_stop = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
+        early_stop = EarlyStopping(monitor='val_loss', patience=15, restore_best_weights=True)
         
         history = model.fit(
             X_train, y_train,
