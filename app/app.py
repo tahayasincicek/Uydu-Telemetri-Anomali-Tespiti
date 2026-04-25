@@ -19,6 +19,7 @@ MODELS, THRESHOLDS, SCALER, TEST_DATA = load_all()
 ALL_METRICS = load_metrics()
 DEMO_PATH = os.path.join(ROOT, "data", "features", "segment_features.parquet")
 DROP_COLS = ['segment', 'anomaly', 'train', 'channel']
+FEATURE_COLS = TEST_DATA.get("feature_cols", None) if TEST_DATA else None
 
 PLT_LAYOUT = dict(template="plotly_dark", paper_bgcolor="#0A0E1A", plot_bgcolor="#111827",
                    font=dict(family="Inter", color="#94A3B8"), margin=dict(l=40, r=20, t=40, b=30))
@@ -68,6 +69,18 @@ app.layout = html.Div([
     dcc.Store(id="prediction-results"),
     sidebar,
     html.Div(id="page-content", className="main-content"),
+    # Results content lives outside page routing to persist
+    html.Div(id="results-overlay", className="main-content",
+             style={"display": "none"}, children=[
+        html.Div(className="page-header", children=[
+            html.Div("Sonuclar", className="page-title"),
+            html.Div("Anomali tespit sonuclari ve gorsellestime", className="page-subtitle")]),
+        html.Div(id="results-content", children=[
+            html.Div(className="info-box", children=[
+                icon("mdi:chart-scatter-plot", 32, "#3B82F6"), html.Br(), html.Br(),
+                "Henuz analiz yapilmadi. Once Analiz sayfasindan islem baslatiniz."])
+        ])
+    ]),
 ])
 
 # ── Page builders ──
@@ -181,11 +194,7 @@ def page_results():
         html.Div(className="page-header", children=[
             html.Div("Sonuclar", className="page-title"),
             html.Div("Anomali tespit sonuclari ve gorsellestime", className="page-subtitle")]),
-        html.Div(id="results-content", children=[
-            html.Div(className="info-box", children=[
-                icon("mdi:chart-scatter-plot", 32, "#3B82F6"), html.Br(), html.Br(),
-                "Henuz analiz yapilmadi. Once Analiz sayfasindan islem baslatiniz."])
-        ])
+        html.Div(id="results-content")
     ])
 
 
@@ -262,9 +271,13 @@ def navigate(*clicks):
     if not ctx.triggered_id: return "dashboard"
     return ctx.triggered_id["page"]
 
-@callback(Output("page-content", "children"), Input("current-page", "data"))
+@callback(Output("page-content", "children"), Output("page-content", "style"),
+          Output("results-overlay", "style"),
+          Input("current-page", "data"))
 def render_page(page_id):
-    return PAGES.get(page_id, page_dashboard)()
+    if page_id == "results":
+        return html.Div(), {"display": "none"}, {"display": "block"}
+    return PAGES.get(page_id, page_dashboard)(), {"display": "block"}, {"display": "none"}
 
 # Upload callbacks
 @callback(Output("uploaded-data", "data"), Output("upload-preview", "children"),
@@ -335,11 +348,19 @@ def run_analysis(n, sup_sel, unsup_sel, thresh_mult, data_json):
     else:
         return html.Div("Veri bulunamadi.", style={"color": "#EF4444"}), no_update
 
-    feature_cols = [c for c in df.columns if c not in DROP_COLS]
-    X = df[feature_cols].fillna(0).values
+    if FEATURE_COLS:
+        for c in FEATURE_COLS:
+            if c not in df.columns:
+                df[c] = 0
+        X = df[FEATURE_COLS].fillna(0).values
+    else:
+        feature_cols = [c for c in df.columns if c not in DROP_COLS]
+        X = df[feature_cols].fillna(0).values
+
     if SCALER:
         try: X = SCALER.transform(X)
-        except: pass
+        except Exception as e:
+            return html.Div(f"Scaler hatasi: {e}", style={"color": "#EF4444"}), no_update
 
     results = {}
     rows = []
@@ -369,13 +390,16 @@ def run_analysis(n, sup_sel, unsup_sel, thresh_mult, data_json):
 
     return html.Div([summary, html.Div(className="panel-title", children=[icon("mdi:format-list-bulleted",16), "Model Sonuclari"]), *rows]), json.dumps(results)
 
-# Results page dynamic content
-@callback(Output("results-content", "children"), Input("prediction-results", "data"),
+# Results page dynamic content - triggers on prediction update
+@callback(Output("results-content", "children"),
+          Input("prediction-results", "data"),
           State("uploaded-data", "data"), prevent_initial_call=True)
 def update_results(pred_json, data_json):
-    if not pred_json: return no_update
+    if not pred_json:
+        return html.Div(className="info-box", children=["Henuz analiz yapilmadi."])
     results = json.loads(pred_json)
-    if not results: return no_update
+    if not results:
+        return html.Div(className="info-box", children=["Sonuc bulunamadi."])
 
     if data_json:
         df = pd.read_json(io.StringIO(data_json), orient='split')
