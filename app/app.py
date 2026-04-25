@@ -59,6 +59,8 @@ sidebar = html.Div(className="sidebar", children=[
     html.Div(className="sidebar-footer", children=[
         html.Div(className="status-indicator", children=[
             html.Span(className="status-dot"), html.Span(f"Sistem Aktif  -  {len(MODELS)} model")]),
+        html.Button(id="btn-theme", n_clicks=0, className="theme-toggle", children=[
+            icon("mdi:brightness-6", 16), html.Span("Acik Tema", id="theme-label")]),
         html.Div(className="sidebar-version", children=[
             icon("mdi:cpu-64-bit", 14), html.Span("v1.0.0")]),
         html.Div(className="sidebar-version", children=[
@@ -70,10 +72,11 @@ app = Dash(__name__, suppress_callback_exceptions=True,
            external_stylesheets=[dbc.themes.BOOTSTRAP],
            title="ADCS Monitor", update_title=None)
 
-app.layout = html.Div([
+app.layout = html.Div(id="app-root", children=[
     dcc.Store(id="current-page", data="dashboard"),
     dcc.Store(id="uploaded-data"),
     dcc.Store(id="prediction-results"),
+    dcc.Store(id="theme-store", data="dark"),
     sidebar,
     html.Div(id="page-content", className="main-content"),
     # Results content lives outside page routing to persist
@@ -304,6 +307,22 @@ PAGES = {"dashboard": page_dashboard, "upload": page_upload, "analysis": page_an
 def navigate(*clicks):
     if not ctx.triggered_id: return "dashboard"
     return ctx.triggered_id["page"]
+
+# Theme toggle - clientside for instant response
+app.clientside_callback(
+    """
+    function(n_clicks) {
+        var html = document.documentElement;
+        var current = html.getAttribute('data-theme') || 'dark';
+        var next = current === 'dark' ? 'light' : 'dark';
+        html.setAttribute('data-theme', next);
+        return next === 'dark' ? 'Acik Tema' : 'Koyu Tema';
+    }
+    """,
+    Output("theme-label", "children"),
+    Input("btn-theme", "n_clicks"),
+    prevent_initial_call=True
+)
 
 @callback(Output("page-content", "children"), Output("page-content", "style"),
           Output("results-overlay", "style"),
