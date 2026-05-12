@@ -1,4 +1,4 @@
-"""ADCS Monitor - Uydu Telemetri Anomali Tespit Arayuzu"""
+"""Uydu Telemetri Anomali Tespit Arayuzu"""
 import os, sys, json, time, base64, io
 import numpy as np
 import pandas as pd
@@ -46,7 +46,7 @@ def nav_item(ic, text, page_id):
 sidebar = html.Div(className="sidebar", children=[
     html.Div(className="sidebar-logo", children=[
         html.Div([icon("mdi:satellite-variant", 26, "#06B6D4")], className="logo-icon"),
-        html.Div([html.Div("ADCS Monitor", className="logo-text"),
+        html.Div([html.Div("Uydu Telemetri", className="logo-text"),
                   html.Div("Anomali Tespit Sistemi", className="logo-sub")])
     ]),
     html.Div(className="sidebar-nav", children=[
@@ -70,7 +70,7 @@ sidebar = html.Div(className="sidebar", children=[
 
 app = Dash(__name__, suppress_callback_exceptions=True,
            external_stylesheets=[dbc.themes.BOOTSTRAP],
-           title="ADCS Monitor", update_title=None)
+           title="Uydu Telemetri", update_title=None)
 
 app.layout = html.Div(id="app-root", children=[
     dcc.Store(id="current-page", data="dashboard"),
