@@ -1328,10 +1328,13 @@ def update_live_sim(n_int, state, channel, model_name, speed, current_alarms):
 
 @callback(Output("detail-page-content", "children"),
           Input("selected-anomaly", "data"),
+          Input("current-page", "data"),
           State("anomaly-list", "data"),
           State("uploaded-data", "data"),
           prevent_initial_call=False)
-def render_anomaly_detail(selected, all_anomalies, data_json):
+def render_anomaly_detail(selected, current_page, all_anomalies, data_json):
+    if current_page != "detail":
+        return no_update
     if not selected:
         return html.Div(className="info-box", style={"marginTop":"50px"}, children=["Detaylarını görmek istediğiniz anomaliyi Sonuçlar sayfasındaki tablodan seçiniz."])
     
