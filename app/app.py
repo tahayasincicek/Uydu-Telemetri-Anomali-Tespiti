@@ -25,10 +25,49 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.dirname(__file__))
 from utils.model_loader import load_all, predict, load_metrics
+import joblib
 
 MODELS, THRESHOLDS, SCALER, TEST_DATA = load_all()
 ALL_METRICS = load_metrics()
 DEMO_PATH = os.path.join(ROOT, "data", "features", "segment_features.parquet")
+
+# ── SHAP data loading ──
+SHAP_PKL = os.path.join(ROOT, "models", "shap_values.pkl")
+try:
+    if os.path.exists(SHAP_PKL):
+        SHAP_DATA = joblib.load(SHAP_PKL)
+    else:
+        SHAP_DATA = None
+except Exception:
+    SHAP_DATA = None
+
+FEATURE_NAMES_TR = {
+    'sampling': 'Ornekleme Frekansi',
+    'duration': 'Segment Suresi',
+    'len': 'Segment Uzunlugu',
+    'mean': 'Ortalama Deger',
+    'var': 'Varyans',
+    'std': 'Standart Sapma',
+    'kurtosis': 'Basiklik (Kurtosis)',
+    'skew': 'Carpiklik (Skewness)',
+    'n_peaks': 'Tepe Sayisi',
+    'smooth10_n_peaks': 'Yumusatilmis Tepe (w=10)',
+    'smooth20_n_peaks': 'Yumusatilmis Tepe (w=20)',
+    'diff_peaks': 'Fark Tepe Sayisi',
+    'diff2_peaks': '2. Fark Tepe Sayisi',
+    'diff_var': 'Fark Varyansi',
+    'diff2_var': '2. Fark Varyansi',
+    'gaps_squared': 'Bosluk Karesi',
+    'len_weighted': 'Agirlikli Uzunluk',
+    'var_div_duration': 'Varyans/Sure',
+    'var_div_len': 'Varyans/Uzunluk',
+    'custom_rms': 'RMS Degeri',
+    'custom_p2p': 'Tepeden Tepeye',
+    'custom_crest_factor': 'Tepe Faktoru',
+    'custom_zcr': 'Sifir Gecis Orani',
+    'channel_id': 'Kanal Numarasi',
+}
+
 DROP_COLS = ['segment', 'anomaly', 'train', 'channel']
 FEATURE_COLS = TEST_DATA.get("feature_cols", None) if TEST_DATA else None
 
@@ -82,6 +121,7 @@ sidebar = html.Div(className="sidebar", children=[
         nav_item("mdi:upload", "Veri Yükle", "upload"),
         nav_item("mdi:chart-timeline-variant", "Analiz", "analysis"),
         nav_item("mdi:chart-scatter-plot", "Sonuçlar", "results"),
+        nav_item("mdi:brain", "SHAP Analiz", "shap"),
         nav_item("mdi:gauge", "Model Performans", "performance"),
     ]),
     html.Div(className="sidebar-footer", children=[
@@ -327,8 +367,49 @@ def page_performance():
     ])
 
 
+def page_shap():
+    if SHAP_DATA is None:
+        return html.Div([
+            html.Div(className="page-header", children=[
+                html.Div("SHAP Analiz", className="page-title"),
+                html.Div("Model yorumlanabilirlik analizi", className="page-subtitle")]),
+            html.Div(className="warning-box", children=[
+                icon("mdi:alert-outline", 40, "#F59E0B"),
+                html.Div("SHAP Verileri Bulunamadi", className="warning-title"),
+                html.Div([
+                    "SHAP analiz verileri henuz hesaplanmamis. ",
+                    "Lutfen once ", html.Code("notebooks/07_shap_analizi.ipynb"),
+                    " notebook'unu calistirin.",
+                    html.Br(), html.Br(),
+                    "Notebook calistirildiktan sonra ",
+                    html.Code("models/shap_values.pkl"),
+                    " dosyasi olusturulacak ve bu sayfa aktif hale gelecektir."
+                ], className="warning-body")
+            ])
+        ])
+
+    feature_labels = SHAP_DATA.get('feature_labels', SHAP_DATA.get('feature_cols', []))
+    y_test = SHAP_DATA['y_test']
+    anomaly_indices = np.where(y_test == 1)[0]
+    anomaly_options = [{"label": f"Segment #{i} (index {idx})", "value": int(idx)}
+                       for i, idx in enumerate(anomaly_indices, 1)]
+
+    return html.Div([
+        html.Div(className="page-header", children=[
+            html.Div("SHAP Analiz", className="page-title"),
+            html.Div("Model yorumlanabilirlik ve ozellik onemi analizi", className="page-subtitle")]),
+        dcc.Tabs(id="shap-tabs", value="tab-importance", className="custom-tabs", children=[
+            dcc.Tab(label="Ozellik Onemi", value="tab-importance", className="tab", selected_className="tab--selected"),
+            dcc.Tab(label="Anomali Aciklama", value="tab-explain", className="tab", selected_className="tab--selected"),
+            dcc.Tab(label="Model Karsilastirma", value="tab-compare", className="tab", selected_className="tab--selected"),
+        ]),
+        html.Div(id="shap-tab-content", style={"marginTop": "20px"}),
+        dcc.Store(id="shap-anomaly-options", data=[o["value"] for o in anomaly_options]),
+    ])
+
+
 PAGES = {"dashboard": page_dashboard, "upload": page_upload, "analysis": page_analysis,
-         "results": page_results, "performance": page_performance}
+         "results": page_results, "shap": page_shap, "performance": page_performance}
 
 # ── Callbacks ──
 @callback(Output("current-page", "data"),
@@ -583,7 +664,7 @@ def update_results(pred_json, data_json):
             dash_table.DataTable(
                 id="results-table",
                 columns=[{"name": c, "id": c} for c in ["NO","Segment","Kanal","Skor","Şiddet"]],
-                data=table_data, page_size=12,
+                data=table_data, page_size=12, row_selectable="single",
                 style_header={"backgroundColor":"#0D1117","color":"#64748B","fontWeight":"600","border":"1px solid #1E2A3A","fontSize":"11px"},
                 style_cell={"backgroundColor":"#151C28","color":"#F1F5F9","border":"1px solid #1E2A3A","fontFamily":"IBM Plex Sans","fontSize":"12px","padding":"8px"},
                 style_data_conditional=[
@@ -598,6 +679,7 @@ def update_results(pred_json, data_json):
                 html.Button("CSV Olarak İndir", id="btn-csv-download", n_clicks=0, className="btn-download"),
             ]),
             dcc.Store(id="csv-store", data=table_data),
+            html.Div(id="shap-mini-waterfall-container", style={"marginTop": "20px"}),
         ]),
     ])
 
@@ -610,6 +692,330 @@ def download_csv(n, data):
     if not n or not data: return no_update
     df_out = pd.DataFrame(data)
     return dcc.send_data_frame(df_out.to_csv, "anomali_sonuclari.csv", index=False)
+
+# ── SHAP Callbacks ──
+@callback(Output("shap-tab-content", "children"),
+          Input("shap-tabs", "value"),
+          prevent_initial_call=False)
+def render_shap_tab(tab):
+    if SHAP_DATA is None:
+        return html.Div()
+
+    feature_labels = SHAP_DATA.get('feature_labels', SHAP_DATA.get('feature_cols', []))
+    feature_cols = SHAP_DATA.get('feature_cols', [])
+    y_test = SHAP_DATA['y_test']
+    anomaly_indices = np.where(y_test == 1)[0]
+
+    if tab == "tab-importance":
+        return html.Div([
+            html.Div(className="panel", children=[
+                html.Div(className="panel-title", children=[icon("mdi:chart-bar", 16), "Model Secimi"]),
+                dcc.Dropdown(
+                    id="shap-model-select",
+                    options=[
+                        {"label": "Random Forest", "value": "rf"},
+                        {"label": "XGBoost", "value": "xgb"},
+                    ],
+                    value="rf",
+                    style={"backgroundColor": "#151C28", "color": "#F1F5F9"},
+                    className="shap-dropdown"
+                ),
+            ]),
+            html.Div(id="shap-importance-chart", className="panel", style={"marginTop": "16px"}),
+            html.Div(id="shap-importance-text", className="panel", style={"marginTop": "16px"}),
+        ])
+
+    elif tab == "tab-explain":
+        anomaly_options = [{"label": f"Segment #{i} (index {idx})", "value": int(idx)}
+                           for i, idx in enumerate(anomaly_indices, 1)]
+        return html.Div([
+            html.Div(className="panel", children=[
+                html.Div(className="panel-title", children=[icon("mdi:magnify", 16), "Anomali Secimi"]),
+                dcc.Dropdown(
+                    id="shap-anomaly-select",
+                    options=anomaly_options,
+                    value=anomaly_options[0]["value"] if anomaly_options else None,
+                    placeholder="Bir anomali segmenti secin...",
+                    style={"backgroundColor": "#151C28", "color": "#F1F5F9"},
+                    className="shap-dropdown"
+                ),
+            ]),
+            html.Div(id="shap-waterfall-chart", className="panel", style={"marginTop": "16px"}),
+            html.Div(id="shap-waterfall-text", className="panel", style={"marginTop": "16px"}),
+        ])
+
+    elif tab == "tab-compare":
+        # Static comparison chart - RF vs XGBoost
+        rf_shap = SHAP_DATA['rf_shap_values']
+        xgb_shap = SHAP_DATA['xgb_shap_values']
+        rf_imp = np.abs(rf_shap).mean(axis=0)
+        xgb_imp = np.abs(xgb_shap).mean(axis=0)
+
+        combined = rf_imp + xgb_imp
+        top_idx = np.argsort(combined)[-10:][::-1]
+        top_labels = [feature_labels[i] for i in top_idx]
+
+        fig = go.Figure()
+        fig.add_trace(go.Bar(name="Random Forest", y=top_labels, x=rf_imp[top_idx],
+                             orientation='h', marker_color='#3B82F6', opacity=0.85))
+        fig.add_trace(go.Bar(name="XGBoost", y=top_labels, x=xgb_imp[top_idx],
+                             orientation='h', marker_color='#10B981', opacity=0.85))
+        fig.update_layout(**PLT_LAYOUT, height=500, barmode='group',
+                          title="RF vs XGBoost - SHAP Ozellik Onemi Karsilastirmasi",
+                          xaxis_title="Ortalama |SHAP Degeri|",
+                          legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+        fig.update_yaxes(autorange="reversed")
+
+        # Find features with biggest difference
+        diff = np.abs(rf_imp - xgb_imp)
+        diff_idx = np.argsort(diff)[-3:][::-1]
+        diff_text_parts = []
+        for idx in diff_idx:
+            lbl = feature_labels[idx]
+            rf_v = rf_imp[idx]
+            xgb_v = xgb_imp[idx]
+            dominant = "Random Forest" if rf_v > xgb_v else "XGBoost"
+            diff_text_parts.append(f"{lbl}: {dominant} modeli bu ozelligi daha onemli buluyor (RF: {rf_v:.4f}, XGB: {xgb_v:.4f})")
+
+        return html.Div([
+            html.Div(className="panel", children=[
+                dcc.Graph(figure=fig, config={"displayModeBar": False})
+            ]),
+            html.Div(className="panel", style={"marginTop": "16px"}, children=[
+                html.Div(className="panel-title", children=[icon("mdi:compare-horizontal", 16), "Karsilastirma Notlari"]),
+                html.Div([
+                    html.P("Iki model arasinda en buyuk fark gosteren ozellikler:", style={"color": "#94A3B8", "marginBottom": "12px"}),
+                    *[html.Div(className="shap-note-item", children=[
+                        icon("mdi:circle-small", 16, "#F59E0B"),
+                        html.Span(t, style={"color": "#CBD5E1", "fontSize": "13px"})
+                    ]) for t in diff_text_parts]
+                ])
+            ])
+        ])
+
+    return html.Div()
+
+
+@callback(Output("shap-importance-chart", "children"),
+          Output("shap-importance-text", "children"),
+          Input("shap-model-select", "value"),
+          prevent_initial_call=False)
+def update_shap_importance(model):
+    if SHAP_DATA is None or model is None:
+        return html.Div(), html.Div()
+
+    feature_labels = SHAP_DATA.get('feature_labels', SHAP_DATA.get('feature_cols', []))
+    feature_cols = SHAP_DATA.get('feature_cols', [])
+
+    if model == "rf":
+        shap_vals = SHAP_DATA['rf_shap_values']
+        model_name = "Random Forest"
+    else:
+        shap_vals = SHAP_DATA['xgb_shap_values']
+        model_name = "XGBoost"
+
+    importance = np.abs(shap_vals).mean(axis=0)
+    top_idx = np.argsort(importance)[-10:][::-1]
+    top_labels = [feature_labels[i] for i in top_idx]
+    top_values = importance[top_idx]
+
+    colors = []
+    max_val = top_values[0] if len(top_values) > 0 else 1
+    for v in top_values:
+        ratio = v / max_val
+        if ratio > 0.7:
+            colors.append("#3B82F6")
+        elif ratio > 0.4:
+            colors.append("#06B6D4")
+        else:
+            colors.append("#64748B")
+
+    fig = go.Figure(go.Bar(
+        y=top_labels, x=top_values, orientation='h',
+        marker_color=colors, text=[f"{v:.4f}" for v in top_values],
+        textposition='outside', textfont=dict(size=11, color='#94A3B8')
+    ))
+    fig.update_layout(**PLT_LAYOUT, height=450,
+                      title=f"{model_name} - En Onemli 10 Ozellik (SHAP)",
+                      xaxis_title="Ortalama |SHAP Degeri|")
+    fig.update_yaxes(autorange="reversed")
+
+    chart = dcc.Graph(figure=fig, config={"displayModeBar": False})
+
+    # Auto-generated text for top 3 features
+    feature_explanations = {
+        'Varyans': 'Sinyal varyansindaki ani degisimler, uydu alt sistemlerindeki beklenmeyen davranislari yansitir.',
+        'Standart Sapma': 'Sinyal dagiliminin genisligi; yuksek sapma operasyonel anomaliye isaret eder.',
+        'Fark Varyansi': 'Sinyalin turevindeki degiskenlik, ani gecisleri ve bozulmalari yakalar.',
+        '2. Fark Varyansi': 'Sinyalin ikinci turevindeki degiskenlik, ivmelenme anomalilerini gosterir.',
+        'Tepe Sayisi': 'Sinyaldeki tepe noktasi sayisi; normalden sapma mekanik sorunlara isaret edebilir.',
+        'Ortalama Deger': 'Sinyal ortalamasi; kaymalar kalibrasyon sorunlarini gosterir.',
+        'RMS Degeri': 'Karekok ortalama sinyal gucu; enerji seviyesindeki anomalileri tespit eder.',
+        'Tepeden Tepeye': 'Sinyal genliginin tam araligi; asiri dalgalanmalar anomalidir.',
+        'Tepe Faktoru': 'Tepe-RMS orani; impulsif bozulmalari tespit eder.',
+        'Sifir Gecis Orani': 'Sinyalin sifir cizgisini gecme sikligi; frekans anomalilerini gosterir.',
+        'Basiklik (Kurtosis)': 'Dagilimin sivriligi; yuksek kurtosis ani sapmalara isaret eder.',
+        'Carpiklik (Skewness)': 'Dagilimin asimetrisi; tek yonlu sapmalar anomali belirtisidir.',
+        'Segment Suresi': 'Veri segmentinin suresi; beklenmeyen sure anomali gostergesidir.',
+        'Segment Uzunlugu': 'Veri noktasi sayisi; eksik veya fazla veri anomalidir.',
+        'Ornekleme Frekansi': 'Veri toplama hizi; sapma sensor sorunlarini gosterir.',
+        'Yumusatilmis Tepe (w=10)': 'Kisa pencere ile yumusatilmis tepe sayisi.',
+        'Yumusatilmis Tepe (w=20)': 'Genis pencere ile yumusatilmis tepe sayisi.',
+        'Fark Tepe Sayisi': 'Turev sinyalindeki tepe sayisi.',
+        '2. Fark Tepe Sayisi': 'Ikinci turev sinyalindeki tepe sayisi.',
+        'Bosluk Karesi': 'Veri bosluk karelerinin toplami; veri kaybi gostergesi.',
+        'Agirlikli Uzunluk': 'Sure ile agirliklandirilmis segment uzunlugu.',
+        'Varyans/Sure': 'Birim zamandaki varyans; normalize edilmis oynaklik.',
+        'Varyans/Uzunluk': 'Veri noktasi basina varyans.',
+        'Kanal Numarasi': 'Telemetri kanal kimlik numarasi.',
+    }
+
+    text_items = []
+    for rank, idx in enumerate(top_idx[:3], 1):
+        lbl = feature_labels[idx]
+        exp = feature_explanations.get(lbl, f"{lbl} ozelligi anomali tespitinde onemli bir rol oynamaktadir.")
+        text_items.append(
+            html.Div(className="shap-explanation-item", children=[
+                html.Div(f"{rank}. {lbl}", className="shap-exp-title"),
+                html.Div(f"SHAP Degeri: {importance[idx]:.4f}", className="shap-exp-value"),
+                html.Div(exp, className="shap-exp-desc")
+            ])
+        )
+
+    text_block = html.Div([
+        html.Div(className="panel-title", children=[icon("mdi:text-box-outline", 16), "En Onemli Uc Ozellik Aciklamasi"]),
+        *text_items
+    ])
+
+    return chart, text_block
+
+
+@callback(Output("shap-waterfall-chart", "children"),
+          Output("shap-waterfall-text", "children"),
+          Input("shap-anomaly-select", "value"),
+          prevent_initial_call=False)
+def update_shap_waterfall(selected_idx):
+    if SHAP_DATA is None or selected_idx is None:
+        return html.Div(), html.Div()
+
+    feature_labels = SHAP_DATA.get('feature_labels', SHAP_DATA.get('feature_cols', []))
+    # Use RF for waterfall by default
+    shap_vals = SHAP_DATA['rf_shap_values']
+    expected = SHAP_DATA['rf_expected_value']
+    X_test = SHAP_DATA['X_test']
+
+    idx = int(selected_idx)
+    if idx >= len(shap_vals):
+        return html.Div("Gecersiz index."), html.Div()
+
+    vals = shap_vals[idx]
+    data_row = X_test[idx]
+
+    # Sort by absolute SHAP value, take top 15
+    abs_vals = np.abs(vals)
+    top_idx = np.argsort(abs_vals)[-15:][::-1]
+    sorted_labels = [feature_labels[i] for i in top_idx]
+    sorted_vals = vals[top_idx]
+    sorted_data = data_row[top_idx]
+
+    # Waterfall-style bar chart
+    colors = ['#EF4444' if v > 0 else '#10B981' for v in sorted_vals]
+
+    fig = go.Figure(go.Bar(
+        y=sorted_labels, x=sorted_vals, orientation='h',
+        marker_color=colors,
+        text=[f"{v:+.4f}" for v in sorted_vals],
+        textposition='outside', textfont=dict(size=10, color='#94A3B8')
+    ))
+    fig.update_layout(**PLT_LAYOUT, height=500,
+                      title=f"Anomali Aciklamasi - Segment Index: {idx} (Random Forest)",
+                      xaxis_title="SHAP Degeri",
+                      annotations=[dict(text="Kirmizi: Anomaliye iter | Yesil: Normale iter",
+                                        xref="paper", yref="paper", x=0.5, y=-0.08,
+                                        showarrow=False, font=dict(size=11, color="#64748B"))])
+    fig.update_yaxes(autorange="reversed")
+    fig.add_vline(x=0, line_dash="dash", line_color="#4A5568", line_width=1)
+
+    chart = dcc.Graph(figure=fig, config={"displayModeBar": False})
+
+    # Text explanation for top 3 contributing features
+    top3_items = []
+    for rank, i in enumerate(top_idx[:3], 1):
+        lbl = feature_labels[i]
+        val = vals[i]
+        direction = "anomaliye dogru itiyor" if val > 0 else "normale dogru itiyor"
+        color = "#FCA5A5" if val > 0 else "#86EFAC"
+        top3_items.append(
+            html.Div(className="shap-explanation-item", children=[
+                html.Div(f"{rank}. {lbl}", className="shap-exp-title"),
+                html.Div([
+                    html.Span(f"SHAP: {val:+.4f}", style={"color": color, "fontFamily": "IBM Plex Mono, monospace", "fontSize": "13px", "fontWeight": "600"}),
+                    html.Span(f" - {direction}", style={"color": "#94A3B8", "fontSize": "13px"}),
+                ], className="shap-exp-value"),
+                html.Div(f"Ozellik degeri: {data_row[i]:.4f}", className="shap-exp-desc")
+            ])
+        )
+
+    text_block = html.Div([
+        html.Div(className="panel-title", children=[icon("mdi:text-box-outline", 16), "En Cok Katkida Bulunan Uc Ozellik"]),
+        *top3_items
+    ])
+
+    return chart, text_block
+
+# ── Results page SHAP mini-waterfall ──
+@callback(Output("shap-mini-waterfall-container", "children"),
+          Input("results-table", "selected_rows"),
+          State("results-table", "data"),
+          prevent_initial_call=True)
+def update_mini_waterfall(selected_rows, table_data):
+    if not selected_rows or not table_data or SHAP_DATA is None:
+        return html.Div()
+
+    row = table_data[selected_rows[0]]
+    segment_no = row.get("Segment", 0)
+
+    feature_labels = SHAP_DATA.get('feature_labels', SHAP_DATA.get('feature_cols', []))
+    shap_vals = SHAP_DATA['rf_shap_values']
+    X_test = SHAP_DATA['X_test']
+    y_test = SHAP_DATA['y_test']
+
+    anomaly_indices = np.where(y_test == 1)[0]
+    row_no = row.get("NO", 1) - 1  # 0-indexed
+    if row_no >= len(anomaly_indices):
+        return html.Div("Bu segment icin SHAP verisi bulunamadi.", style={"color": "#F59E0B", "padding": "12px"})
+
+    idx = anomaly_indices[row_no]
+    if idx >= len(shap_vals):
+        return html.Div("SHAP index araligi disinda.", style={"color": "#F59E0B", "padding": "12px"})
+
+    vals = shap_vals[idx]
+    abs_vals = np.abs(vals)
+    top_idx = np.argsort(abs_vals)[-10:][::-1]
+    sorted_labels = [feature_labels[i] for i in top_idx]
+    sorted_vals = vals[top_idx]
+
+    colors = ['#EF4444' if v > 0 else '#10B981' for v in sorted_vals]
+
+    fig = go.Figure(go.Bar(
+        y=sorted_labels, x=sorted_vals, orientation='h',
+        marker_color=colors,
+        text=[f"{v:+.4f}" for v in sorted_vals],
+        textposition='outside', textfont=dict(size=10, color='#94A3B8')
+    ))
+    fig.update_layout(**PLT_LAYOUT, height=350,
+                      title=f"SHAP Aciklamasi - Segment {segment_no}",
+                      xaxis_title="SHAP Degeri",
+                      margin=dict(l=40, r=60, t=40, b=30))
+    fig.update_yaxes(autorange="reversed")
+    fig.add_vline(x=0, line_dash="dash", line_color="#4A5568", line_width=1)
+
+    return html.Div(className="panel", children=[
+        html.Div(className="panel-title", children=[icon("mdi:brain", 16), f"SHAP Anomali Aciklamasi - Segment {segment_no}"]),
+        dcc.Graph(figure=fig, config={"displayModeBar": False}),
+        html.Div("Kirmizi: Anomaliye iter | Yesil: Normale iter",
+                 style={"color": "#64748B", "fontSize": "11px", "textAlign": "center", "marginTop": "8px"})
+    ])
 
 
 if __name__ == "__main__":

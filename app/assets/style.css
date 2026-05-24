@@ -394,3 +394,60 @@ div[class*="slider-tooltip"],
 div[class*="slider"] input[type="number"] {
   display: none !important;
 }
+
+/* ── SHAP Analiz Stilleri ── */
+.shap-dropdown {
+    margin-top: 12px;
+}
+
+.shap-dropdown .Select-control {
+    background-color: var(--bg-card);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+.shap-dropdown .Select-menu-outer {
+    background-color: var(--bg-card);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+    z-index: 999;
+}
+
+.shap-dropdown .Select-value-label {
+    color: var(--text-primary) !important;
+}
+
+.shap-explanation-item {
+    margin-top: 16px;
+    padding: 12px;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+}
+
+.shap-exp-title {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    font-size: 14px;
+}
+
+.shap-exp-value {
+    font-size: 13px;
+    color: var(--accent-blue);
+    font-family: 'IBM Plex Mono', monospace;
+    margin-bottom: 8px;
+}
+
+.shap-exp-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.shap-note-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 8px;
+}
