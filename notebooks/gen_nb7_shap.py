@@ -51,12 +51,11 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
+%matplotlib inline
 import numpy as np
 import pandas as pd
 import joblib
 import shap
-import matplotlib
-matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 shap.initjs()
