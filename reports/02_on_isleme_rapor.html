@@ -7312,6 +7312,7 @@ a.anchor-link {
                     processEnvironments: true
                 },
                 displayAlign: 'center',
+                messageStyle: 'none',
                 CommonHTML: {
                     linebreaks: {
                     automatic: true
@@ -7331,7 +7332,12 @@ a.anchor-link {
     if (!diagrams.length) {
       return;
     }
-    const mermaid = (await import("https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.7.0/mermaid.esm.min.mjs")).default;
+    const mermaid = (await import("https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.10.0/mermaid.esm.min.mjs")).default;
+    const elkUrl = "https://cdnjs.cloudflare.com/ajax/libs/mermaid-layout-elk/0.1.9/mermaid-layout-elk.esm.min.mjs";
+    if(elkUrl) {
+      const elkLayouts = (await import(elkUrl)).default;
+      mermaid.registerLayoutLoaders(elkLayouts);
+    }
     const parser = new DOMParser();
 
     mermaid.initialize({
@@ -7428,7 +7434,8 @@ a.anchor-link {
      * Post-process to ensure mermaid diagrams contain only valid SVG and XHTML.
      */
     function cleanMermaidSvg(svg) {
-      return svg.replace(RE_VOID_ELEMENT, replaceVoidElement);
+      svg = svg.replace(RE_VOID_ELEMENT, replaceVoidElement);
+      return `${SVG_XML_HEADER}${svg}`;
     }
 
 
@@ -7454,6 +7461,285 @@ a.anchor-link {
       }
       return `<${tag} ${rest}>`;
     }
+
+
+  /**
+   * Named HTML entities with their decimal equivalent codes.
+   *
+   * @see https://www.w3.org/TR/WD-html40-970708/sgml/entities.html
+   * */
+  const HTML_ENTITIES = `<!ENTITY Aacute "&#193;">
+<!ENTITY aacute "&#225;">
+<!ENTITY Acirc "&#194;">
+<!ENTITY acirc "&#226;">
+<!ENTITY acute "&#180;">
+<!ENTITY AElig "&#198;">
+<!ENTITY aelig "&#230;">
+<!ENTITY Agrave "&#192;">
+<!ENTITY agrave "&#224;">
+<!ENTITY alefsym "&#8501;">
+<!ENTITY Alpha "&#913;">
+<!ENTITY alpha "&#945;">
+<!ENTITY amp "&#38;">
+<!ENTITY and "&#8869;">
+<!ENTITY ang "&#8736;">
+<!ENTITY Aring "&#197;">
+<!ENTITY aring "&#229;">
+<!ENTITY asymp "&#8776;">
+<!ENTITY Atilde "&#195;">
+<!ENTITY atilde "&#227;">
+<!ENTITY Auml "&#196;">
+<!ENTITY auml "&#228;">
+<!ENTITY bdquo "&#8222;">
+<!ENTITY Beta "&#914;">
+<!ENTITY beta "&#946;">
+<!ENTITY brvbar "&#166;">
+<!ENTITY bull "&#8226;">
+<!ENTITY cap "&#8745;">
+<!ENTITY Ccedil "&#199;">
+<!ENTITY ccedil "&#231;">
+<!ENTITY cedil "&#184;">
+<!ENTITY cent "&#162;">
+<!ENTITY Chi "&#935;">
+<!ENTITY chi "&#967;">
+<!ENTITY circ "&#710;">
+<!ENTITY clubs "&#9827;">
+<!ENTITY cong "&#8773;">
+<!ENTITY copy "&#169;">
+<!ENTITY crarr "&#8629;">
+<!ENTITY cup "&#8746;">
+<!ENTITY curren "&#164;">
+<!ENTITY dagger "&#8224;">
+<!ENTITY Dagger "&#8225;">
+<!ENTITY darr "&#8595;">
+<!ENTITY dArr "&#8659;">
+<!ENTITY deg "&#176;">
+<!ENTITY Delta "&#916;">
+<!ENTITY delta "&#948;">
+<!ENTITY diams "&#9830;">
+<!ENTITY divide "&#247;">
+<!ENTITY Eacute "&#201;">
+<!ENTITY eacute "&#233;">
+<!ENTITY Ecirc "&#202;">
+<!ENTITY ecirc "&#234;">
+<!ENTITY Egrave "&#200;">
+<!ENTITY egrave "&#232;">
+<!ENTITY empty "&#8709;">
+<!ENTITY emsp "&#8195;">
+<!ENTITY ensp "&#8194;">
+<!ENTITY epsilon "&#949;">
+<!ENTITY Epsilon "&#917;">
+<!ENTITY equiv "&#8801;">
+<!ENTITY Eta "&#919;">
+<!ENTITY eta "&#951;">
+<!ENTITY ETH "&#208;">
+<!ENTITY eth "&#240;">
+<!ENTITY Euml "&#203;">
+<!ENTITY euml "&#235;">
+<!ENTITY exist "&#8707;">
+<!ENTITY fnof "&#402;">
+<!ENTITY forall "&#8704;">
+<!ENTITY frac12 "&#189;">
+<!ENTITY frac14 "&#188;">
+<!ENTITY frac34 "&#190;">
+<!ENTITY frasl "&#8260;">
+<!ENTITY Gamma "&#915;">
+<!ENTITY gamma "&#947;">
+<!ENTITY ge "&#8805;">
+<!ENTITY gt "&#62;">
+<!ENTITY harr "&#8596;">
+<!ENTITY hArr "&#8660;">
+<!ENTITY hearts "&#9829;">
+<!ENTITY hellip "&#8230;">
+<!ENTITY Iacute "&#205;">
+<!ENTITY iacute "&#237;">
+<!ENTITY Icirc "&#206;">
+<!ENTITY icirc "&#238;">
+<!ENTITY iexcl "&#161;">
+<!ENTITY Igrave "&#204;">
+<!ENTITY igrave "&#236;">
+<!ENTITY image "&#8465;">
+<!ENTITY infin "&#8734;">
+<!ENTITY int "&#8747;">
+<!ENTITY Iota "&#921;">
+<!ENTITY iota "&#953;">
+<!ENTITY iquest "&#191;">
+<!ENTITY isin "&#8712;">
+<!ENTITY Iuml "&#207;">
+<!ENTITY iuml "&#239;">
+<!ENTITY Kappa "&#922;">
+<!ENTITY kappa "&#954;">
+<!ENTITY Lambda "&#923;">
+<!ENTITY lambda "&#955;">
+<!ENTITY lang "&#9001;">
+<!ENTITY laquo "&#171;">
+<!ENTITY larr "&#8592;">
+<!ENTITY lArr "&#8656;">
+<!ENTITY lceil "&#8968;">
+<!ENTITY ldquo "&#8220;">
+<!ENTITY le "&#8804;">
+<!ENTITY lfloor "&#8970;">
+<!ENTITY lowast "&#8727;">
+<!ENTITY loz "&#9674;">
+<!ENTITY lrm "&#8206;">
+<!ENTITY lsaquo "&#8249;">
+<!ENTITY lsquo "&#8216;">
+<!ENTITY lt "&#60;">
+<!ENTITY macr "&#175;">
+<!ENTITY mdash "&#8212;">
+<!ENTITY micro "&#181;">
+<!ENTITY middot "&#183;">
+<!ENTITY minus "&#8722;">
+<!ENTITY Mu "&#924;">
+<!ENTITY mu "&#956;">
+<!ENTITY nabla "&#8711;">
+<!ENTITY nbsp "&#160;">
+<!ENTITY ndash "&#8211;">
+<!ENTITY ne "&#8800;">
+<!ENTITY ni "&#8715;">
+<!ENTITY not "&#172;">
+<!ENTITY notin "&#8713;">
+<!ENTITY nsub "&#8836;">
+<!ENTITY Ntilde "&#209;">
+<!ENTITY ntilde "&#241;">
+<!ENTITY Nu "&#925;">
+<!ENTITY nu "&#957;">
+<!ENTITY Oacute "&#211;">
+<!ENTITY oacute "&#243;">
+<!ENTITY Ocirc "&#212;">
+<!ENTITY ocirc "&#244;">
+<!ENTITY OElig "&#338;">
+<!ENTITY oelig "&#339;">
+<!ENTITY Ograve "&#210;">
+<!ENTITY ograve "&#242;">
+<!ENTITY oline "&#8254;">
+<!ENTITY Omega "&#937;">
+<!ENTITY omega "&#969;">
+<!ENTITY Omicron "&#927;">
+<!ENTITY omicron "&#959;">
+<!ENTITY oplus "&#8853;">
+<!ENTITY or "&#8870;">
+<!ENTITY ordf "&#170;">
+<!ENTITY ordm "&#186;">
+<!ENTITY Oslash "&#216;">
+<!ENTITY oslash "&#248;">
+<!ENTITY Otilde "&#213;">
+<!ENTITY otilde "&#245;">
+<!ENTITY otimes "&#8855;">
+<!ENTITY Ouml "&#214;">
+<!ENTITY ouml "&#246;">
+<!ENTITY para "&#182;">
+<!ENTITY part "&#8706;">
+<!ENTITY permil "&#8240;">
+<!ENTITY perp "&#8869;">
+<!ENTITY Phi "&#934;">
+<!ENTITY phi "&#966;">
+<!ENTITY Pi "&#928;">
+<!ENTITY pi "&#960;">
+<!ENTITY piv "&#982;">
+<!ENTITY plusmn "&#177;">
+<!ENTITY pound "&#163;">
+<!ENTITY prime "&#8242;">
+<!ENTITY Prime "&#8243;">
+<!ENTITY prod "&#8719;">
+<!ENTITY prop "&#8733;">
+<!ENTITY Psi "&#936;">
+<!ENTITY psi "&#968;">
+<!ENTITY quot "&#34;">
+<!ENTITY radic "&#8730;">
+<!ENTITY rang "&#9002;">
+<!ENTITY raquo "&#187;">
+<!ENTITY rarr "&#8594;">
+<!ENTITY rArr "&#8658;">
+<!ENTITY rceil "&#8969;">
+<!ENTITY rdquo "&#8221;">
+<!ENTITY real "&#8476;">
+<!ENTITY reg "&#174;">
+<!ENTITY rfloor "&#8971;">
+<!ENTITY Rho "&#929;">
+<!ENTITY rho "&#961;">
+<!ENTITY rlm "&#8207;">
+<!ENTITY rsaquo "&#8250;">
+<!ENTITY rsquo "&#8217;">
+<!ENTITY sbquo "&#8218;">
+<!ENTITY Scaron "&#352;">
+<!ENTITY scaron "&#353;">
+<!ENTITY sdot "&#8901;">
+<!ENTITY sect "&#167;">
+<!ENTITY shy "&#173;">
+<!ENTITY Sigma "&#931;">
+<!ENTITY sigma "&#963;">
+<!ENTITY sigmaf "&#962;">
+<!ENTITY sim "&#8764;">
+<!ENTITY spades "&#9824;">
+<!ENTITY sub "&#8834;">
+<!ENTITY sube "&#8838;">
+<!ENTITY sum "&#8721;">
+<!ENTITY sup "&#8835;">
+<!ENTITY sup1 "&#185;">
+<!ENTITY sup2 "&#178;">
+<!ENTITY sup3 "&#179;">
+<!ENTITY supe "&#8839;">
+<!ENTITY szlig "&#223;">
+<!ENTITY Tau "&#932;">
+<!ENTITY tau "&#964;">
+<!ENTITY there4 "&#8756;">
+<!ENTITY Theta "&#920;">
+<!ENTITY theta "&#952;">
+<!ENTITY thetasym "&#977;">
+<!ENTITY thinsp "&#8201;">
+<!ENTITY THORN "&#222;">
+<!ENTITY thorn "&#254;">
+<!ENTITY tilde "&#732;">
+<!ENTITY times "&#215;">
+<!ENTITY trade "&#8482;">
+<!ENTITY Uacute "&#218;">
+<!ENTITY uacute "&#250;">
+<!ENTITY uarr "&#8593;">
+<!ENTITY uArr "&#8657;">
+<!ENTITY Ucirc "&#219;">
+<!ENTITY ucirc "&#251;">
+<!ENTITY Ugrave "&#217;">
+<!ENTITY ugrave "&#249;">
+<!ENTITY uml "&#168;">
+<!ENTITY upsih "&#978;">
+<!ENTITY Upsilon "&#933;">
+<!ENTITY upsilon "&#965;">
+<!ENTITY Uuml "&#220;">
+<!ENTITY uuml "&#252;">
+<!ENTITY weierp "&#8472;">
+<!ENTITY Xi "&#926;">
+<!ENTITY xi "&#958;">
+<!ENTITY Yacute "&#221;">
+<!ENTITY yacute "&#253;">
+<!ENTITY yen "&#165;">
+<!ENTITY Yuml "&#376;">
+<!ENTITY yuml "&#255;">
+<!ENTITY Zeta "&#918;">
+<!ENTITY zeta "&#950;">
+<!ENTITY zwj "&#8205;">
+<!ENTITY zwnj "&#8204;">`.replace(/\n/g, ' ');
+
+  /**
+   * A reasonably strict xml declaration.
+   */
+  const XML_DECL = '<?xml version="1.0" standalone="no"?>';
+
+  /**
+   * The beginning of the XML doctype declaration.
+   */
+  const DOCTYPE_START = `<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd" [`;
+
+  /**
+   * The end of the XML docype declaration.
+   */
+  const DOCTYPE_END = ']>';
+
+  /**
+   * A full header for an SVG XML document.
+   */
+  const SVG_XML_HEADER = `${XML_DECL}
+    ${DOCTYPE_START}${HTML_ENTITIES}${DOCTYPE_END}`;
 
     void Promise.all([...diagrams].map(renderOneMarmaid));
   });
@@ -7510,7 +7796,7 @@ a.anchor-link {
 <!-- End of mermaid configuration --></head>
 <body class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
 <main>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=38a60089">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=8b1c1076">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7531,7 +7817,7 @@ a.anchor-link {
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=e2e8fe5d">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=9d658004">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7539,23 +7825,23 @@ a.anchor-link {
 <div class="jp-InputPrompt jp-InputArea-prompt">In [1]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
-<span class="kn">import</span> <span class="nn">seaborn</span> <span class="k">as</span> <span class="nn">sns</span>
-<span class="kn">import</span> <span class="nn">plotly.express</span> <span class="k">as</span> <span class="nn">px</span>
-<span class="kn">from</span> <span class="nn">plotly.subplots</span> <span class="kn">import</span> <span class="n">make_subplots</span>
-<span class="kn">import</span> <span class="nn">plotly.graph_objects</span> <span class="k">as</span> <span class="nn">go</span>
-<span class="kn">import</span> <span class="nn">warnings</span>
-<span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">import</span> <span class="nn">sys</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">seaborn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sns</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">plotly.express</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">px</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">plotly.subplots</span><span class="w"> </span><span class="kn">import</span> <span class="n">make_subplots</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">plotly.graph_objects</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">go</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
 
 <span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s1">'ignore'</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s1">'seaborn-v0_8-darkgrid'</span><span class="p">)</span>
 
 <span class="c1"># Kendi preprocessor modülümüzü import ediyoruz</span>
 <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s1">'..'</span><span class="p">)</span>
-<span class="kn">from</span> <span class="nn">src.preprocessor</span> <span class="kn">import</span> <span class="n">TelemetriPreprocessor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.preprocessor</span><span class="w"> </span><span class="kn">import</span> <span class="n">TelemetriPreprocessor</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="s1">'✅ Kütüphaneler ve Preprocessor yüklendi.'</span><span class="p">)</span>
 </pre></div>
@@ -7577,7 +7863,7 @@ a.anchor-link {
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=7e309123">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=fe2ae7a0">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7588,7 +7874,7 @@ a.anchor-link {
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=0c57b356">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=f2b660d5">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7694,7 +7980,7 @@ a.anchor-link {
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=9f2bf0e3">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=0c96f1e8">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7753,7 +8039,7 @@ Name: time_diff, dtype: float64</pre>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=f7736095">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=2eb281ed">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7764,7 +8050,7 @@ Name: time_diff, dtype: float64</pre>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=360ad355">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=69ca21d6">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7789,7 +8075,7 @@ Name: time_diff, dtype: float64</pre>
 <span class="n">spline_res</span> <span class="o">=</span> <span class="n">sample_df</span><span class="p">[</span><span class="s1">'value'</span><span class="p">]</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">'spline'</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
 
 <span class="c1"># 4. KNN Imputation (Sklearn)</span>
-<span class="kn">from</span> <span class="nn">sklearn.impute</span> <span class="kn">import</span> <span class="n">KNNImputer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.impute</span><span class="w"> </span><span class="kn">import</span> <span class="n">KNNImputer</span>
 <span class="n">knn</span> <span class="o">=</span> <span class="n">KNNImputer</span><span class="p">(</span><span class="n">n_neighbors</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
 <span class="n">knn_res</span> <span class="o">=</span> <span class="n">knn</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">sample_df</span><span class="p">[[</span><span class="s1">'value'</span><span class="p">]])[:,</span> <span class="mi">0</span><span class="p">]</span>
 
@@ -7826,7 +8112,7 @@ Name: time_diff, dtype: float64</pre>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=fc357d99">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=162da7ed">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7837,7 +8123,7 @@ Name: time_diff, dtype: float64</pre>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=731fd04b">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=cead44c9">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7845,7 +8131,7 @@ Name: time_diff, dtype: float64</pre>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [5]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">signal</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">scipy</span><span class="w"> </span><span class="kn">import</span> <span class="n">signal</span>
 
 <span class="c1"># Örnek veri (gürültülü bir segment seçiyoruz)</span>
 <span class="n">noisy_signal</span> <span class="o">=</span> <span class="n">segments</span><span class="p">[(</span><span class="n">segments</span><span class="p">[</span><span class="s1">'channel'</span><span class="p">]</span> <span class="o">==</span> <span class="s1">'CADC0872'</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">segments</span><span class="p">[</span><span class="s1">'segment'</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)][</span><span class="s1">'value'</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
@@ -7896,7 +8182,7 @@ Name: time_diff, dtype: float64</pre>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=035e050e">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=b7530290">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7907,7 +8193,7 @@ Name: time_diff, dtype: float64</pre>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=ccd8b516">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=382b20b1">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7915,7 +8201,7 @@ Name: time_diff, dtype: float64</pre>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [6]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="k">def</span> <span class="nf">check_outliers</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">col</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">'iqr'</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mf">3.5</span><span class="p">):</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">check_outliers</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">col</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">'iqr'</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mf">3.5</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">'iqr'</span><span class="p">:</span>
         <span class="n">Q1</span><span class="p">,</span> <span class="n">Q3</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">quantile</span><span class="p">([</span><span class="mf">0.25</span><span class="p">,</span> <span class="mf">0.75</span><span class="p">])</span>
         <span class="n">IQR</span> <span class="o">=</span> <span class="n">Q3</span> <span class="o">-</span> <span class="n">Q1</span>
@@ -7964,54 +8250,54 @@ Name: time_diff, dtype: float64</pre>
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output" data-mime-type="text/html" tabindex="0">
 <style type="text/css">
-#T_e8b3d_row0_col0, #T_e8b3d_row0_col1, #T_e8b3d_row0_col2, #T_e8b3d_row1_col0, #T_e8b3d_row1_col1, #T_e8b3d_row1_col2, #T_e8b3d_row2_col0, #T_e8b3d_row2_col1, #T_e8b3d_row2_col2, #T_e8b3d_row3_col0, #T_e8b3d_row3_col1, #T_e8b3d_row3_col2, #T_e8b3d_row4_col0, #T_e8b3d_row4_col1, #T_e8b3d_row5_col1, #T_e8b3d_row6_col1 {
+#T_eb7a7_row0_col0, #T_eb7a7_row0_col1, #T_eb7a7_row0_col2, #T_eb7a7_row1_col0, #T_eb7a7_row1_col1, #T_eb7a7_row1_col2, #T_eb7a7_row2_col0, #T_eb7a7_row2_col1, #T_eb7a7_row2_col2, #T_eb7a7_row3_col0, #T_eb7a7_row3_col1, #T_eb7a7_row3_col2, #T_eb7a7_row4_col0, #T_eb7a7_row4_col1, #T_eb7a7_row5_col1, #T_eb7a7_row6_col1 {
   background-color: #fff5f0;
   color: #000000;
 }
-#T_e8b3d_row4_col2 {
+#T_eb7a7_row4_col2 {
   background-color: #fee1d3;
   color: #000000;
 }
-#T_e8b3d_row5_col0 {
+#T_eb7a7_row5_col0 {
   background-color: #fff4ef;
   color: #000000;
 }
-#T_e8b3d_row5_col2 {
+#T_eb7a7_row5_col2 {
   background-color: #c5171c;
   color: #f1f1f1;
 }
-#T_e8b3d_row6_col0 {
+#T_eb7a7_row6_col0 {
   background-color: #fb7252;
   color: #f1f1f1;
 }
-#T_e8b3d_row6_col2 {
+#T_eb7a7_row6_col2 {
   background-color: #f75b40;
   color: #f1f1f1;
 }
-#T_e8b3d_row7_col0 {
+#T_eb7a7_row7_col0 {
   background-color: #ffeee7;
   color: #000000;
 }
-#T_e8b3d_row7_col1 {
+#T_eb7a7_row7_col1 {
   background-color: #fff2eb;
   color: #000000;
 }
-#T_e8b3d_row7_col2 {
+#T_eb7a7_row7_col2 {
   background-color: #c3161b;
   color: #f1f1f1;
 }
-#T_e8b3d_row8_col0, #T_e8b3d_row8_col1, #T_e8b3d_row8_col2 {
+#T_eb7a7_row8_col0, #T_eb7a7_row8_col1, #T_eb7a7_row8_col2 {
   background-color: #67000d;
   color: #f1f1f1;
 }
 </style>
-<table id="T_e8b3d">
+<table id="T_eb7a7">
 <thead>
 <tr>
 <th class="blank level0"> </th>
-<th class="col_heading level0 col0" id="T_e8b3d_level0_col0">IQR (%)</th>
-<th class="col_heading level0 col1" id="T_e8b3d_level0_col1">Z-Score (%)</th>
-<th class="col_heading level0 col2" id="T_e8b3d_level0_col2">Mod-Z-Score (%)</th>
+<th class="col_heading level0 col0" id="T_eb7a7_level0_col0">IQR (%)</th>
+<th class="col_heading level0 col1" id="T_eb7a7_level0_col1">Z-Score (%)</th>
+<th class="col_heading level0 col2" id="T_eb7a7_level0_col2">Mod-Z-Score (%)</th>
 </tr>
 <tr>
 <th class="index_name level0">Kanal</th>
@@ -8022,58 +8308,58 @@ Name: time_diff, dtype: float64</pre>
 </thead>
 <tbody>
 <tr>
-<th class="row_heading level0 row0" id="T_e8b3d_level0_row0">CADC0872</th>
-<td class="data row0 col0" id="T_e8b3d_row0_col0">0.000000</td>
-<td class="data row0 col1" id="T_e8b3d_row0_col1">0.000000</td>
-<td class="data row0 col2" id="T_e8b3d_row0_col2">0.000000</td>
+<th class="row_heading level0 row0" id="T_eb7a7_level0_row0">CADC0872</th>
+<td class="data row0 col0" id="T_eb7a7_row0_col0">0.000000</td>
+<td class="data row0 col1" id="T_eb7a7_row0_col1">0.000000</td>
+<td class="data row0 col2" id="T_eb7a7_row0_col2">0.000000</td>
 </tr>
 <tr>
-<th class="row_heading level0 row1" id="T_e8b3d_level0_row1">CADC0873</th>
-<td class="data row1 col0" id="T_e8b3d_row1_col0">0.000000</td>
-<td class="data row1 col1" id="T_e8b3d_row1_col1">0.000000</td>
-<td class="data row1 col2" id="T_e8b3d_row1_col2">0.000000</td>
+<th class="row_heading level0 row1" id="T_eb7a7_level0_row1">CADC0873</th>
+<td class="data row1 col0" id="T_eb7a7_row1_col0">0.000000</td>
+<td class="data row1 col1" id="T_eb7a7_row1_col1">0.000000</td>
+<td class="data row1 col2" id="T_eb7a7_row1_col2">0.000000</td>
 </tr>
 <tr>
-<th class="row_heading level0 row2" id="T_e8b3d_level0_row2">CADC0874</th>
-<td class="data row2 col0" id="T_e8b3d_row2_col0">0.010000</td>
-<td class="data row2 col1" id="T_e8b3d_row2_col1">0.000000</td>
-<td class="data row2 col2" id="T_e8b3d_row2_col2">0.000000</td>
+<th class="row_heading level0 row2" id="T_eb7a7_level0_row2">CADC0874</th>
+<td class="data row2 col0" id="T_eb7a7_row2_col0">0.010000</td>
+<td class="data row2 col1" id="T_eb7a7_row2_col1">0.000000</td>
+<td class="data row2 col2" id="T_eb7a7_row2_col2">0.000000</td>
 </tr>
 <tr>
-<th class="row_heading level0 row3" id="T_e8b3d_level0_row3">CADC0884</th>
-<td class="data row3 col0" id="T_e8b3d_row3_col0">0.000000</td>
-<td class="data row3 col1" id="T_e8b3d_row3_col1">0.000000</td>
-<td class="data row3 col2" id="T_e8b3d_row3_col2">0.000000</td>
+<th class="row_heading level0 row3" id="T_eb7a7_level0_row3">CADC0884</th>
+<td class="data row3 col0" id="T_eb7a7_row3_col0">0.000000</td>
+<td class="data row3 col1" id="T_eb7a7_row3_col1">0.000000</td>
+<td class="data row3 col2" id="T_eb7a7_row3_col2">0.000000</td>
 </tr>
 <tr>
-<th class="row_heading level0 row4" id="T_e8b3d_level0_row4">CADC0886</th>
-<td class="data row4 col0" id="T_e8b3d_row4_col0">0.000000</td>
-<td class="data row4 col1" id="T_e8b3d_row4_col1">0.000000</td>
-<td class="data row4 col2" id="T_e8b3d_row4_col2">4.290000</td>
+<th class="row_heading level0 row4" id="T_eb7a7_level0_row4">CADC0886</th>
+<td class="data row4 col0" id="T_eb7a7_row4_col0">0.000000</td>
+<td class="data row4 col1" id="T_eb7a7_row4_col1">0.000000</td>
+<td class="data row4 col2" id="T_eb7a7_row4_col2">4.290000</td>
 </tr>
 <tr>
-<th class="row_heading level0 row5" id="T_e8b3d_level0_row5">CADC0888</th>
-<td class="data row5 col0" id="T_e8b3d_row5_col0">0.100000</td>
-<td class="data row5 col1" id="T_e8b3d_row5_col1">0.000000</td>
-<td class="data row5 col2" id="T_e8b3d_row5_col2">26.850000</td>
+<th class="row_heading level0 row5" id="T_eb7a7_level0_row5">CADC0888</th>
+<td class="data row5 col0" id="T_eb7a7_row5_col0">0.100000</td>
+<td class="data row5 col1" id="T_eb7a7_row5_col1">0.000000</td>
+<td class="data row5 col2" id="T_eb7a7_row5_col2">26.850000</td>
 </tr>
 <tr>
-<th class="row_heading level0 row6" id="T_e8b3d_level0_row6">CADC0890</th>
-<td class="data row6 col0" id="T_e8b3d_row6_col0">7.470000</td>
-<td class="data row6 col1" id="T_e8b3d_row6_col1">0.000000</td>
-<td class="data row6 col2" id="T_e8b3d_row6_col2">18.940000</td>
+<th class="row_heading level0 row6" id="T_eb7a7_level0_row6">CADC0890</th>
+<td class="data row6 col0" id="T_eb7a7_row6_col0">7.470000</td>
+<td class="data row6 col1" id="T_eb7a7_row6_col1">0.000000</td>
+<td class="data row6 col2" id="T_eb7a7_row6_col2">18.940000</td>
 </tr>
 <tr>
-<th class="row_heading level0 row7" id="T_e8b3d_level0_row7">CADC0892</th>
-<td class="data row7 col0" id="T_e8b3d_row7_col0">0.630000</td>
-<td class="data row7 col1" id="T_e8b3d_row7_col1">0.020000</td>
-<td class="data row7 col2" id="T_e8b3d_row7_col2">27.090000</td>
+<th class="row_heading level0 row7" id="T_eb7a7_level0_row7">CADC0892</th>
+<td class="data row7 col0" id="T_eb7a7_row7_col0">0.630000</td>
+<td class="data row7 col1" id="T_eb7a7_row7_col1">0.020000</td>
+<td class="data row7 col2" id="T_eb7a7_row7_col2">27.090000</td>
 </tr>
 <tr>
-<th class="row_heading level0 row8" id="T_e8b3d_level0_row8">CADC0894</th>
-<td class="data row8 col0" id="T_e8b3d_row8_col0">15.740000</td>
-<td class="data row8 col1" id="T_e8b3d_row8_col1">0.990000</td>
-<td class="data row8 col2" id="T_e8b3d_row8_col2">34.970000</td>
+<th class="row_heading level0 row8" id="T_eb7a7_level0_row8">CADC0894</th>
+<td class="data row8 col0" id="T_eb7a7_row8_col0">15.740000</td>
+<td class="data row8 col1" id="T_eb7a7_row8_col1">0.990000</td>
+<td class="data row8 col2" id="T_eb7a7_row8_col2">34.970000</td>
 </tr>
 </tbody>
 </table>
@@ -8089,7 +8375,7 @@ Name: time_diff, dtype: float64</pre>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=80e6074a">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=75dc259f">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8100,7 +8386,7 @@ Name: time_diff, dtype: float64</pre>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=ff569728">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=1dc112b0">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8108,7 +8394,7 @@ Name: time_diff, dtype: float64</pre>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [7]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">sklearn.preprocessing</span> <span class="kn">import</span> <span class="n">MinMaxScaler</span><span class="p">,</span> <span class="n">StandardScaler</span><span class="p">,</span> <span class="n">RobustScaler</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.preprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">MinMaxScaler</span><span class="p">,</span> <span class="n">StandardScaler</span><span class="p">,</span> <span class="n">RobustScaler</span>
 
 <span class="n">sample_data</span> <span class="o">=</span> <span class="n">segments</span><span class="p">[</span><span class="n">segments</span><span class="p">[</span><span class="s1">'channel'</span><span class="p">]</span> <span class="o">==</span> <span class="s1">'CADC0872'</span><span class="p">][[</span><span class="s1">'value'</span><span class="p">]]</span><span class="o">.</span><span class="n">values</span>
 
@@ -8156,7 +8442,7 @@ Name: time_diff, dtype: float64</pre>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=30b3ef28">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=e8bd4f41">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8167,7 +8453,7 @@ Name: time_diff, dtype: float64</pre>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=57a81db0">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=288ae491">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8347,7 +8633,7 @@ Name: time_diff, dtype: float64</pre>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=e2eec661">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=c7aa1b0c">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8358,7 +8644,7 @@ Name: time_diff, dtype: float64</pre>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=fb8e5d1f">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=cbae11e0">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8366,7 +8652,7 @@ Name: time_diff, dtype: float64</pre>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [9]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">imblearn.over_sampling</span> <span class="kn">import</span> <span class="n">SMOTE</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">imblearn.over_sampling</span><span class="w"> </span><span class="kn">import</span> <span class="n">SMOTE</span>
 
 <span class="n">X</span> <span class="o">=</span> <span class="n">df_processed</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">'anomaly'</span><span class="p">])</span>
 <span class="n">y</span> <span class="o">=</span> <span class="n">df_processed</span><span class="p">[</span><span class="s1">'anomaly'</span><span class="p">]</span>
@@ -8412,7 +8698,7 @@ Name: count, dtype: int64
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=a38718fc">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=18fb03f2">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8423,7 +8709,7 @@ Name: count, dtype: int64
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=c126cc8f">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=a271e8e6">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8431,7 +8717,7 @@ Name: count, dtype: int64
 <div class="jp-InputPrompt jp-InputArea-prompt">In [10]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="kn">import</span> <span class="n">train_test_split</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.model_selection</span><span class="w"> </span><span class="kn">import</span> <span class="n">train_test_split</span>
 
 <span class="c1"># Zaman serilerinde karıştırma (shuffle) YAPILMAZ! Veri sızıntısını (leakage) önler.</span>
 <span class="c1"># Ancak SMOTE uyguladığımız için sentetik veriler sona eklendi.</span>
@@ -8479,7 +8765,7 @@ Test set:       507 satır (15.0%)
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=30cb2b3c">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=bfdf70bd">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8490,7 +8776,7 @@ Test set:       507 satır (15.0%)
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=567f957a">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=6f1989a7">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8531,7 +8817,7 @@ Test set:       507 satır (15.0%)
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=c150aa63">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=65b33be8">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8541,7 +8827,7 @@ Test set:       507 satır (15.0%)
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=b4fc715c">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=4f5ed6f7">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8579,7 +8865,10 @@ See https://github.com/python/cpython/issues/70647.
 [NbConvertApp] Converting notebook 02_on_isleme.ipynb to html
 C:\Users\TAHA\AppData\Local\Programs\Python\Python313\Lib\site-packages\nbformat\__init__.py:96: MissingIDFieldWarning: Cell is missing an id field, this will become a hard error in future nbformat versions. You may want to use `normalize()` on your notebooks before validations (available since nbformat 5.1.4). Previous versions of nbformat are fixing this issue transparently, and will stop doing so in the future.
   validate(nb)
-[NbConvertApp] Writing 330117 bytes to ..\reports\02_on_isleme_rapor.html
+C:\Users\TAHA\AppData\Local\Programs\Python\Python313\share\jupyter\nbconvert\templates\base\display_priority.j2:32: UserWarning: Your element with mimetype(s) dict_keys(['application/vnd.plotly.v1+json']) is not able to be represented.
+  {%- elif type == 'text/vnd.mermaid' -%}
+[NbConvertApp] WARNING | Alternative text is missing on 2 image(s).
+[NbConvertApp] Writing 536056 bytes to ..\reports\02_on_isleme_rapor.html
 </pre>
 </div>
 </div>

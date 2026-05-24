@@ -1,5 +1,16 @@
 """Uydu Telemetri Anomali Tespit Arayüzü"""
-import os, sys, json, time, base64, io, datetime
+import os
+# ── TF environment fixes (MUST be before any TF/sklearn import) ──
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+os.environ["TF_NUM_INTEROP_THREADS"] = "1"
+os.environ["TF_NUM_INTRAOP_THREADS"] = "1"
+
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning)
+
+import sys, json, time, base64, io, datetime
 import numpy as np
 import pandas as pd
 import plotly.express as px

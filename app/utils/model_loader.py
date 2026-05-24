@@ -1,7 +1,18 @@
 """Model loading and prediction utilities."""
-import os, json, joblib
+import os, json, joblib, warnings
 import numpy as np
 import pandas as pd
+
+# ── TensorFlow environment fixes (must be set BEFORE importing tf) ──
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"           # suppress TF info/warning logs
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"           # disable oneDNN to avoid numerical noise
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"            # force CPU-only (avoids CUDA init crash)
+os.environ["TF_NUM_INTEROP_THREADS"] = "1"           # limit inter-op parallelism
+os.environ["TF_NUM_INTRAOP_THREADS"] = "1"           # limit intra-op parallelism
+
+# Suppress sklearn version mismatch warnings
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", message=".*InconsistentVersionWarning.*")
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 MODEL_DIR = os.path.join(ROOT, "models")
