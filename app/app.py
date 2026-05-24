@@ -129,6 +129,7 @@ sidebar = html.Div(className="sidebar", children=[
         nav_item("mdi:satellite-variant", "Canlı İzleme", "live"),
         nav_item("mdi:chart-timeline-variant", "Analiz", "analysis"),
         nav_item("mdi:chart-scatter-plot", "Sonuçlar", "results"),
+        nav_item("mdi:magnify-expand", "Anomali Detay", "detail"),
         nav_item("mdi:brain", "SHAP Analiz", "shap"),
         nav_item("mdi:gauge", "Model Performans", "performance"),
     ]),
@@ -151,6 +152,9 @@ app.layout = html.Div(id="app-root", children=[
     dcc.Store(id="current-page", data="dashboard"),
     dcc.Store(id="uploaded-data"),
     dcc.Store(id="prediction-results"),
+    dcc.Store(id="selected-anomaly"),
+    dcc.Store(id="anomaly-list"),
+    dcc.Download(id="download-pdf-report"),
     dcc.Store(id="live-sim-state", data={"index": 0, "is_running": False, "anomalies": []}),
     dcc.Interval(id="clock-interval", interval=1000, n_intervals=0),
     dcc.Interval(id="live-interval", interval=500, n_intervals=0, disabled=True),
@@ -424,10 +428,10 @@ def page_live():
     
     # Initialize empty figures
     fig_sig = go.Figure()
-    fig_sig.update_layout(**PLT_LAYOUT, height=300, margin=dict(l=40, r=20, t=30, b=20),
+    fig_sig.update_layout(**PLT_LAYOUT, height=300,
                           xaxis=dict(showgrid=True, gridcolor="#1C2A3A"), yaxis=dict(showgrid=True, gridcolor="#1C2A3A"))
     fig_score = go.Figure()
-    fig_score.update_layout(**PLT_LAYOUT, height=150, margin=dict(l=40, r=20, t=10, b=20),
+    fig_score.update_layout(**PLT_LAYOUT, height=150,
                             xaxis=dict(showgrid=True, gridcolor="#1C2A3A"), yaxis=dict(range=[0, 1.05]))
                             
     return html.Div(className="live-page-container", children=[
@@ -504,8 +508,13 @@ def page_live():
     ])
 
 
+def page_detail():
+    return html.Div(id="detail-page-content", className="detail-page-container", children=[
+        html.Div("Henüz anomali seçilmedi.", className="info-box")
+    ])
+
 PAGES = {"dashboard": page_dashboard, "upload": page_upload, "analysis": page_analysis,
-         "results": page_results, "shap": page_shap, "performance": page_performance, "live": page_live}
+         "results": page_results, "shap": page_shap, "performance": page_performance, "live": page_live, "detail": page_detail}
 
 # ── Callbacks ──
 @callback(Output("current-page", "data"),
@@ -734,7 +743,7 @@ def update_results(pred_json, data_json):
         else: n_low += 1
         ch = df.iloc[idx].get("channel", "N/A") if "channel" in df.columns else "N/A"
         table_data.append({"NO": row_no, "Segment": int(df.iloc[idx].get("segment", idx)),
-                           "Kanal": ch, "Skor": f"{ensemble[idx]:.2f}", "Şiddet": sev})
+                           "Kanal": ch, "Skor": f"{ensemble[idx]:.2f}", "Şiddet": sev, "Detay": "İncele", "_idx": int(idx)})
 
     return html.Div([
         dbc.Row([
@@ -759,7 +768,7 @@ def update_results(pred_json, data_json):
             html.Div(className="panel-title", children=[icon("mdi:format-list-bulleted", 16), f"Anomali Listesi ({len(table_data)} kayıt)"]),
             dash_table.DataTable(
                 id="results-table",
-                columns=[{"name": c, "id": c} for c in ["NO","Segment","Kanal","Skor","Şiddet"]],
+                columns=[{"name": c, "id": c} for c in ["NO","Segment","Kanal","Skor","Şiddet", "Detay"]],
                 data=table_data, page_size=12, row_selectable="single",
                 style_header={"backgroundColor":"#0D1117","color":"#64748B","fontWeight":"600","border":"1px solid #1E2A3A","fontSize":"11px"},
                 style_cell={"backgroundColor":"#151C28","color":"#F1F5F9","border":"1px solid #1E2A3A","fontFamily":"IBM Plex Sans","fontSize":"12px","padding":"8px"},
@@ -767,10 +776,13 @@ def update_results(pred_json, data_json):
                     {"if":{"filter_query":'{Şiddet} = "Kritik"'},"backgroundColor":"rgba(239,68,68,0.08)","color":"#FCA5A5"},
                     {"if":{"filter_query":'{Şiddet} = "Uyarı"'},"backgroundColor":"rgba(245,158,11,0.08)","color":"#FCD34D"},
                     {"if":{"filter_query":'{Şiddet} = "Düşük"'},"backgroundColor":"rgba(16,185,129,0.08)","color":"#86EFAC"},
+                    {"if":{"column_id":"Detay"}, "color":"#00C8FF", "cursor":"pointer", "textDecoration":"underline", "fontWeight":"bold"},
                     {"if":{"row_index":"odd"},"backgroundColor":"#111827"},
                 ],
                 sort_action="native", filter_action="native",
             ),
+            html.Div(id="detail-info-msg", className="info-box", style={"marginTop":"15px", "textAlign":"center"},
+                     children="Detay görüntülemek için tabloda bir anomali satırına tıklayın."),
             html.Div(style={"marginTop": "12px", "textAlign": "right"}, children=[
                 html.Button("CSV Olarak İndir", id="btn-csv-download", n_clicks=0, className="btn-download"),
             ]),
@@ -778,6 +790,20 @@ def update_results(pred_json, data_json):
             html.Div(id="shap-mini-waterfall-container", style={"marginTop": "20px"}),
         ]),
     ])
+
+# Table selection to detail store
+@callback(Output("selected-anomaly", "data"), Output("anomaly-list", "data"),
+          Output("current-page", "data", allow_duplicate=True), Output("detail-info-msg", "children"),
+          Input("results-table", "active_cell"), State("results-table", "data"), prevent_initial_call=True)
+def select_anomaly(active_cell, data):
+    if not active_cell or not data: return no_update, no_update, no_update, "Detay görüntülemek için tabloda bir anomali satırına tıklayın."
+    row_idx = active_cell["row"]
+    col_id = active_cell["column_id"]
+    if col_id != "Detay": return no_update, no_update, no_update, no_update
+    
+    selected = data[row_idx]
+    # Go to detail page
+    return selected, data, "detail", no_update
 
 # CSV Download callback
 @callback(Output("download-csv", "data"),
@@ -1150,13 +1176,13 @@ def control_live_sim(start_n, stop_n, reset_n, state):
         
         # Reset figures
         fig_sig = go.Figure()
-        fig_sig.update_layout(**PLT_LAYOUT, height=300, margin=dict(l=40, r=20, t=30, b=20),
+        fig_sig.update_layout(**PLT_LAYOUT, height=300,
                               xaxis=dict(showgrid=True, gridcolor="#1C2A3A"), yaxis=dict(showgrid=True, gridcolor="#1C2A3A"))
         fig_sig.add_trace(go.Scatter(x=[], y=[], mode="lines", line=dict(color="#6A8099", width=1.5), name="Sinyal"))
         fig_sig.add_trace(go.Scatter(x=[], y=[], mode="markers", marker=dict(color="#FF3B5C", size=8), name="Anomali"))
         
         fig_score = go.Figure()
-        fig_score.update_layout(**PLT_LAYOUT, height=150, margin=dict(l=40, r=20, t=10, b=20),
+        fig_score.update_layout(**PLT_LAYOUT, height=150,
                                 xaxis=dict(showgrid=True, gridcolor="#1C2A3A"), yaxis=dict(range=[0, 1.05]))
         fig_score.add_trace(go.Scatter(x=[], y=[], mode="lines", line=dict(color="#00C8FF", width=2), fill='tozeroy', fillcolor='rgba(0,200,255,0.1)', name="Skor"))
         fig_score.add_hline(y=0.5, line_dash="dash", line_color="#FF3B5C")
@@ -1299,6 +1325,279 @@ def update_live_sim(n_int, state, channel, model_name, speed, current_alarms):
         f"{n_anom} Alarm"
     )
 
+
+@callback(Output("detail-page-content", "children"),
+          Input("selected-anomaly", "data"),
+          State("anomaly-list", "data"),
+          State("uploaded-data", "data"),
+          prevent_initial_call=False)
+def render_anomaly_detail(selected, all_anomalies, data_json):
+    if not selected:
+        return html.Div(className="info-box", style={"marginTop":"50px"}, children=["Detaylarını görmek istediğiniz anomaliyi Sonuçlar sayfasındaki tablodan seçiniz."])
+    
+    seg = selected.get("Segment", 0)
+    ch = selected.get("Kanal", "N/A")
+    score = selected.get("Skor", 0)
+    sev = selected.get("Şiddet", "Bilinmiyor")
+    idx = selected.get("_idx", 0)
+    row_no = selected.get("NO", 0)
+    
+    # ── BÖLÜM 1: Kimlik Şeridi ──
+    badge_color = "#FF3B5C" if sev == "Kritik" else "#FFB300" if sev == "Uyarı" else "#86EFAC"
+    
+    header = html.Div(className="anomaly-detail-header", children=[
+        html.Div(children=[
+            html.Div("ANOMALİ DETAY", className="detail-header-title"),
+            html.Div(f"SEGMENT  #{seg}", className="detail-header-segment")
+        ]),
+        html.Div(className="detail-header-right", children=[
+            html.Div(sev.upper(), className="severity-badge", style={"borderColor": badge_color, "color": badge_color}),
+            html.Div(f"SKOR  {score}", className="score-display"),
+            html.Div("MODEL  Topluluk", className="model-display")
+        ])
+    ])
+    
+    # ── BÖLÜM 2: Özet Metrik Kartları ──
+    metrics = dbc.Row([
+        dbc.Col(metric_card("mdi:numeric", seg, "Segment Numarası", "blue"), md=2),
+        dbc.Col(metric_card("mdi:satellite-uplink", ch, "Kanal Adı", "blue"), md=3),
+        dbc.Col(metric_card("mdi:chart-bell-curve", score, "Anomali Skoru", "blue"), md=3),
+        dbc.Col(metric_card("mdi:alert-circle", sev, "Şiddet Seviyesi", "red" if sev=="Kritik" else "yellow"), md=2),
+        dbc.Col(metric_card("mdi:brain", "1+", "Tespit Eden", "green"), md=2),
+    ], className="mb-4 g-3", style={"marginTop": "20px"})
+    
+    # ── BÖLÜM 3: Sinyal Analizi ──
+    context_fig = go.Figure()
+    context_fig.update_layout(**PLT_LAYOUT, height=350, title="Anomali Bağlamı (±100 Segment)", xaxis_title="Segment", yaxis_title="Sinyal", margin=dict(l=40, r=20, t=50, b=30))
+    
+    stats_table_content = html.Div("Veri yüklenemedi.", className="info-box")
+    
+    if not LIVE_DATA.empty and ch != "N/A":
+        ch_data = LIVE_DATA[LIVE_DATA['channel'] == ch].reset_index(drop=True)
+        if not ch_data.empty:
+            start_idx = max(0, seg - 100)
+            end_idx = min(len(ch_data) - 1, seg + 100)
+            ctx_df = ch_data.iloc[start_idx:end_idx+1]
+            
+            context_fig.add_trace(go.Scatter(x=ctx_df['segment'], y=ctx_df['mean'], mode='lines', line=dict(color='#6A8099', width=1.5), name='Sinyal'))
+            
+            anom_df = ch_data[ch_data['segment'] == seg]
+            if not anom_df.empty:
+                val = anom_df['mean'].values[0]
+                context_fig.add_trace(go.Scatter(x=[seg], y=[val], mode='markers', marker=dict(color='#FF3B5C', size=10), name='Anomali'))
+                context_fig.add_vrect(x0=seg-1, x1=seg+1, fillcolor="rgba(239,68,68,0.08)", line_width=1, line_dash="dash", line_color="#FF3B5C")
+    
+    # Generate Stats Table
+    df = None
+    if data_json:
+        df = pd.read_json(io.StringIO(data_json), orient='split')
+    elif os.path.exists(DEMO_PATH):
+        df = pd.read_parquet(DEMO_PATH)
+        
+    row_feats = {}
+    shap_vals = []
+    shap_feats = []
+    
+    if df is not None and idx < len(df):
+        row_data = df.iloc[idx]
+        if FEATURE_COLS:
+            # Stats Table
+            table_rows = []
+            for feat in FEATURE_COLS:
+                if feat in df.columns:
+                    val = row_data[feat]
+                    mean_val = df[feat].mean()
+                    std_val = df[feat].std()
+                    diff = val - mean_val
+                    z_score = diff / (std_val + 1e-9)
+                    
+                    if abs(z_score) > 2:
+                        color = "#FF3B5C" if z_score > 0 else "#86EFAC"
+                        sign = "+" if z_score > 0 else ""
+                        diff_str = f"{sign}{z_score:.1f}σ"
+                    else:
+                        color = "#6A8099"
+                        diff_str = "Normal"
+                        
+                    table_rows.append(html.Tr([
+                        html.Td(feat), html.Td(f"{mean_val:.2f}"), html.Td(f"{val:.2f}"), html.Td(diff_str, style={"color": color, "fontWeight": "bold" if abs(z_score)>2 else "normal"})
+                    ]))
+            
+            stats_table_content = html.Table(className="custom-table", children=[
+                html.Thead(html.Tr([html.Th("Özellik"), html.Th("Normal Ort."), html.Th("Bu Segment"), html.Th("Fark")])),
+                html.Tbody(table_rows)
+            ])
+            
+            # Dynamic SHAP calculation
+            import shap
+            if "XGBoost" in MODELS:
+                try:
+                    xgb_model = MODELS["XGBoost"]
+                    X_row = row_data[FEATURE_COLS].to_frame().T
+                    explainer = shap.TreeExplainer(xgb_model)
+                    sv = explainer.shap_values(X_row)[0]
+                    
+                    # Ensure SHAP values are extracted correctly (might be 2D for multiclass, but typically 1D for binary)
+                    if len(sv.shape) > 1:
+                        sv = sv[:, 1] # Take positive class if it's 2D
+                    
+                    for f, s, v in zip(FEATURE_COLS, sv, X_row.values[0]):
+                        shap_vals.append(float(s))
+                        shap_feats.append(f)
+                        row_feats[f] = v
+                except Exception as e:
+                    print("SHAP Error:", e)
+
+    signal_analysis = dbc.Row([
+        dbc.Col(html.Div(className="panel", children=[
+            dcc.Graph(figure=context_fig, config={"displayModeBar": False})
+        ]), md=7),
+        dbc.Col(html.Div(className="panel", children=[
+            html.Div(className="panel-title", children=[icon("mdi:table-compare", 16), " İstatistik Karşılaştırma"]),
+            html.Div(stats_table_content, style={"maxHeight": "300px", "overflowY": "auto"})
+        ]), md=5)
+    ], className="mb-4 g-3")
+    
+    # ── BÖLÜM 4: SHAP Açıklaması ──
+    shap_section = html.Div("Bu model için SHAP değerleri hesaplanamadı.", className="info-box")
+    
+    if shap_vals and len(shap_vals) > 0:
+        # Sort by absolute SHAP value
+        sorted_idx = np.argsort(np.abs(shap_vals))[::-1][:10]
+        top_feats = [shap_feats[i] for i in sorted_idx]
+        top_shaps = [shap_vals[i] for i in sorted_idx]
+        
+        colors = ["#FF3B5C" if s > 0 else "#86EFAC" for s in top_shaps]
+        
+        shap_fig = go.Figure()
+        shap_fig.add_trace(go.Bar(
+            y=top_feats[::-1], x=top_shaps[::-1], orientation='h',
+            marker_color=colors[::-1]
+        ))
+        shap_fig.update_layout(**PLT_LAYOUT, height=350, title="Bu Anomaliye Katkıda Bulunan Özellikler", 
+                               margin=dict(l=10, r=20, t=50, b=30), yaxis=dict(tickmode="linear"))
+        
+        # Auto-generated text
+        top_positive = [f for f, s in zip(top_feats, top_shaps) if s > 0]
+        if len(top_positive) > 0:
+            f1 = top_positive[0]
+            desc_text = f"Bu segment anomali olarak tespit edildi. Tespitin birincil nedeni '{f1}' değerindeki anormal sapmadır. "
+            if len(top_positive) > 1:
+                desc_text += f"Buna ek olarak '{top_positive[1]}' özelliği de anomali kararını desteklemiştir."
+        else:
+            desc_text = "Bu segmentteki anomali kararı birçok özelliğin küçük sapmalarının birleşimiyle alınmıştır."
+            
+        shap_section = dbc.Row([
+            dbc.Col(html.Div(className="panel", children=[dcc.Graph(figure=shap_fig, config={"displayModeBar": False})]), md=6),
+            dbc.Col(html.Div(className="panel", style={"height": "100%"}, children=[
+                html.Div("NEDEN ANOMALİ?", style={"fontSize": "11px", "letterSpacing": "2px", "color": "#3A5068", "fontWeight": "bold", "marginBottom": "15px"}),
+                html.P(desc_text, style={"fontSize": "14px", "lineHeight": "1.6", "color": "#E8F0F8"}),
+                html.Div(style={"marginTop": "20px"}, children=[
+                    html.Div(className="shap-feat-card", style={"borderLeft": "4px solid #FF3B5C" if top_shaps[0]>0 else "4px solid #86EFAC"}, children=[
+                        html.Div(top_feats[0], style={"fontWeight": "bold"}),
+                        html.Div(f"SHAP: {top_shaps[0]:.3f}", style={"fontFamily": "IBM Plex Mono", "color": "#FF3B5C" if top_shaps[0]>0 else "#86EFAC"})
+                    ])
+                ])
+            ]), md=6)
+        ], className="mb-4 g-3")
+        
+    # ── BÖLÜM 5: Aksiyon ve Navigasyon ──
+    action_panel = html.Div(className="panel anomaly-action-panel", children=[
+        html.Div(className="nav-buttons", children=[
+            html.Button([icon("mdi:chevron-left"), " Önceki Anomali"], id="btn-prev-anomaly", className="btn-nav"),
+            html.Button(["Sonraki Anomali ", icon("mdi:chevron-right")], id="btn-next-anomaly", className="btn-nav")
+        ]),
+        html.Div(f"{row_no} / {len(all_anomalies) if all_anomalies else '?'} Anomali", className="nav-counter"),
+        html.Div(className="action-buttons", children=[
+            html.Button("Sonuçlara Dön", id="btn-back-results", className="btn-nav"),
+            html.Button([icon("mdi:file-pdf-box"), " PDF Rapor"], id="btn-pdf-report", className="btn-action-primary")
+        ])
+    ])
+    
+    return html.Div([header, metrics, signal_analysis, shap_section, action_panel])
+# -- pdf_callback.py --
+
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+from reportlab.lib.utils import ImageReader
+from reportlab.lib.colors import HexColor
+
+# Navigate Callbacks
+@callback(Output("selected-anomaly", "data", allow_duplicate=True),
+          Input("btn-prev-anomaly", "n_clicks"),
+          Input("btn-next-anomaly", "n_clicks"),
+          State("selected-anomaly", "data"),
+          State("anomaly-list", "data"),
+          prevent_initial_call=True)
+def navigate_anomaly(n_prev, n_next, current, anomaly_list):
+    if not current or not anomaly_list: return no_update
+    trig = ctx.triggered_id
+    
+    current_idx = -1
+    for i, a in enumerate(anomaly_list):
+        if a.get("_idx") == current.get("_idx"):
+            current_idx = i
+            break
+            
+    if trig == "btn-prev-anomaly" and current_idx > 0:
+        return anomaly_list[current_idx - 1]
+    elif trig == "btn-next-anomaly" and current_idx < len(anomaly_list) - 1 and current_idx != -1:
+        return anomaly_list[current_idx + 1]
+    
+    return no_update
+
+@callback(Output("current-page", "data", allow_duplicate=True),
+          Input("btn-back-results", "n_clicks"), prevent_initial_call=True)
+def back_to_results(n):
+    if n: return "results"
+    return no_update
+
+@callback(Output("download-pdf-report", "data"),
+          Input("btn-pdf-report", "n_clicks"),
+          State("selected-anomaly", "data"),
+          prevent_initial_call=True)
+def generate_pdf_report(n, selected):
+    if not n or not selected: return no_update
+    
+    seg = selected.get("Segment", 0)
+    ch = selected.get("Kanal", "N/A")
+    score = selected.get("Skor", 0)
+    sev = selected.get("Şiddet", "Bilinmiyor")
+    
+    def create_pdf(file_path):
+        c = canvas.Canvas(file_path, pagesize=A4)
+        width, height = A4
+        
+        # Header
+        c.setFillColor(HexColor("#080C14"))
+        c.rect(0, height-80, width, 80, stroke=0, fill=1)
+        
+        c.setFillColor(HexColor("#FFFFFF"))
+        c.setFont("Helvetica-Bold", 20)
+        c.drawString(40, height-45, f"Anomali Raporu - Segment #{seg}")
+        
+        # Details
+        c.setFillColor(HexColor("#000000"))
+        c.setFont("Helvetica", 12)
+        
+        y = height - 120
+        c.drawString(40, y, f"Kanal: {ch}")
+        c.drawString(40, y-25, f"Anomali Skoru: {score}")
+        
+        sev_color = "#FF3B5C" if sev == "Kritik" else "#FFB300" if sev == "Uyarı" else "#86EFAC"
+        c.setFillColor(HexColor(sev_color))
+        c.drawString(40, y-50, f"Siddet: {sev.upper()}")
+        
+        c.setFillColor(HexColor("#000000"))
+        c.drawString(40, y-90, "Bu rapor otomatik olarak olusturulmustur.")
+        
+        c.showPage()
+        c.save()
+        
+    return dcc.send_bytes(
+        lambda f: create_pdf(f), 
+        f"anomali_raporu_seg_{seg}.pdf"
+    )
+
 if __name__ == "__main__":
     app.run(debug=False, host="0.0.0.0", port=8050)
-
