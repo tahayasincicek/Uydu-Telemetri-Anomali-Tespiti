@@ -31,6 +31,13 @@ MODELS, THRESHOLDS, SCALER, TEST_DATA = load_all()
 ALL_METRICS = load_metrics()
 DEMO_PATH = os.path.join(ROOT, "data", "features", "segment_features.parquet")
 
+LIVE_DATA_PATH = os.path.join(ROOT, "data", "raw", "segments.csv")
+try:
+    LIVE_DATA = pd.read_csv(LIVE_DATA_PATH)
+except Exception:
+    LIVE_DATA = pd.DataFrame()
+
+
 # ── SHAP data loading ──
 SHAP_PKL = os.path.join(ROOT, "models", "shap_values.pkl")
 try:
@@ -97,12 +104,12 @@ topbar = html.Div(className="topbar", children=[
     html.Div(className="topbar-left", children=[
         html.Span("ADCS"),
         html.Span("/", className="topbar-slash"),
-        html.Span("Anomali Tespit Sistemi", className="topbar-title"),
+        html.Span("Uydu Telemetri Anomali Tespiti", className="topbar-title"),
     ]),
     html.Div(id="utc-clock", className="topbar-center"),
     html.Div(className="topbar-right", children=[
         html.Div(className="topbar-status", children=[
-            html.Span(className="topbar-dot blink"), html.Span("VERİ AKIŞI")]),
+            html.Span(id="global-live-dot", className="topbar-dot"), html.Span("VERİ AKIŞI")]),
         html.Div(className="topbar-status", children=[
             html.Span(className="topbar-dot"), html.Span("MODEL")]),
         html.Div(className="topbar-status", children=[
@@ -119,6 +126,7 @@ sidebar = html.Div(className="sidebar", children=[
     html.Div(className="sidebar-nav", children=[
         nav_item("mdi:view-dashboard", "Dashboard", "dashboard"),
         nav_item("mdi:upload", "Veri Yükle", "upload"),
+        nav_item("mdi:satellite-variant", "Canlı İzleme", "live"),
         nav_item("mdi:chart-timeline-variant", "Analiz", "analysis"),
         nav_item("mdi:chart-scatter-plot", "Sonuçlar", "results"),
         nav_item("mdi:brain", "SHAP Analiz", "shap"),
@@ -143,7 +151,9 @@ app.layout = html.Div(id="app-root", children=[
     dcc.Store(id="current-page", data="dashboard"),
     dcc.Store(id="uploaded-data"),
     dcc.Store(id="prediction-results"),
+    dcc.Store(id="live-sim-state", data={"index": 0, "is_running": False, "anomalies": []}),
     dcc.Interval(id="clock-interval", interval=1000, n_intervals=0),
+    dcc.Interval(id="live-interval", interval=500, n_intervals=0, disabled=True),
     dcc.Download(id="download-csv"),
     topbar,
     sidebar,
@@ -408,8 +418,94 @@ def page_shap():
     ])
 
 
+def page_live():
+    channels = LIVE_DATA['channel'].unique().tolist() if not LIVE_DATA.empty and 'channel' in LIVE_DATA.columns else []
+    fast_models = [n for n in ["IsolationForest", "LOF", "OneClassSVM", "KMeans"] if n in MODELS]
+    
+    # Initialize empty figures
+    fig_sig = go.Figure()
+    fig_sig.update_layout(**PLT_LAYOUT, height=300, margin=dict(l=40, r=20, t=30, b=20),
+                          xaxis=dict(showgrid=True, gridcolor="#1C2A3A"), yaxis=dict(showgrid=True, gridcolor="#1C2A3A"))
+    fig_score = go.Figure()
+    fig_score.update_layout(**PLT_LAYOUT, height=150, margin=dict(l=40, r=20, t=10, b=20),
+                            xaxis=dict(showgrid=True, gridcolor="#1C2A3A"), yaxis=dict(range=[0, 1.05]))
+                            
+    return html.Div(className="live-page-container", children=[
+        html.Div(className="page-header", children=[
+            html.Div("Canlı İzleme", className="page-title"),
+            html.Div("Gerçek zamanlı telemetri akışı ve anında anomali tespiti", className="page-subtitle")
+        ]),
+        
+        # BÖLÜM 1: Kontrol Paneli
+        html.Div(className="panel live-control-panel", children=[
+            html.Div(className="live-controls-left", children=[
+                html.Div([
+                    html.Label("Kanal:"),
+                    dcc.Dropdown(id="live-channel", options=[{"label": c, "value": c} for c in channels],
+                                 value=channels[0] if channels else None, className="custom-dropdown", clearable=False)
+                ], className="control-group"),
+                html.Div([
+                    html.Label("Hızlı Model:"),
+                    dcc.Dropdown(id="live-model", options=[{"label": m, "value": m} for m in fast_models],
+                                 value=fast_models[0] if fast_models else None, className="custom-dropdown", clearable=False)
+                ], className="control-group"),
+                html.Div([
+                    html.Label("Hız:"),
+                    dcc.Dropdown(id="live-speed", options=[
+                        {"label": "Yavaş (1x)", "value": 1},
+                        {"label": "Normal (5x)", "value": 5},
+                        {"label": "Hızlı (20x)", "value": 20}
+                    ], value=5, className="custom-dropdown", clearable=False)
+                ], className="control-group"),
+            ]),
+            html.Div(className="live-controls-right", children=[
+                html.Button([icon("mdi:play", 18), " Başlat"], id="live-start", n_clicks=0, className="btn-primary"),
+                html.Button([icon("mdi:stop", 18), " Durdur"], id="live-stop", n_clicks=0, className="btn-error", disabled=True),
+                html.Button([icon("mdi:refresh", 18), " Sıfırla"], id="live-reset", n_clicks=0, className="btn-outline"),
+            ])
+        ]),
+        
+        # BÖLÜM 2: Durum Şeridi
+        html.Div(className="live-status-bar", children=[
+            html.Span(id="live-stat-read", children="OKUNAN: 0"), html.Span("|", className="stat-divider"),
+            html.Span(id="live-stat-total", children=f"TOPLAM: {len(LIVE_DATA)}"), html.Span("|", className="stat-divider"),
+            html.Span(id="live-stat-prog", children="%0.0"), html.Span("|", className="stat-divider"),
+            html.Span(id="live-stat-anom", children="ANOMALİ: 0"), html.Span("|", className="stat-divider"),
+            html.Span(id="live-stat-last", children="SON ALARM: Yok"), html.Span("|", className="stat-divider"),
+            html.Span(id="live-stat-model", children="MODEL: -"),
+        ]),
+        
+        # BÖLÜM 3 ve 4 Container
+        html.Div(className="live-main-area", children=[
+            # BÖLÜM 3: Grafikler
+            html.Div(className="live-charts-area", children=[
+                html.Div(className="panel live-chart-panel", children=[
+                    html.Div(className="panel-title", style={"display": "flex", "justifyContent": "space-between"}, children=[
+                        html.Span([icon("mdi:chart-timeline-variant", 16), " Telemetri Sinyali"]),
+                        html.Span(id="live-indicator", children=[html.Span(className="status-dot"), "DURDURULDU"], className="live-indicator-badge")
+                    ]),
+                    dcc.Graph(id="live-signal-graph", figure=fig_sig, config={"displayModeBar": False}, style={"height": "300px"})
+                ]),
+                html.Div(className="panel live-chart-panel", style={"marginTop": "16px"}, children=[
+                    html.Div(className="panel-title", children=[icon("mdi:chart-bell-curve", 16), " Anomali Skoru"]),
+                    dcc.Graph(id="live-score-graph", figure=fig_score, config={"displayModeBar": False}, style={"height": "150px"})
+                ]),
+            ]),
+            
+            # BÖLÜM 4: Alarm Paneli
+            html.Div(className="live-alarm-panel", children=[
+                html.Div("ALARM KAYITLARI", className="alarm-panel-title"),
+                html.Div(id="live-alarm-list", className="alarm-list-container", children=[
+                    html.Div("Anomali Yok", className="no-alarm-msg")
+                ]),
+                html.Div(id="live-alarm-count", className="alarm-count-footer", children="0 Alarm")
+            ])
+        ])
+    ])
+
+
 PAGES = {"dashboard": page_dashboard, "upload": page_upload, "analysis": page_analysis,
-         "results": page_results, "shap": page_shap, "performance": page_performance}
+         "results": page_results, "shap": page_shap, "performance": page_performance, "live": page_live}
 
 # ── Callbacks ──
 @callback(Output("current-page", "data"),
@@ -1017,6 +1113,191 @@ def update_mini_waterfall(selected_rows, table_data):
                  style={"color": "#64748B", "fontSize": "11px", "textAlign": "center", "marginTop": "8px"})
     ])
 
+
+# ── Live Page Callbacks ──
+@callback(
+    Output("live-interval", "disabled"),
+    Output("live-sim-state", "data"),
+    Output("live-start", "disabled"),
+    Output("live-stop", "disabled"),
+    Output("live-indicator", "children"),
+    Output("live-indicator", "className"),
+    Output("global-live-dot", "className"),
+    Output("live-signal-graph", "figure"),
+    Output("live-score-graph", "figure"),
+    Output("live-alarm-list", "children"),
+    Input("live-start", "n_clicks"),
+    Input("live-stop", "n_clicks"),
+    Input("live-reset", "n_clicks"),
+    State("live-sim-state", "data"),
+    prevent_initial_call=True
+)
+def control_live_sim(start_n, stop_n, reset_n, state):
+    ctx_id = ctx.triggered_id
+    if ctx_id == "live-start":
+        state["is_running"] = True
+        ind = [html.Span(className="status-dot"), " CANLI"]
+        return False, state, True, False, ind, "live-indicator-badge live-active", "topbar-dot blink", no_update, no_update, no_update
+    elif ctx_id == "live-stop":
+        state["is_running"] = False
+        ind = [html.Span(className="status-dot"), " DURDURULDU"]
+        return True, state, False, True, ind, "live-indicator-badge", "topbar-dot slow-blink", no_update, no_update, no_update
+    elif ctx_id == "live-reset":
+        state["index"] = 0
+        state["is_running"] = False
+        state["anomalies"] = []
+        ind = [html.Span(className="status-dot"), " DURDURULDU"]
+        
+        # Reset figures
+        fig_sig = go.Figure()
+        fig_sig.update_layout(**PLT_LAYOUT, height=300, margin=dict(l=40, r=20, t=30, b=20),
+                              xaxis=dict(showgrid=True, gridcolor="#1C2A3A"), yaxis=dict(showgrid=True, gridcolor="#1C2A3A"))
+        fig_sig.add_trace(go.Scatter(x=[], y=[], mode="lines", line=dict(color="#6A8099", width=1.5), name="Sinyal"))
+        fig_sig.add_trace(go.Scatter(x=[], y=[], mode="markers", marker=dict(color="#FF3B5C", size=8), name="Anomali"))
+        
+        fig_score = go.Figure()
+        fig_score.update_layout(**PLT_LAYOUT, height=150, margin=dict(l=40, r=20, t=10, b=20),
+                                xaxis=dict(showgrid=True, gridcolor="#1C2A3A"), yaxis=dict(range=[0, 1.05]))
+        fig_score.add_trace(go.Scatter(x=[], y=[], mode="lines", line=dict(color="#00C8FF", width=2), fill='tozeroy', fillcolor='rgba(0,200,255,0.1)', name="Skor"))
+        fig_score.add_hline(y=0.5, line_dash="dash", line_color="#FF3B5C")
+        
+        alarm_msg = html.Div("Anomali Yok", className="no-alarm-msg")
+        return True, state, False, True, ind, "live-indicator-badge", "topbar-dot", fig_sig, fig_score, [alarm_msg]
+    return no_update
+
+@callback(
+    Output("live-signal-graph", "extendData"),
+    Output("live-score-graph", "extendData"),
+    Output("live-sim-state", "data", allow_duplicate=True),
+    Output("live-alarm-list", "children", allow_duplicate=True),
+    Output("live-stat-read", "children"),
+    Output("live-stat-prog", "children"),
+    Output("live-stat-anom", "children"),
+    Output("live-stat-last", "children"),
+    Output("live-stat-model", "children"),
+    Output("live-alarm-count", "children"),
+    Input("live-interval", "n_intervals"),
+    State("live-sim-state", "data"),
+    State("live-channel", "value"),
+    State("live-model", "value"),
+    State("live-speed", "value"),
+    State("live-alarm-list", "children"),
+    prevent_initial_call=True
+)
+def update_live_sim(n_int, state, channel, model_name, speed, current_alarms):
+    if not state.get("is_running", False) or LIVE_DATA.empty or not channel or not model_name:
+        return no_update
+        
+    idx = state["index"]
+    df_slice = LIVE_DATA[LIVE_DATA['channel'] == channel]
+    
+    if idx >= len(df_slice):
+        state["is_running"] = False # Stop if we reach the end
+        return no_update
+        
+    end_idx = min(idx + speed, len(df_slice))
+    chunk = df_slice.iloc[idx:end_idx]
+    
+    # Update index
+    state["index"] = end_idx
+    
+    # Get values
+    times = chunk['timestamp'].tolist()
+    vals = chunk['value'].tolist()
+    
+    # ── Feature Extraction ──
+    start_win = max(0, end_idx - 30)
+    win_data = df_slice.iloc[start_win:end_idx]['value'].values
+    
+    if len(win_data) > 0:
+        mean_val = np.mean(win_data)
+        std_val = np.std(win_data)
+        var_val = np.var(win_data)
+        max_val = np.max(win_data)
+        min_val = np.min(win_data)
+        l_val = len(win_data)
+    else:
+        mean_val = std_val = var_val = max_val = min_val = l_val = 0
+        
+    if FEATURE_COLS:
+        feat_dict = {c: 0 for c in FEATURE_COLS}
+        feat_dict['mean'] = mean_val
+        feat_dict['std'] = std_val
+        feat_dict['var'] = var_val
+        feat_dict['len'] = l_val
+        feat_dict['custom_rms'] = np.sqrt(np.mean(win_data**2)) if len(win_data)>0 else 0
+        feat_dict['custom_p2p'] = max_val - min_val
+        X = pd.DataFrame([feat_dict])[FEATURE_COLS].values
+    else:
+        X = np.array([[mean_val, std_val, min_val, max_val]])
+        
+    if SCALER:
+        try: X = SCALER.transform(X)
+        except: pass
+        
+    # Predict
+    model = MODELS.get(model_name)
+    if not model: return no_update
+    
+    try:
+        pr, sc = predict(model, model_name, X, THRESHOLDS, 1.0)
+        score = sc[0]
+        # Normalize score simply for visualization
+        t = THRESHOLDS.get(model_name, 0)
+        if t == 0: t = 0.5
+        norm_score = max(0, min(1, 0.5 + (score - t)/ (abs(t) + 1e-6)))
+        if pr[0] == 1: norm_score = max(norm_score, 0.6)
+        is_anom = int(pr[0]) == 1
+    except Exception as e:
+        print("Prediction error:", e)
+        norm_score = 0
+        is_anom = False
+        
+    # Extend Data formatting
+    sig_x = [times]
+    sig_y = [vals]
+    
+    anom_x = [[times[-1]]] if is_anom else [[]]
+    anom_y = [[vals[-1]]] if is_anom else [[]]
+    
+    # Max 200 points
+    sig_update = (dict(x=sig_x + anom_x, y=sig_y + anom_y), [0, 1], 200)
+    score_update = (dict(x=[[times[-1]]], y=[[norm_score]]), [0], 200)
+    
+    # Alarms
+    alarms = current_alarms if isinstance(current_alarms, list) and not getattr(current_alarms[0], 'props', {}).get('className', '') == 'no-alarm-msg' else []
+    
+    if is_anom:
+        state["anomalies"].append({"time": times[-1], "score": norm_score})
+        sev_class = "critical" if norm_score > 0.8 else "warning"
+        sev_text = "KRİTİK" if norm_score > 0.8 else "UYARI"
+        
+        new_alarm = html.Div(className=f"alarm-card {sev_class}", children=[
+            html.Div(className="alarm-card-top", children=[
+                html.Span(times[-1].split("T")[-1][:8], className="alarm-time"),
+                html.Span(sev_text, className="alarm-badge")
+            ]),
+            html.Div(className="alarm-card-bottom", children=[
+                html.Span(channel, className="alarm-channel"),
+                html.Span(f"Skor: {norm_score:.2f}", className="alarm-score")
+            ])
+        ])
+        alarms.insert(0, new_alarm)
+        alarms = alarms[:20]
+        
+    if not alarms:
+        alarms = [html.Div("Anomali Yok", className="no-alarm-msg")]
+        
+    # Stats
+    prog = (end_idx / len(df_slice)) * 100 if len(df_slice) > 0 else 0
+    n_anom = len(state["anomalies"])
+    last_anom = state["anomalies"][-1]["time"].split("T")[-1][:8] if n_anom > 0 else "Yok"
+    
+    return (
+        sig_update, score_update, state, alarms,
+        f"OKUNAN: {end_idx}", f"%{prog:.1f}", f"ANOMALİ: {n_anom}", f"SON ALARM: {last_anom}", f"MODEL: {model_name}",
+        f"{n_anom} Alarm"
+    )
 
 if __name__ == "__main__":
     app.run(debug=False, host="0.0.0.0", port=8050)
