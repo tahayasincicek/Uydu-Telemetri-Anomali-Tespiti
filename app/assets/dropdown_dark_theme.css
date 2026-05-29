@@ -1,18 +1,30 @@
-/* Dash Dropdown Dark Theme Overrides - Aggressive */
+/* Dash Dropdown Dark Theme Overrides - Improved Visibility */
 
-/* Container elements */
-.Select, 
-.Select-control, 
-.is-open .Select-control,
-.has-value.Select--single > .Select-control .Select-value {
-    background-color: #151C28 !important;
-    border-color: #1E2A3A !important;
+/* Container elements - Make it look like a box */
+.Select-control {
+    background-color: #0F172A !important;  /* Slightly darker background for contrast */
+    border: 1px solid #334155 !important;  /* Lighter border so it's visible */
+    border-radius: 4px !important;
     color: #F1F5F9 !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease;
+}
+
+/* Hover effect on the dropdown box */
+.Select-control:hover {
+    border-color: #3B82F6 !important;
+    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.3) !important;
 }
 
 /* Ensure the wrapper doesn't have white background */
-.custom-dropdown, .shap-dropdown {
+.Select, .custom-dropdown, .shap-dropdown {
     background-color: transparent !important;
+}
+
+.is-open .Select-control,
+.has-value.Select--single > .Select-control .Select-value {
+    background-color: #0F172A !important;
+    color: #F1F5F9 !important;
 }
 
 /* The actual text value */
@@ -23,23 +35,28 @@
 
 /* Menu popup */
 .Select-menu-outer, .Select-menu {
-    background-color: #151C28 !important;
-    border: 1px solid #1E2A3A !important;
+    background-color: #0F172A !important;
+    border: 1px solid #334155 !important;
+    border-top-color: transparent !important;
     color: #F1F5F9 !important;
     z-index: 9999 !important;
+    border-bottom-left-radius: 4px !important;
+    border-bottom-right-radius: 4px !important;
 }
 
 /* Dropdown options */
 .Select-option {
-    background-color: #151C28 !important;
+    background-color: #0F172A !important;
     color: #94A3B8 !important;
+    padding: 8px 12px !important;
 }
 
 /* Hover/Focused options */
 .Select-option.is-focused, 
 .Select-option.is-selected {
-    background-color: #1E2A3A !important;
+    background-color: #1E293B !important;
     color: #F1F5F9 !important;
+    cursor: pointer !important;
 }
 
 /* Clear icon (x) */
@@ -47,16 +64,22 @@
     color: #94A3B8 !important;
     background-color: transparent !important;
 }
+.Select-clear-zone:hover {
+    color: #EF4444 !important;
+}
 
 /* Dropdown arrow */
 .Select-arrow-zone {
     background-color: transparent !important;
+    padding-right: 5px !important;
 }
 .Select-arrow {
     border-color: #94A3B8 transparent transparent !important;
+    border-width: 5px 5px 2.5px !important;
 }
 .is-open .Select-arrow {
     border-color: transparent transparent #94A3B8 !important;
+    border-width: 0 5px 5px !important;
 }
 
 /* Typing input */
