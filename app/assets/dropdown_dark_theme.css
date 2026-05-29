@@ -1,0 +1,41 @@
+/* Dash Dropdown Dark Theme Overrides */
+.Select-control, .is-open .Select-control {
+    background-color: #151C28 !important;
+    border: 1px solid #1E2A3A !important;
+    color: #F1F5F9 !important;
+}
+
+.Select-value-label {
+    color: #F1F5F9 !important;
+}
+
+.Select-menu-outer {
+    background-color: #151C28 !important;
+    border: 1px solid #1E2A3A !important;
+    color: #F1F5F9 !important;
+    z-index: 9999 !important;
+}
+
+.Select-option {
+    background-color: #151C28 !important;
+    color: #94A3B8 !important;
+}
+
+.Select-option.is-focused, 
+.Select-option.is-selected {
+    background-color: #1E2A3A !important;
+    color: #F1F5F9 !important;
+}
+
+.Select-clear-zone {
+    color: #94A3B8 !important;
+}
+
+.Select-arrow {
+    border-color: #94A3B8 transparent transparent !important;
+}
+
+.has-value.Select--single > .Select-control .Select-value .Select-value-label, 
+.has-value.is-pseudo-focused.Select--single > .Select-control .Select-value .Select-value-label {
+    color: #F1F5F9 !important;
+}
