@@ -9,6 +9,7 @@ os.environ["TF_NUM_INTRAOP_THREADS"] = "1"
 
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 import sys, json, time, base64, io, datetime
 import numpy as np

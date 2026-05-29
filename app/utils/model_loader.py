@@ -12,6 +12,7 @@ os.environ["TF_NUM_INTRAOP_THREADS"] = "1"           # limit intra-op parallelis
 
 # Suppress sklearn version mismatch warnings
 warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", message=".*InconsistentVersionWarning.*")
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
