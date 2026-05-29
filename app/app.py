@@ -895,7 +895,6 @@ def render_shap_tab(tab):
                         {"label": "XGBoost", "value": "xgb"},
                     ],
                     value="rf",
-                    style={"backgroundColor": "#151C28", "color": "#F1F5F9"},
                     className="shap-dropdown"
                 ),
             ]),
@@ -914,7 +913,6 @@ def render_shap_tab(tab):
                     options=anomaly_options,
                     value=anomaly_options[0]["value"] if anomaly_options else None,
                     placeholder="Bir anomali segmenti secin...",
-                    style={"backgroundColor": "#151C28", "color": "#F1F5F9"},
                     className="shap-dropdown"
                 ),
             ]),
