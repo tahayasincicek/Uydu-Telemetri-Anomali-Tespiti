@@ -11,7 +11,6 @@ import pandas as pd
 import numpy as np
 import warnings
 from typing import List, Optional, Tuple, Dict, Any
-from scipy import stats, signal
 from sklearn.decomposition import PCA
 from sklearn.feature_selection import VarianceThreshold
 
@@ -73,7 +72,7 @@ class ReactionWheelFeatureEngineer:
                 result[f'{col}_roll_iqr_{w}'] = rolled.quantile(0.75) - rolled.quantile(0.25)
                 
                 # Enerji tabanlı özellikler
-                result[f'{col}_rms_{w}'] = np.sqrt((rolled.apply(lambda x: np.sum(x**2), raw=True) / w))
+                result[f'{col}_rms_{w}'] = np.sqrt((result[col]**2).rolling(window=w, min_periods=1).mean())
                 result[f'{col}_p2p_{w}'] = result[f'{col}_roll_max_{w}'] - result[f'{col}_roll_min_{w}']
                 result[f'{col}_crest_{w}'] = result[f'{col}_roll_max_{w}'] / (result[f'{col}_rms_{w}'] + 1e-6)
                 
@@ -82,7 +81,7 @@ class ReactionWheelFeatureEngineer:
             result[f'{col}_jerk'] = result[f'{col}_roc'].diff()  # 2nd derivative
             
         # NaN değerleri temizle (rolling ve diff kaynaklı)
-        result.fillna(method='bfill', inplace=True)
+        result.bfill(inplace=True)
         return result
 
     def extract_frequency_domain_features(self, df: pd.DataFrame, columns: List[str]) -> pd.DataFrame:
@@ -102,14 +101,13 @@ class ReactionWheelFeatureEngineer:
         # Gerçek bir FFT pencere bazında yapılmalıdır, burada rolling varyans PSD varyasyonu olarak kullanılır
         for col in columns:
             for w in self.rolling_windows:
-                # Spectral Entropy yaklaşımı (Hızlı hesaplama için normalize histogram entropisi)
-                rolled = result[col].rolling(window=w, min_periods=1)
+                # Hızlı vektörel Zero-crossing rate (ZCR)
+                mean_roll = result[col].rolling(window=w, min_periods=1).mean()
+                centered = result[col] - mean_roll
+                crossings = (np.sign(centered).diff().fillna(0) != 0).astype(float)
+                result[f'{col}_zcr_{w}'] = crossings.rolling(window=w, min_periods=1).mean()
                 
-                # Zero-crossing rate (Sıfır geçiş sayısı)
-                result[f'{col}_zcr_{w}'] = rolled.apply(
-                    lambda x: np.sum(np.diff(np.sign(x - np.mean(x))) != 0) / len(x), raw=True)
-                
-        result.fillna(method='bfill', inplace=True)
+        result.bfill(inplace=True)
         return result
 
     def extract_physical_features(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -209,7 +207,7 @@ class ReactionWheelFeatureEngineer:
             for lag in self.lags:
                 result[f'{col}_lag_{lag}'] = result[col].shift(lag)
                 
-        result.fillna(method='bfill', inplace=True)
+        result.bfill(inplace=True)
         return result
 
     def select_features(self, df: pd.DataFrame, protected_cols: List[str] = None, target_col: Optional[str] = None, fit: bool = True) -> Tuple[pd.DataFrame, List[str]]:

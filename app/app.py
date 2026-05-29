@@ -102,8 +102,6 @@ def nav_item(ic, text, page_id):
 # ── Layout ──
 topbar = html.Div(className="topbar", children=[
     html.Div(className="topbar-left", children=[
-        html.Span("ADCS"),
-        html.Span("/", className="topbar-slash"),
         html.Span("Uydu Telemetri Anomali Tespiti", className="topbar-title"),
     ]),
     html.Div(id="utc-clock", className="topbar-center"),
@@ -167,10 +165,23 @@ app.layout = html.Div(id="app-root", children=[
         html.Div(className="page-header", children=[
             html.Div("Sonuçlar", className="page-title"),
             html.Div("Anomali tespit sonuçları ve görselleştirme", className="page-subtitle")]),
-        html.Div(id="results-content", children=[
-            html.Div(className="info-box", children=[
-                icon("mdi:chart-scatter-plot", 32, "#3B82F6"), html.Br(), html.Br(),
-                "Henüz analiz yapılmadı. Önce Analiz sayfasından işlem başlatınız."])
+        dcc.Loading(
+            id="loading-results",
+            type="circle",
+            color="#3B82F6",
+            children=[
+                html.Div(id="results-content", children=[
+                    html.Div(className="info-box", children=[
+                        icon("mdi:chart-scatter-plot", 32, "#3B82F6"), html.Br(), html.Br(),
+                        "Henüz analiz yapılmadı. Önce Analiz sayfasından işlem başlatınız."])
+                ])
+            ]
+        )
+    ]),
+    html.Div(id="detail-overlay", className="main-content",
+             style={"display": "none"}, children=[
+        html.Div(id="detail-page-content", className="detail-page-container", children=[
+            html.Div("Henüz anomali seçilmedi.", className="info-box")
         ])
     ]),
 ])
@@ -251,7 +262,12 @@ def page_upload():
                     html.Button("Demo Veri Kullan", id="btn-demo", n_clicks=0, className="btn-outline")])
             ], md=12)
         ], className="mb-4"),
-        html.Div(id="upload-preview")
+        dcc.Loading(
+            id="loading-upload",
+            type="circle",
+            color="#3B82F6",
+            children=[html.Div(id="upload-preview")]
+        )
     ])
 
 
@@ -284,11 +300,20 @@ def page_analysis():
                 html.Div(id="selection-counter", className="selection-counter"),
                 html.Button("Analizi Başlat", id="btn-analyze", n_clicks=0, className="btn-primary"),
             ])], md=3),
-            dbc.Col([html.Div(id="analysis-output", className="panel", children=[
-                html.Div(className="info-box", children=[
-                    icon("mdi:information-outline", 32, "#3B82F6"), html.Br(), html.Br(),
-                    "Sol panelden model seçip analizi başlatınız."])
-            ])], md=9)
+            dbc.Col([
+                dcc.Loading(
+                    id="loading-analysis",
+                    type="circle",
+                    color="#3B82F6",
+                    children=[
+                        html.Div(id="analysis-output", className="panel", children=[
+                            html.Div(className="info-box", children=[
+                                icon("mdi:information-outline", 32, "#3B82F6"), html.Br(), html.Br(),
+                                "Sol panelden model seçip analizi başlatınız."])
+                        ])
+                    ]
+                )
+            ], md=9)
         ], className="g-3")
     ])
 
@@ -509,9 +534,7 @@ def page_live():
 
 
 def page_detail():
-    return html.Div(id="detail-page-content", className="detail-page-container", children=[
-        html.Div("Henüz anomali seçilmedi.", className="info-box")
-    ])
+    return html.Div()
 
 PAGES = {"dashboard": page_dashboard, "upload": page_upload, "analysis": page_analysis,
          "results": page_results, "shap": page_shap, "performance": page_performance, "live": page_live, "detail": page_detail}
@@ -525,17 +548,27 @@ def navigate(*clicks):
     return ctx.triggered_id["page"]
 
 # UTC Clock callback
-@callback(Output("utc-clock", "children"), Input("clock-interval", "n_intervals"))
-def update_clock(_):
-    return datetime.datetime.utcnow().strftime("UTC  %Y-%m-%d  %H:%M:%S")
+app.clientside_callback(
+    """
+    function(n_intervals) {
+        var d = new Date();
+        return "UTC  " + d.toISOString().replace('T', '  ').substring(0, 19);
+    }
+    """,
+    Output("utc-clock", "children"),
+    Input("clock-interval", "n_intervals")
+)
 
 @callback(Output("page-content", "children"), Output("page-content", "style"),
           Output("results-overlay", "style"),
+          Output("detail-overlay", "style"),
           Input("current-page", "data"))
 def render_page(page_id):
     if page_id == "results":
-        return html.Div(), {"display": "none"}, {"display": "block"}
-    return PAGES.get(page_id, page_dashboard)(), {"display": "block"}, {"display": "none"}
+        return html.Div(), {"display": "none"}, {"display": "block"}, {"display": "none"}
+    if page_id == "detail":
+        return html.Div(), {"display": "none"}, {"display": "none"}, {"display": "block"}
+    return PAGES.get(page_id, page_dashboard)(), {"display": "block"}, {"display": "none"}, {"display": "none"}
 
 # Upload callbacks
 @callback(Output("uploaded-data", "data"), Output("upload-preview", "children"),
@@ -710,14 +743,31 @@ def update_results(pred_json, data_json):
     else:
         return html.Div("Veri yok.")
 
-    ensemble = np.zeros(len(df))
+    # Binary ensemble for anomaly detection (which segments are anomalous)
+    ensemble_binary = np.zeros(len(df))
     for r in results.values():
-        ensemble += np.array(r["preds"])
-    ensemble /= max(len(results), 1)
-    anom_mask = ensemble > 0.5
+        ensemble_binary += np.array(r["preds"])
+    ensemble_binary /= max(len(results), 1)
+    anom_mask = ensemble_binary > 0
     n_anom = int(anom_mask.sum())
-    avg_score = float(np.mean(ensemble[anom_mask])) if n_anom > 0 else 0
     agreement = sum(1 for r in results.values() for p in r["preds"] if p == 1) / max(len(results) * len(df), 1)
+
+    # Continuous ensemble for severity (how anomalous each segment is)
+    score_ensemble = np.zeros(len(df))
+    n_score_models = 0
+    for name, r in results.items():
+        sc = np.array(r["scores"])
+        sc_min, sc_max = sc.min(), sc.max()
+        if sc_max - sc_min > 1e-10:
+            sc_n = (sc - sc_min) / (sc_max - sc_min)
+        else:
+            sc_n = np.zeros_like(sc)
+        score_ensemble += sc_n
+        n_score_models += 1
+    if n_score_models > 0:
+        score_ensemble /= n_score_models
+
+    avg_score = float(np.mean(score_ensemble[anom_mask])) if n_anom > 0 else 0
 
     fig_scores = go.Figure()
     clrs = ["#3B82F6","#10B981","#EF4444","#F59E0B","#8B5CF6","#06B6D4","#F778A1","#A78BFA","#FB923C"]
@@ -726,24 +776,28 @@ def update_results(pred_json, data_json):
         sc_n = (sc - sc.min()) / (sc.max() - sc.min() + 1e-10)
         fig_scores.add_trace(go.Scatter(y=sc_n, mode="lines", name=name, line=dict(color=clrs[i%len(clrs)], width=1.5)))
     in_region = False; start = 0
-    for i in range(len(ensemble)):
-        if ensemble[i] > 0.5 and not in_region: start = i; in_region = True
-        elif (ensemble[i] <= 0.5 or i == len(ensemble)-1) and in_region:
+    for i in range(len(score_ensemble)):
+        if anom_mask[i] and not in_region: start = i; in_region = True
+        elif (not anom_mask[i] or i == len(score_ensemble)-1) and in_region:
             fig_scores.add_vrect(x0=start, x1=i, fillcolor="rgba(239,68,68,0.08)", line_width=0, layer="below")
             in_region = False
     fig_scores.update_layout(**PLT_LAYOUT, height=400, title="Anomali Skorları (Normalize)",
                               yaxis_title="Normalize Anomali Skoru", xaxis_title="Segment")
 
     anom_indices = np.where(anom_mask)[0]
-    table_data = []; n_crit = n_warn = n_low = 0
-    for row_no, idx in enumerate(anom_indices[:100], 1):
-        sev = "Kritik" if ensemble[idx] > 0.8 else "Uyarı" if ensemble[idx] > 0.5 else "Düşük"
-        if sev == "Kritik": n_crit += 1
-        elif sev == "Uyarı": n_warn += 1
+    
+    n_crit = n_warn = n_low = 0
+    for idx in anom_indices:
+        if score_ensemble[idx] > 0.8: n_crit += 1
+        elif score_ensemble[idx] > 0.5: n_warn += 1
         else: n_low += 1
+        
+    table_data = []
+    for row_no, idx in enumerate(anom_indices[:100], 1):
+        sev = "Kritik" if score_ensemble[idx] > 0.8 else "Uyarı" if score_ensemble[idx] > 0.5 else "Düşük"
         ch = df.iloc[idx].get("channel", "N/A") if "channel" in df.columns else "N/A"
         table_data.append({"NO": row_no, "Segment": int(df.iloc[idx].get("segment", idx)),
-                           "Kanal": ch, "Skor": f"{ensemble[idx]:.2f}", "Şiddet": sev, "Detay": "İncele", "_idx": int(idx)})
+                           "Kanal": ch, "Skor": f"{score_ensemble[idx]:.2f}", "Şiddet": sev, "Detay": "İncele", "_idx": int(idx)})
 
     return html.Div([
         dbc.Row([
@@ -1127,8 +1181,7 @@ def update_mini_waterfall(selected_rows, table_data):
     ))
     fig.update_layout(**PLT_LAYOUT, height=350,
                       title=f"SHAP Aciklamasi - Segment {segment_no}",
-                      xaxis_title="SHAP Degeri",
-                      margin=dict(l=40, r=60, t=40, b=30))
+                      xaxis_title="SHAP Degeri")
     fig.update_yaxes(autorange="reversed")
     fig.add_vline(x=0, line_dash="dash", line_color="#4A5568", line_width=1)
 
@@ -1371,7 +1424,7 @@ def render_anomaly_detail(selected, current_page, all_anomalies, data_json):
     
     # ── BÖLÜM 3: Sinyal Analizi ──
     context_fig = go.Figure()
-    context_fig.update_layout(**PLT_LAYOUT, height=350, title="Anomali Bağlamı (±100 Segment)", xaxis_title="Segment", yaxis_title="Sinyal", margin=dict(l=40, r=20, t=50, b=30))
+    context_fig.update_layout(**PLT_LAYOUT, height=350, title="Anomali Bağlamı (±100 Segment)", xaxis_title="Segment", yaxis_title="Sinyal")
     
     stats_table_content = html.Div("Veri yüklenemedi.", className="info-box")
     
@@ -1382,11 +1435,11 @@ def render_anomaly_detail(selected, current_page, all_anomalies, data_json):
             end_idx = min(len(ch_data) - 1, seg + 100)
             ctx_df = ch_data.iloc[start_idx:end_idx+1]
             
-            context_fig.add_trace(go.Scatter(x=ctx_df['segment'], y=ctx_df['mean'], mode='lines', line=dict(color='#6A8099', width=1.5), name='Sinyal'))
+            context_fig.add_trace(go.Scatter(x=ctx_df['segment'], y=ctx_df['value'], mode='lines', line=dict(color='#6A8099', width=1.5), name='Sinyal'))
             
             anom_df = ch_data[ch_data['segment'] == seg]
             if not anom_df.empty:
-                val = anom_df['mean'].values[0]
+                val = anom_df['value'].values[0]
                 context_fig.add_trace(go.Scatter(x=[seg], y=[val], mode='markers', marker=dict(color='#FF3B5C', size=10), name='Anomali'))
                 context_fig.add_vrect(x0=seg-1, x1=seg+1, fillcolor="rgba(239,68,68,0.08)", line_width=1, line_dash="dash", line_color="#FF3B5C")
     
