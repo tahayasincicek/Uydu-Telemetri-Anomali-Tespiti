@@ -130,6 +130,7 @@ sidebar = html.Div(className="sidebar", children=[
         nav_item("mdi:magnify-expand", "Anomali Detay", "detail"),
         nav_item("mdi:brain", "SHAP Analiz", "shap"),
         nav_item("mdi:gauge", "Model Performans", "performance"),
+        nav_item("mdi:test-tube", "Ablation Study", "ablation"),
     ]),
     html.Div(className="sidebar-footer", children=[
         html.Div(className="status-indicator", children=[
@@ -536,8 +537,9 @@ def page_live():
 def page_detail():
     return html.Div()
 
+from ablation_page import get_ablation_layout, register_ablation_callbacks
 PAGES = {"dashboard": page_dashboard, "upload": page_upload, "analysis": page_analysis,
-         "results": page_results, "shap": page_shap, "performance": page_performance, "live": page_live, "detail": page_detail}
+         "results": page_results, "shap": page_shap, "performance": page_performance, "live": page_live, "detail": page_detail, "ablation": get_ablation_layout}
 
 # ── Callbacks ──
 @callback(Output("current-page", "data"),
@@ -1654,6 +1656,8 @@ def generate_pdf_report(n, selected):
         lambda f: create_pdf(f), 
         f"anomali_raporu_seg_{seg}.pdf"
     )
+
+register_ablation_callbacks(app)
 
 if __name__ == "__main__":
     app.run(debug=False, host="0.0.0.0", port=8050)
