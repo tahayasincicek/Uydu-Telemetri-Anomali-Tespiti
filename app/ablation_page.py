@@ -172,7 +172,8 @@ def register_ablation_callbacks(app):
             sizes = [len(crit), len(remov), max(19 - len(crit) - len(remov), 0)]
             fig_pie = go.Figure(data=[go.Pie(labels=labels, values=sizes, hole=.4, 
                                              marker_colors=["#10B981", "#F59E0B", "#3B82F6"])])
-            fig_pie.update_layout(**PLT_LAYOUT, height=300, margin=dict(t=10, b=10, l=10, r=10))
+            fig_pie.update_layout(**PLT_LAYOUT)
+            fig_pie.update_layout(height=300, margin=dict(t=10, b=10, l=10, r=10))
             
             return dbc.Row([
                 dbc.Col([

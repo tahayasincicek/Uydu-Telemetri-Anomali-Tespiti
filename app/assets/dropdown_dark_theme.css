@@ -1,41 +1,68 @@
-/* Dash Dropdown Dark Theme Overrides */
-.Select-control, .is-open .Select-control {
+/* Dash Dropdown Dark Theme Overrides - Aggressive */
+
+/* Container elements */
+.Select, 
+.Select-control, 
+.is-open .Select-control,
+.has-value.Select--single > .Select-control .Select-value {
     background-color: #151C28 !important;
-    border: 1px solid #1E2A3A !important;
+    border-color: #1E2A3A !important;
     color: #F1F5F9 !important;
 }
 
-.Select-value-label {
+/* Ensure the wrapper doesn't have white background */
+.custom-dropdown, .shap-dropdown {
+    background-color: transparent !important;
+}
+
+/* The actual text value */
+.Select-value-label, 
+.Select-placeholder {
     color: #F1F5F9 !important;
 }
 
-.Select-menu-outer {
+/* Menu popup */
+.Select-menu-outer, .Select-menu {
     background-color: #151C28 !important;
     border: 1px solid #1E2A3A !important;
     color: #F1F5F9 !important;
     z-index: 9999 !important;
 }
 
+/* Dropdown options */
 .Select-option {
     background-color: #151C28 !important;
     color: #94A3B8 !important;
 }
 
+/* Hover/Focused options */
 .Select-option.is-focused, 
 .Select-option.is-selected {
     background-color: #1E2A3A !important;
     color: #F1F5F9 !important;
 }
 
+/* Clear icon (x) */
 .Select-clear-zone {
     color: #94A3B8 !important;
+    background-color: transparent !important;
 }
 
+/* Dropdown arrow */
+.Select-arrow-zone {
+    background-color: transparent !important;
+}
 .Select-arrow {
     border-color: #94A3B8 transparent transparent !important;
 }
+.is-open .Select-arrow {
+    border-color: transparent transparent #94A3B8 !important;
+}
 
-.has-value.Select--single > .Select-control .Select-value .Select-value-label, 
-.has-value.is-pseudo-focused.Select--single > .Select-control .Select-value .Select-value-label {
+/* Typing input */
+.Select-input {
+    background-color: transparent !important;
+}
+.Select-input > input {
     color: #F1F5F9 !important;
 }
