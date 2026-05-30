@@ -131,7 +131,7 @@ sidebar = html.Div(className="sidebar", children=[
         nav_item("mdi:magnify-expand", "Anomali Detay", "detail"),
         nav_item("mdi:brain", "SHAP Analiz", "shap"),
         nav_item("mdi:gauge", "Model Performans", "performance"),
-        nav_item("mdi:test-tube", "Ablation Study", "ablation"),
+        nav_item("mdi:test-tube", "Ablasyon Analizi", "ablation"),
     ]),
     html.Div(className="sidebar-footer", children=[
         html.Div(className="status-indicator", children=[

@@ -28,17 +28,17 @@ def get_ablation_layout():
     if not os.path.exists(ABLATION_PKL):
         return html.Div([
             html.Div(className="page-header", children=[
-                html.Div("ABLATION STUDY", style={"fontSize": "9px", "letterSpacing": "3px", "color": "#3A5068"}),
-                html.Div("UYDU TELEMETRİ ANOMALİ TESPİTİ > ABLATION STUDY", style={"fontSize": "11px", "color": "#3A5068"})
+                html.Div("ABLASYON ANALİZİ", style={"fontSize": "9px", "letterSpacing": "3px", "color": "#3A5068"}),
+                html.Div("UYDU TELEMETRİ ANOMALİ TESPİTİ > ABLASYON ANALİZİ", style={"fontSize": "11px", "color": "#3A5068"})
             ]),
             html.Div(className="warning-box", children=[
                 icon("mdi:alert-outline", 40, "#F59E0B"),
-                html.Div("Ablation Verileri Bulunamadı", className="warning-title"),
-                html.Div([
-                    "Ablation analizi henüz çalıştırılmamış.",
-                    html.Br(), html.Br(),
-                    "Ablation analizi için ", html.Code("notebooks/08_ablation_study.ipynb"),
-                    " dosyasını çalıştırın."
+                html.Div("Ablasyon Verileri Bulunamadı", className="warning-title"),
+                html.P([
+                    "Ablasyon analizi henüz çalıştırılmamış.",
+                    html.Br(),
+                    "Ablasyon analizi için ", html.Code("notebooks/08_ablation_study.ipynb"),
+                    " notebook'unu baştan sona çalıştırın."
                 ], className="warning-body")
             ])
         ])
@@ -192,7 +192,7 @@ def register_ablation_callbacks(app):
                     ]),
                     html.Div(className="panel", style={"borderLeft": "2px solid #00C8FF", "backgroundColor": "rgba(0,200,255,0.04)"}, children=[
                         html.Div("SONUÇ", style={"fontWeight": "bold", "color": "#00C8FF", "marginBottom": "10px"}),
-                        html.Div(f"Yapılan Ablation analizine göre, toplam {best_set.get('optimal_count', 19)} özellik ile maksimum anomali tespit verimi alınmaktadır. Geri kalan özellikler sistemden çıkartılarak operasyonel yük azaltılabilir.")
+                        html.Div(f"Yapılan Ablasyon analizine göre, toplam {best_set.get('optimal_count', 19)} özellik ile maksimum anomali tespit verimi alınmaktadır. Geri kalan özellikler sistemden çıkartılarak operasyonel yük azaltılabilir.")
                     ])
                 ], md=6)
             ], className="g-3")
