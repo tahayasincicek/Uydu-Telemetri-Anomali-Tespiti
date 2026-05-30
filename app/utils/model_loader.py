@@ -31,7 +31,8 @@ def load_all():
     """Return (models_dict, thresholds_dict, scaler, test_data)."""
     models = {}
     for name, fname in [("RandomForest", "rf_model.joblib"), ("XGBoost", "xgb_model.joblib"),
-                        ("SVM", "svm_model.joblib")]:
+                        ("SVM", "svm_model.joblib"), ("LightGBM", "lightgbm_model.joblib"),
+                        ("CatBoost", "catboost_model.joblib"), ("Stacking Ensemble", "stacking_ensemble_model.joblib")]:
         m = _safe_load(os.path.join(MODEL_DIR, fname))
         if m: models[name] = m
 
@@ -91,8 +92,13 @@ def predict(model, name, X, thresholds, threshold_mult=1.0):
 
 
 def load_metrics():
-    p = os.path.join(ROOT, "reports", "metrics", "final_comparison.json")
-    if os.path.exists(p):
-        with open(p) as f:
-            return json.load(f)
-    return {}
+    metrics = {}
+    p1 = os.path.join(ROOT, "reports", "metrics", "final_comparison.json")
+    p2 = os.path.join(ROOT, "reports", "metrics", "adv_metrics.json")
+    if os.path.exists(p1):
+        with open(p1) as f:
+            metrics.update(json.load(f))
+    if os.path.exists(p2):
+        with open(p2) as f:
+            metrics.update(json.load(f))
+    return metrics

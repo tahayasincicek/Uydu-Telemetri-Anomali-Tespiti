@@ -274,7 +274,7 @@ def page_upload():
 
 
 def page_analysis():
-    sup = [n for n in ["RandomForest","XGBoost","SVM","MLP"] if n in MODELS]
+    sup = [n for n in ["RandomForest","XGBoost","SVM","MLP", "LightGBM", "CatBoost", "Stacking Ensemble"] if n in MODELS]
     unsup = [n for n in ["IsolationForest","OneClassSVM","KMeans","LOF","Autoencoder"] if n in MODELS]
     def model_option(name):
         f1 = ALL_METRICS.get(name, {}).get("F1", 0)
@@ -360,7 +360,7 @@ def page_performance():
     fig_roc.update_layout(**PLT_LAYOUT, height=400, title="ROC Egrileri", xaxis_title="FPR", yaxis_title="TPR")
 
     # Radar
-    top = [n for n in ["MLP","XGBoost","RandomForest","Autoencoder","LOF"] if n in ALL_METRICS]
+    top = [n for n in ["MLP","XGBoost","RandomForest","Autoencoder","LOF", "LightGBM", "CatBoost", "Stacking Ensemble"] if n in ALL_METRICS]
     cats = ["Accuracy","Precision","Recall","F1","AUC-ROC"]
     fig_radar = go.Figure()
     for n in top:
