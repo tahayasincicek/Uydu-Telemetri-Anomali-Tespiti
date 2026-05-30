@@ -592,9 +592,36 @@ def handle_upload(contents, demo_clicks, filename):
                 df = pd.read_parquet(io.BytesIO(decoded))
             else:
                 df = pd.read_csv(io.StringIO(decoded.decode('utf-8')))
+                
+            # YABANCI VE RAW VERİ TESPİTİ (AUTO-ADAPTATION)
+            if 'custom_rms' not in df.columns:
+                # 1. Value (Sensör Değeri) Sütununu Bul
+                if 'value' not in df.columns:
+                    num_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+                    if num_cols:
+                        # İlk bulduğumuz sayısal sütunu 'value' olarak atıyoruz
+                        df = df.rename(columns={num_cols[0]: 'value'})
+                
+                # 2. Otomatik Segmentasyon (Eğer 'segment' yoksa)
+                if 'segment' not in df.columns:
+                    # Sonsuz veriyi 250'şer satırlık vagonlara böler
+                    df['segment'] = np.repeat(np.arange(len(df) // 250 + 1), 250)[:len(df)]
+                
+                # 3. Zorunlu Meta Verilerin Eksikliklerini Gider
+                if 'channel' not in df.columns: df['channel'] = 'AUTO_SENSOR'
+                if 'anomaly' not in df.columns: df['anomaly'] = 0
+                if 'train' not in df.columns: df['train'] = 0
+                if 'sampling' not in df.columns: df['sampling'] = 1
+                
+                # Sinyal işleme ve istatistiksel 24 özelliği hesapla
+                from utils.feature_extractor import extract_features_from_raw
+                df = extract_features_from_raw(df)
+                
             return df.to_json(date_format='iso', orient='split'), build_preview(df, filename)
         except Exception as e:
-            return no_update, html.Div(f"Hata: {e}", style={"color": "#EF4444"})
+            import traceback
+            err_msg = str(e) + "\\n" + traceback.format_exc()
+            return no_update, html.Div(f"Hata: {err_msg}", style={"color": "#EF4444", "whiteSpace": "pre-wrap", "fontSize": "11px"})
     return no_update, no_update
 
 def build_preview(df, filename):
