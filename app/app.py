@@ -453,13 +453,18 @@ def page_live():
     channels = LIVE_DATA['channel'].unique().tolist() if not LIVE_DATA.empty and 'channel' in LIVE_DATA.columns else []
     fast_models = [n for n in ["IsolationForest", "LOF", "OneClassSVM", "KMeans"] if n in MODELS]
     
-    # Initialize empty figures
+    # Initialize empty figures with traces for extendData
     fig_sig = go.Figure()
     fig_sig.update_layout(**PLT_LAYOUT, height=300,
                           xaxis=dict(showgrid=True, gridcolor="#1C2A3A"), yaxis=dict(showgrid=True, gridcolor="#1C2A3A"))
+    fig_sig.add_trace(go.Scatter(x=[], y=[], mode="lines", line=dict(color="#6A8099", width=1.5), name="Sinyal"))
+    fig_sig.add_trace(go.Scatter(x=[], y=[], mode="markers", marker=dict(color="#FF3B5C", size=8), name="Anomali"))
+    
     fig_score = go.Figure()
     fig_score.update_layout(**PLT_LAYOUT, height=150,
                             xaxis=dict(showgrid=True, gridcolor="#1C2A3A"), yaxis=dict(range=[0, 1.05]))
+    fig_score.add_trace(go.Scatter(x=[], y=[], mode="lines", line=dict(color="#00C8FF", width=2), fill='tozeroy', fillcolor='rgba(0,200,255,0.1)', name="Skor"))
+    fig_score.add_hline(y=0.5, line_dash="dash", line_color="#FF3B5C")
                             
     return html.Div(className="live-page-container", children=[
         html.Div(className="page-header", children=[
