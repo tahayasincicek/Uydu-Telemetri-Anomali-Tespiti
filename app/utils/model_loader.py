@@ -19,6 +19,13 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 MODEL_DIR = os.path.join(ROOT, "models")
 UNSUP_DIR = os.path.join(MODEL_DIR, "unsupervised")
 
+# Sıralı (sequence) Keras modelleri 3B girdi bekler: (örnek, özellik, 1)
+SEQUENCE_MODELS = {"LSTM", "BiLSTM", "GRU", "BiGRU", "CNN1D", "CNN_LSTM", "CNN_BiLSTM",
+                   "CNN_GRU", "Transformer", "TCN", "Attention_BiLSTM",
+                   "FCN", "ResNet1D", "InceptionTime", "LSTM_FCN"}
+# Tek tip API'li (decision_function + predict) PyOD dedektörleri
+PYOD_MODELS = {"ECOD", "COPOD", "HBOS", "CBLOF"}
+
 
 def _safe_load(path):
     try:
@@ -27,27 +34,55 @@ def _safe_load(path):
         return None
 
 
+def _kload(path):
+    """Keras modelini güvenli şekilde yükler (VAE'nin Lambda katmanı için safe_mode=False)."""
+    from tensorflow.keras.models import load_model
+    return load_model(path, compile=False, safe_mode=False)
+
+
 def load_all():
     """Return (models_dict, thresholds_dict, scaler, test_data)."""
     models = {}
     for name, fname in [("RandomForest", "rf_model.joblib"), ("XGBoost", "xgb_model.joblib"),
                         ("SVM", "svm_model.joblib"), ("LightGBM", "lightgbm_model.joblib"),
-                        ("CatBoost", "catboost_model.joblib"), ("Stacking Ensemble", "stacking_ensemble_model.joblib")]:
+                        ("CatBoost", "catboost_model.joblib"), ("Stacking Ensemble", "stacking_ensemble_model.joblib"),
+                        ("ExtraTrees", "extratrees_model.joblib"),
+                        ("GradientBoosting", "gradientboosting_model.joblib"),
+                        ("HistGradientBoosting", "histgradientboosting_model.joblib"),
+                        ("AdaBoost", "adaboost_model.joblib"), ("KNN", "knn_model.joblib"),
+                        ("LogisticRegression", "logisticregression_model.joblib"),
+                        ("DecisionTree", "decisiontree_model.joblib"),
+                        ("NaiveBayes", "naivebayes_model.joblib"),
+                        ("Voting Ensemble", "voting_ensemble_model.joblib")]:
         m = _safe_load(os.path.join(MODEL_DIR, fname))
         if m: models[name] = m
 
     for name, fname in [("IsolationForest", "isolationforest_model.joblib"),
                         ("OneClassSVM", "oneclasssvm_model.joblib"),
-                        ("KMeans", "kmeans_model.joblib"), ("LOF", "lof_model.joblib")]:
+                        ("KMeans", "kmeans_model.joblib"), ("LOF", "lof_model.joblib"),
+                        ("GMM", "gmm_model.joblib"), ("EllipticEnvelope", "ellipticenvelope_model.joblib"),
+                        ("PCA", "pca_model.joblib"), ("DBSCAN", "dbscan_model.joblib"),
+                        ("ECOD", "ecod_model.joblib"), ("COPOD", "copod_model.joblib"),
+                        ("HBOS", "hbos_model.joblib"), ("CBLOF", "cblof_model.joblib")]:
         m = _safe_load(os.path.join(UNSUP_DIR, fname))
-        if m: models[name] = m
+        if m is not None: models[name] = m
 
     try:
-        from tensorflow.keras.models import load_model as kload
-        p = os.path.join(MODEL_DIR, "mlp_model.keras")
-        if os.path.exists(p): models["MLP"] = kload(p)
-        p = os.path.join(UNSUP_DIR, "autoencoder_model.keras")
-        if os.path.exists(p): models["Autoencoder"] = kload(p)
+        # MLP + derin sıralı/hibrit ağlar
+        for name, fname in [("MLP", "mlp_model.keras"), ("LSTM", "lstm_model.keras"),
+                            ("BiLSTM", "bilstm_model.keras"), ("GRU", "gru_model.keras"),
+                            ("BiGRU", "bigru_model.keras"), ("CNN1D", "cnn1d_model.keras"),
+                            ("CNN_LSTM", "cnn_lstm_model.keras"),
+                            ("CNN_BiLSTM", "cnn_bilstm_model.keras"), ("CNN_GRU", "cnn_gru_model.keras"),
+                            ("Transformer", "transformer_model.keras"), ("TCN", "tcn_model.keras"),
+                            ("Attention_BiLSTM", "attention_bilstm_model.keras"),
+                            ("FCN", "fcn_model.keras"), ("ResNet1D", "resnet1d_model.keras"),
+                            ("InceptionTime", "inceptiontime_model.keras"), ("LSTM_FCN", "lstm_fcn_model.keras")]:
+            p = os.path.join(MODEL_DIR, fname)
+            if os.path.exists(p): models[name] = _kload(p)
+        for name, fname in [("Autoencoder", "autoencoder_model.keras"), ("VAE", "vae_model.keras")]:
+            p = os.path.join(UNSUP_DIR, fname)
+            if os.path.exists(p): models[name] = _kload(p)
     except Exception:
         pass
 
@@ -65,15 +100,28 @@ def load_all():
 
 def predict(model, name, X, thresholds, threshold_mult=1.0):
     """Return (predictions, scores) for a single model."""
-    if name == "MLP":
+    if name in SEQUENCE_MODELS:
+        # Sıralı modeller 3B girdi bekler: (örnek, özellik, 1)
+        X_seq = np.asarray(X, dtype="float32").reshape((X.shape[0], X.shape[1], 1))
+        sc = model.predict(X_seq, verbose=0).flatten()
+        pr = (sc >= 0.5).astype(int)
+    elif name == "MLP":
         sc = model.predict(X, verbose=0).flatten()
         pr = (sc >= 0.5).astype(int)
-    elif name == "Autoencoder":
+    elif name in PYOD_MODELS:
+        sc = model.decision_function(X)
+        pr = model.predict(X)
+    elif name in ("Autoencoder", "VAE"):
         recon = model.predict(X, verbose=0)
         sc = np.mean(np.power(X - recon, 2), axis=1)
-        t = thresholds.get("Autoencoder", np.percentile(sc, 90)) * threshold_mult
+        t = thresholds.get(name, np.percentile(sc, 90)) * threshold_mult
         pr = (sc > t).astype(int)
-    elif name in ("IsolationForest", "LOF"):
+    elif name == "PCA":
+        recon = model.inverse_transform(model.transform(X))
+        sc = np.mean(np.power(X - recon, 2), axis=1)
+        t = thresholds.get(name, np.percentile(sc, 90)) * threshold_mult
+        pr = (sc > t).astype(int)
+    elif name in ("IsolationForest", "LOF", "GMM", "EllipticEnvelope"):
         sc = -model.score_samples(X)
         t = thresholds.get(name, np.percentile(sc, 90)) * threshold_mult
         pr = (sc > t).astype(int)
@@ -85,9 +133,19 @@ def predict(model, name, X, thresholds, threshold_mult=1.0):
         sc = np.min(model.transform(X), axis=1)
         t = thresholds.get(name, np.percentile(sc, 90)) * threshold_mult
         pr = (sc > t).astype(int)
+    elif name == "DBSCAN":
+        sc = model.kneighbors(X)[0].ravel()  # en yakın çekirdek noktaya uzaklık
+        t = thresholds.get(name, np.percentile(sc, 90)) * threshold_mult
+        pr = (sc > t).astype(int)
+    elif hasattr(model, "predict_proba"):
+        pr = model.predict(X)
+        sc = model.predict_proba(X)[:, 1]
+    elif hasattr(model, "decision_function"):
+        pr = model.predict(X)            # Ridge gibi olasılık vermeyen modeller
+        sc = model.decision_function(X)
     else:
         pr = model.predict(X)
-        sc = model.predict_proba(X)[:, 1] if hasattr(model, "predict_proba") else pr.astype(float)
+        sc = pr.astype(float)
     return pr, sc
 
 

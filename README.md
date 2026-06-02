@@ -121,8 +121,8 @@ jupyter notebook notebooks/
 | `01_veri_inceleme.ipynb` | Veri keşfi, istatistiksel analiz ve görselleştirme |
 | `02_on_isleme.ipynb` | Eksik veri, aykırı değer ve normalizasyon işlemleri |
 | `03_feature_engineering.ipynb` | İstatistiksel özellikler, zaman serisi özellikleri çıkarımı |
-| `04_model_supervised.ipynb` | Random Forest, XGBoost, SVM, MLP eğitimi |
-| `05_model_unsupervised.ipynb` | Isolation Forest, One-Class SVM, Autoencoder |
+| `04_model_supervised.ipynb` | 36 gözetimli model: 20 klasik (RF/ExtraTrees/Boosting'ler/SVM/KNN/LogReg/DT/NB/LDA/QDA/Bagging/Ridge/SGD/Voting/Stacking) + 16 derin (MLP, 1D-CNN, FCN, ResNet-1D, InceptionTime, LSTM-FCN, LSTM, BiLSTM, GRU, BiGRU, CNN-LSTM, CNN-BiLSTM, CNN-GRU, Attention-BiLSTM, Transformer, TCN) |
+| `05_model_unsupervised.ipynb` | 14 gözetimsiz: IsolationForest, OneClassSVM, KMeans, LOF, GMM, EllipticEnvelope, PCA, DBSCAN, Autoencoder, VAE + PyOD (ECOD, COPOD, HBOS, CBLOF) |
 | `06_model_karsilastirma.ipynb` | Tüm modellerin karşılaştırılması ve raporlanması |
 
 ### Streamlit Dashboard
@@ -161,21 +161,77 @@ predictions = detector.predict(test_features)
 
 ## 🧠 Kullanılan Yöntemler
 
-### Supervised (Denetimli) Modeller
+Proje toplam **50 model** içerir: 36 gözetimli + 14 gözetimsiz.
+
+### Supervised (Denetimli) Modeller — 36
+
+**Klasik / Ağaç & Boosting (20)**
 | Model | Açıklama |
 |-------|----------|
 | **Random Forest** | Ensemble tabanlı karar ağacı sınıflandırıcı |
+| **Extra Trees** | Aşırı rastgeleleştirilmiş ağaç topluluğu |
+| **Decision Tree** | Tek karar ağacı (yorumlanabilir baseline) |
 | **XGBoost** | Gradient boosting tabanlı güçlü sınıflandırıcı |
+| **LightGBM** | Histogram tabanlı hızlı gradient boosting |
+| **CatBoost** | Kategorik-dostu gradient boosting |
+| **Gradient Boosting** | sklearn gradient boosting sınıflandırıcı |
+| **HistGradientBoosting** | Histogram tabanlı modern/hızlı boosting |
+| **AdaBoost** | Adaptif boosting topluluğu |
 | **SVM** | Destek vektör makineleri ile sınıflandırma |
-| **MLP** | Çok katmanlı algılayıcı sinir ağı |
+| **KNN** | K-en yakın komşu sınıflandırıcı |
+| **Logistic Regression** | Doğrusal taban (baseline) model |
+| **Gaussian Naive Bayes** | Olasılıksal baseline sınıflandırıcı |
+| **LDA** | Doğrusal diskriminant analizi |
+| **QDA** | Karesel diskriminant analizi |
+| **Bagging** | Bootstrap aggregating topluluğu |
+| **Ridge** | L2 düzenlenmiş doğrusal sınıflandırıcı |
+| **SGD** | Stokastik gradyan inişli doğrusal model (log-loss) |
+| **Voting Ensemble** | RF + GB + LogReg yumuşak (soft) oylama |
+| **Stacking Ensemble** | RF + XGB + LGBM tabanlı meta-öğrenici |
 
-### Unsupervised (Denetimsiz) Modeller
+**Derin Öğrenme & Sıralı/Hibrit Ağlar (16)**
+| Model | Açıklama |
+|-------|----------|
+| **MLP** | Çok katmanlı algılayıcı sinir ağı |
+| **1D-CNN** | Saf 1B evrişimli sinir ağı |
+| **FCN** | Fully Convolutional Network (TS baseline) |
+| **ResNet-1D** | Artık (residual) bloklu 1D CNN |
+| **InceptionTime** | Çok ölçekli Inception modülleri (SOTA TSC) |
+| **LSTM-FCN** | Paralel LSTM + FCN hibrit |
+| **LSTM** | Uzun-kısa vadeli bellek ağı |
+| **BiLSTM** | Çift yönlü LSTM |
+| **GRU** | Geçitli tekrarlayan birim ağı |
+| **BiGRU** | Çift yönlü GRU |
+| **CNN-LSTM** | 1D evrişim + LSTM hibrit |
+| **CNN-BiLSTM** | 1D evrişim + çift yönlü LSTM hibrit |
+| **CNN-GRU** | 1D evrişim + GRU hibrit |
+| **Attention-BiLSTM** | BiLSTM + self-attention havuzlama |
+| **Transformer** | Self-attention tabanlı encoder |
+| **TCN** | Temporal Convolutional Network (dilated causal conv) |
+
+### Unsupervised (Denetimsiz) Modeller — 14
+
+**sklearn / Derin (10)**
 | Model | Açıklama |
 |-------|----------|
 | **Isolation Forest** | Anomali tespitine özel ensemble yöntem |
 | **One-Class SVM** | Tek sınıf SVM ile anomali tespiti |
-| **Autoencoder** | Derin öğrenme tabanlı yeniden yapılandırma hatası |
-| **DBSCAN** | Yoğunluk tabanlı kümeleme ile anomali tespiti |
+| **K-Means** | Küme merkezine uzaklık tabanlı anomali skoru |
+| **LOF** | Local Outlier Factor (yoğunluk tabanlı) |
+| **GMM** | Gaussian Mixture; düşük olabilirlik = anomali |
+| **Elliptic Envelope** | Robust kovaryans / Mahalanobis |
+| **PCA** | Yeniden yapılandırma hatası |
+| **DBSCAN** | Çekirdek-noktaya uzaklık (novelty) |
+| **Autoencoder** | Derin yeniden yapılandırma hatası |
+| **VAE** | Variational Autoencoder (KL + recon) |
+
+**PyOD Dedektörleri (4)** — *opsiyonel, `pip install pyod`*
+| Model | Açıklama |
+|-------|----------|
+| **ECOD** | Empirik kümülatif dağılım (parametre-siz, ADBench lideri) |
+| **COPOD** | Copula tabanlı outlier tespiti |
+| **HBOS** | Histogram tabanlı (çok hızlı) |
+| **CBLOF** | Küme tabanlı yerel outlier faktörü |
 
 ---
 

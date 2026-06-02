@@ -15,24 +15,47 @@ from typing import Dict, Any, Tuple, Optional, List
 
 from sklearn.ensemble import IsolationForest
 from sklearn.svm import OneClassSVM
-from sklearn.cluster import KMeans
-from sklearn.neighbors import LocalOutlierFactor
+from sklearn.cluster import KMeans, DBSCAN
+from sklearn.neighbors import LocalOutlierFactor, NearestNeighbors
+from sklearn.mixture import GaussianMixture
+from sklearn.covariance import EllipticEnvelope
+from sklearn.decomposition import PCA
 from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import StandardScaler
 
 try:
     from tensorflow.keras.models import Sequential, Model
-    from tensorflow.keras.layers import LSTM, Dense, Dropout, Input, BatchNormalization, RepeatVector, TimeDistributed
+    from tensorflow.keras.layers import (
+        LSTM, Dense, Dropout, Input, BatchNormalization, RepeatVector,
+        TimeDistributed, Lambda,
+    )
     from tensorflow.keras.optimizers import Adam
     from tensorflow.keras.callbacks import EarlyStopping
+    import tensorflow as tf
 except ImportError:
     Sequential, Model = None, None
+
+# PyOD anomali dedektörleri (opsiyonel bağımlılık)
+try:
+    from pyod.models.ecod import ECOD
+    from pyod.models.copod import COPOD
+    from pyod.models.hbos import HBOS
+    from pyod.models.cblof import CBLOF
+    _PYOD_AVAILABLE = True
+except ImportError:
+    _PYOD_AVAILABLE = False
+
+# Tek tip API'ye (fit / decision_function / predict) sahip PyOD modelleri
+PYOD_MODELS = {"ECOD", "COPOD", "HBOS", "CBLOF"}
 
 
 class UnsupervisedAnomalyDetector:
     """
-    Etiket gerektirmeyen gözetimsiz algoritmaları (Isolation Forest, Autoencoder,
-    LSTM Autoencoder, One-Class SVM, K-Means) kullanarak anomali tespiti yapan sınıf.
+    Etiket gerektirmeyen gözetimsiz algoritmaları kullanarak anomali tespiti yapan sınıf.
+
+    sklearn/derin: Isolation Forest, One-Class SVM, K-Means, LOF, Autoencoder,
+        LSTM Autoencoder, GMM, Elliptic Envelope, PCA (recon), DBSCAN, VAE.
+    PyOD: ECOD, COPOD, HBOS, CBLOF.
     """
 
     def __init__(self, random_state: int = 42):
@@ -202,10 +225,148 @@ class UnsupervisedAnomalyDetector:
         
         scores = -model.score_samples(X_train)
         threshold = np.mean(scores) + 3 * np.std(scores)
-        
+
         self.models['LOF'] = model
         self.thresholds['LOF'] = threshold
         return model
+
+    # ==================================================================
+    #  Ek Gözetimsiz Modeller (sklearn tabanlı)
+    # ==================================================================
+
+    def train_gmm(self, X_train: np.ndarray, n_components: int = 3) -> GaussianMixture:
+        """Gaussian Mixture Model (GMM). Düşük olabilirlik = anomali."""
+        print("🔔 Gaussian Mixture Model eğitiliyor...")
+        model = GaussianMixture(n_components=n_components, covariance_type='full',
+                                random_state=self.random_state)
+        model.fit(X_train)
+        scores = -model.score_samples(X_train)  # negatif log-olabilirlik
+        threshold = np.mean(scores) + 3 * np.std(scores)
+        self.models['GMM'] = model
+        self.thresholds['GMM'] = float(threshold)
+        return model
+
+    def train_elliptic_envelope(self, X_train: np.ndarray, contamination: float = 0.05) -> EllipticEnvelope:
+        """Elliptic Envelope (robust kovaryans tabanlı Mahalanobis anomali tespiti)."""
+        print("🥚 Elliptic Envelope eğitiliyor...")
+        model = EllipticEnvelope(contamination=contamination, random_state=self.random_state)
+        model.fit(X_train)
+        scores = -model.score_samples(X_train)
+        threshold = np.percentile(scores, 100 * (1 - contamination))
+        self.models['EllipticEnvelope'] = model
+        self.thresholds['EllipticEnvelope'] = float(threshold)
+        return model
+
+    def train_pca(self, X_train: np.ndarray, n_components: float = 0.95) -> PCA:
+        """PCA tabanlı yeniden yapılandırma hatası ile anomali tespiti."""
+        print("📉 PCA (reconstruction error) eğitiliyor...")
+        model = PCA(n_components=n_components, random_state=self.random_state)
+        model.fit(X_train)
+        recon = model.inverse_transform(model.transform(X_train))
+        scores = np.mean(np.power(X_train - recon, 2), axis=1)
+        threshold = np.mean(scores) + 3 * np.std(scores)
+        self.models['PCA'] = model
+        self.thresholds['PCA'] = float(threshold)
+        return model
+
+    def train_dbscan(self, X_train: np.ndarray, eps: float = 1.5, min_samples: int = 5):
+        """DBSCAN ile çekirdek (core) noktaları bul; yeni nokta skoru = en yakın
+        çekirdek noktaya uzaklık. Kaydedilen model bir NearestNeighbors nesnesidir
+        (DBSCAN doğrudan yeni veri üzerinde predict desteklemez).
+        """
+        print("🌌 DBSCAN (core-distance novelty) eğitiliyor...")
+        db = DBSCAN(eps=eps, min_samples=min_samples, n_jobs=-1)
+        labels = db.fit_predict(X_train)
+        # Çekirdek (gürültü olmayan) noktalar
+        core = X_train[labels != -1]
+        if len(core) == 0:
+            core = X_train  # tümü gürültüyse geri düş
+        nbrs = NearestNeighbors(n_neighbors=1, n_jobs=-1).fit(core)
+        # Eşik kalibrasyonu: eğitim noktasının kendine 0 mesafesini saymamak için
+        # 2-en-yakın komşu sorgusu yapıp ikinci komşuyu (kendisi hariç) kullanırız.
+        nbrs2 = NearestNeighbors(n_neighbors=2, n_jobs=-1).fit(core)
+        dist2, _ = nbrs2.kneighbors(X_train)
+        scores = dist2[:, 1]
+        threshold = float(np.mean(scores) + 3 * np.std(scores))
+        self.models['DBSCAN'] = nbrs
+        self.thresholds['DBSCAN'] = threshold
+        return nbrs
+
+    def train_vae(self, X_train: np.ndarray, X_val: np.ndarray, latent_dim: int = 8,
+                  epochs: int = 50, batch_size: int = 64, beta: float = 1.0):
+        """Variational Autoencoder (VAE). Anomali skoru = yeniden yapılandırma hatası.
+
+        Not: Lambda örnekleme katmanı içerdiği için kaydedilen model
+        ``load_model(..., safe_mode=False)`` ile yüklenmelidir.
+        """
+        if Model is None:
+            raise ImportError("TensorFlow/Keras bulunamadı.")
+        print("🧠 Variational Autoencoder (VAE) eğitiliyor...")
+        input_dim = X_train.shape[1]
+
+        def sampling(args):
+            z_mean, z_log_var = args
+            eps = tf.random.normal(shape=tf.shape(z_mean))
+            return z_mean + tf.exp(0.5 * z_log_var) * eps
+
+        inputs = Input(shape=(input_dim,))
+        h = Dense(64, activation='relu')(inputs)
+        h = BatchNormalization()(h)
+        h = Dense(32, activation='relu')(h)
+        z_mean = Dense(latent_dim, name='z_mean')(h)
+        z_log_var = Dense(latent_dim, name='z_log_var')(h)
+        z = Lambda(sampling, output_shape=(latent_dim,), name='z')([z_mean, z_log_var])
+
+        d = Dense(32, activation='relu')(z)
+        d = Dense(64, activation='relu')(d)
+        outputs = Dense(input_dim, activation='linear')(d)
+
+        vae = Model(inputs, outputs, name='VAE')
+        # KL ıraksaması (regularizasyon)
+        kl_loss = -0.5 * tf.reduce_mean(
+            tf.reduce_sum(1 + z_log_var - tf.square(z_mean) - tf.exp(z_log_var), axis=1)
+        )
+        vae.add_loss(beta * kl_loss)
+        vae.compile(optimizer=Adam(learning_rate=0.001), loss='mse')
+
+        early_stop = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
+        vae.fit(X_train, X_train, validation_data=(X_val, X_val),
+                epochs=epochs, batch_size=batch_size, callbacks=[early_stop], verbose=1)
+
+        recon = vae.predict(X_train, verbose=0)
+        scores = np.mean(np.power(X_train - recon, 2), axis=1)
+        threshold = np.mean(scores) + 3 * np.std(scores)
+        self.models['VAE'] = vae
+        self.thresholds['VAE'] = float(threshold)
+        return vae
+
+    # ==================================================================
+    #  PyOD Anomali Dedektörleri (ECOD, COPOD, HBOS, CBLOF)
+    # ==================================================================
+
+    def train_pyod(self, X_train: np.ndarray, contamination: float = 0.05) -> Dict[str, Any]:
+        """PyOD tabanlı dedektörleri (ECOD, COPOD, HBOS, CBLOF) eğitir.
+
+        Her dedektör kendi ``threshold_`` değerini taşır; tahmin için
+        ``predict`` (0/1) ve skor için ``decision_function`` kullanılır.
+        """
+        if not _PYOD_AVAILABLE:
+            print("⚠️ PyOD kurulu değil — atlanıyor (pip install pyod).")
+            return {}
+        print("🧪 PyOD dedektörleri (ECOD, COPOD, HBOS, CBLOF) eğitiliyor...")
+        detectors = {
+            'ECOD':  ECOD(contamination=contamination),
+            'COPOD': COPOD(contamination=contamination),
+            'HBOS':  HBOS(contamination=contamination),
+            'CBLOF': CBLOF(contamination=contamination, random_state=self.random_state),
+        }
+        trained = {}
+        for name, det in detectors.items():
+            det.fit(X_train)
+            self.models[name] = det
+            self.thresholds[name] = float(det.threshold_)
+            trained[name] = det
+        return trained
 
     def compute_ensemble_score(self, X_test: np.ndarray, active_models: List[str] = None) -> np.ndarray:
         """
@@ -255,7 +416,7 @@ class UnsupervisedAnomalyDetector:
         
         for name, model in self.models.items():
             filepath = os.path.join(path, f"{name.lower()}_model")
-            if name in ['Autoencoder', 'LSTM_Autoencoder']:
+            if name in ['Autoencoder', 'LSTM_Autoencoder', 'VAE']:
                 model.save(filepath + ".keras")
             else:
                 joblib.dump(model, filepath + ".joblib")

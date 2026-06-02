@@ -274,8 +274,16 @@ def page_upload():
 
 
 def page_analysis():
-    sup = [n for n in ["RandomForest","XGBoost","SVM","MLP", "LightGBM", "CatBoost", "Stacking Ensemble"] if n in MODELS]
-    unsup = [n for n in ["IsolationForest","OneClassSVM","KMeans","LOF","Autoencoder"] if n in MODELS]
+    sup = [n for n in ["RandomForest","XGBoost","SVM","MLP", "LightGBM", "CatBoost", "Stacking Ensemble",
+                       "ExtraTrees","GradientBoosting","HistGradientBoosting","AdaBoost","KNN",
+                       "LogisticRegression","DecisionTree","NaiveBayes","Voting Ensemble",
+                       "LDA","QDA","Bagging","Ridge","SGD",
+                       "LSTM","BiLSTM","GRU","BiGRU","CNN1D","CNN_LSTM","CNN_BiLSTM","CNN_GRU",
+                       "Transformer","TCN","Attention_BiLSTM","FCN","ResNet1D","InceptionTime","LSTM_FCN"]
+           if n in MODELS]
+    unsup = [n for n in ["IsolationForest","OneClassSVM","KMeans","LOF","Autoencoder",
+                         "GMM","EllipticEnvelope","PCA","DBSCAN","VAE",
+                         "ECOD","COPOD","HBOS","CBLOF"] if n in MODELS]
     def model_option(name):
         f1 = ALL_METRICS.get(name, {}).get("F1", 0)
         return html.Span([name, html.Span(f"F1: {f1:.3f}", className="model-f1-badge")])
@@ -344,13 +352,8 @@ def page_performance():
         clrs = ["#3B82F6","#10B981","#F59E0B","#EF4444","#8B5CF6","#06B6D4","#F778A1","#A78BFA","#FB923C"]
         for i, (name, model) in enumerate(MODELS.items()):
             try:
-                if name == "MLP": prob = model.predict(X_t, verbose=0).flatten()
-                elif name == "Autoencoder":
-                    r = model.predict(X_t, verbose=0); prob = np.mean(np.power(X_t - r, 2), axis=1)
-                elif name in ("IsolationForest","LOF"): prob = -model.score_samples(X_t)
-                elif name == "OneClassSVM": prob = -model.decision_function(X_t)
-                elif name == "KMeans": prob = np.min(model.transform(X_t), axis=1)
-                else: prob = model.predict_proba(X_t)[:, 1]
+                # predict() tüm model türlerini (sıralı, PyOD, gözetimsiz, Ridge vb.) ele alır
+                _, prob = predict(model, name, X_t, THRESHOLDS, 1.0)
                 fpr, tpr, _ = roc_curve(y_t, prob)
                 a = auc(fpr, tpr)
                 fig_roc.add_trace(go.Scatter(x=fpr, y=tpr, mode="lines", name=f"{name} ({a:.3f})",
@@ -453,18 +456,13 @@ def page_live():
     channels = LIVE_DATA['channel'].unique().tolist() if not LIVE_DATA.empty and 'channel' in LIVE_DATA.columns else []
     fast_models = [n for n in ["IsolationForest", "LOF", "OneClassSVM", "KMeans"] if n in MODELS]
     
-    # Initialize empty figures with traces for extendData
+    # Initialize empty figures
     fig_sig = go.Figure()
     fig_sig.update_layout(**PLT_LAYOUT, height=300,
                           xaxis=dict(showgrid=True, gridcolor="#1C2A3A"), yaxis=dict(showgrid=True, gridcolor="#1C2A3A"))
-    fig_sig.add_trace(go.Scatter(x=[], y=[], mode="lines", line=dict(color="#6A8099", width=1.5), name="Sinyal"))
-    fig_sig.add_trace(go.Scatter(x=[], y=[], mode="markers", marker=dict(color="#FF3B5C", size=8), name="Anomali"))
-    
     fig_score = go.Figure()
     fig_score.update_layout(**PLT_LAYOUT, height=150,
                             xaxis=dict(showgrid=True, gridcolor="#1C2A3A"), yaxis=dict(range=[0, 1.05]))
-    fig_score.add_trace(go.Scatter(x=[], y=[], mode="lines", line=dict(color="#00C8FF", width=2), fill='tozeroy', fillcolor='rgba(0,200,255,0.1)', name="Skor"))
-    fig_score.add_hline(y=0.5, line_dash="dash", line_color="#FF3B5C")
                             
     return html.Div(className="live-page-container", children=[
         html.Div(className="page-header", children=[

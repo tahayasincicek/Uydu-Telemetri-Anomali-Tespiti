@@ -13,8 +13,24 @@ import numpy as np
 import pandas as pd
 from typing import Dict, Any, Tuple, Optional
 
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import (
+    RandomForestClassifier,
+    ExtraTreesClassifier,
+    GradientBoostingClassifier,
+    HistGradientBoostingClassifier,
+    AdaBoostClassifier,
+    BaggingClassifier,
+    VotingClassifier,
+)
 from sklearn.svm import SVC
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.linear_model import LogisticRegression, RidgeClassifier, SGDClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.discriminant_analysis import (
+    LinearDiscriminantAnalysis,
+    QuadraticDiscriminantAnalysis,
+)
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix
 from sklearn.model_selection import GridSearchCV, TimeSeriesSplit
@@ -30,18 +46,38 @@ except ImportError:
     lgb = None
 
 try:
-    from tensorflow.keras.models import Sequential
-    from tensorflow.keras.layers import LSTM, Dense, Dropout, BatchNormalization
+    from tensorflow.keras.models import Sequential, Model
+    from tensorflow.keras.layers import (
+        LSTM, GRU, Bidirectional, Conv1D, MaxPooling1D, GlobalAveragePooling1D,
+        Dense, Dropout, BatchNormalization, LayerNormalization, Input,
+        MultiHeadAttention, Add, Activation, SpatialDropout1D,
+    )
     from tensorflow.keras.optimizers import Adam
     from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 except ImportError:
     Sequential = None
+    Model = None
+
+
+# Girdi olarak (örnek, özellik, 1) boyutlu 3B tensör isteyen derin sıralı (sequence) modeller.
+# Bu modeller tablo (tabular) özelliklerini "özellik ekseni boyunca bir sinyal" olarak işler.
+SEQUENCE_MODELS = {"LSTM", "BiLSTM", "GRU", "BiGRU", "CNN1D", "CNN_LSTM", "CNN_BiLSTM",
+                   "CNN_GRU", "Transformer", "TCN", "Attention_BiLSTM",
+                   "FCN", "ResNet1D", "InceptionTime", "LSTM_FCN"}
+# Keras tabanlı tüm modeller (kaydederken .keras formatı, kalın MLP dahil).
+KERAS_MODELS = SEQUENCE_MODELS | {"MLP"}
 
 
 class SupervisedAnomalyDetector:
     """
-    Gözetimli öğrenme algoritmalarını (Random Forest, SVM, XGBoost, LSTM)
-    kullanarak anomali tespiti yapan yönetici sınıf.
+    Gözetimli öğrenme algoritmalarını kullanarak anomali tespiti yapan yönetici sınıf.
+
+    Klasik ML: Random Forest, SVM, XGBoost, Extra Trees, Gradient Boosting,
+        HistGradientBoosting, AdaBoost, KNN, Logistic Regression, Decision Tree,
+        Gaussian Naive Bayes, Voting Ensemble, LDA, QDA, Bagging, Ridge, SGD.
+    Derin öğrenme: MLP, LSTM, BiLSTM, GRU, BiGRU, 1D-CNN, CNN-LSTM, CNN-BiLSTM,
+        CNN-GRU, Transformer, TCN, Attention-BiLSTM, FCN, ResNet-1D,
+        InceptionTime, LSTM-FCN.
     """
 
     def __init__(self, random_state: int = 42):
@@ -176,18 +212,568 @@ class SupervisedAnomalyDetector:
         self.models['MLP'] = model
         return model, history
 
+    # ==================================================================
+    #  Klasik Makine Öğrenmesi Modelleri (sklearn tabanlı)
+    # ==================================================================
+
+    def train_extra_trees(self, X_train, y_train) -> ExtraTreesClassifier:
+        """Extremely Randomized Trees (Extra Trees) sınıflandırıcısını eğitir."""
+        print("🌳 Extra Trees eğitiliyor...")
+        model = ExtraTreesClassifier(
+            n_estimators=300, max_depth=None, class_weight='balanced',
+            random_state=self.random_state, n_jobs=-1
+        )
+        model.fit(X_train, y_train)
+        self.models['ExtraTrees'] = model
+        return model
+
+    def train_gradient_boosting(self, X_train, y_train) -> GradientBoostingClassifier:
+        """Gradient Boosting (sklearn) sınıflandırıcısını eğitir."""
+        print("📈 Gradient Boosting eğitiliyor...")
+        model = GradientBoostingClassifier(
+            n_estimators=300, learning_rate=0.05, max_depth=3,
+            random_state=self.random_state
+        )
+        model.fit(X_train, y_train)
+        self.models['GradientBoosting'] = model
+        return model
+
+    def train_adaboost(self, X_train, y_train) -> AdaBoostClassifier:
+        """AdaBoost sınıflandırıcısını eğitir."""
+        print("⚡ AdaBoost eğitiliyor...")
+        model = AdaBoostClassifier(
+            n_estimators=300, learning_rate=0.5, algorithm='SAMME',
+            random_state=self.random_state
+        )
+        model.fit(X_train, y_train)
+        self.models['AdaBoost'] = model
+        return model
+
+    def train_knn(self, X_train, y_train, n_neighbors: int = 15) -> KNeighborsClassifier:
+        """K-En Yakın Komşu (KNN) sınıflandırıcısını eğitir."""
+        print(f"👥 KNN (k={n_neighbors}) eğitiliyor...")
+        model = KNeighborsClassifier(n_neighbors=n_neighbors, weights='distance', n_jobs=-1)
+        model.fit(X_train, y_train)
+        self.models['KNN'] = model
+        return model
+
+    def train_logistic_regression(self, X_train, y_train) -> LogisticRegression:
+        """Lojistik Regresyon (doğrusal) sınıflandırıcısını eğitir."""
+        print("📉 Logistic Regression eğitiliyor...")
+        model = LogisticRegression(
+            max_iter=2000, class_weight='balanced', random_state=self.random_state, n_jobs=-1
+        )
+        model.fit(X_train, y_train)
+        self.models['LogisticRegression'] = model
+        return model
+
+    def train_hist_gradient_boosting(self, X_train, y_train) -> HistGradientBoostingClassifier:
+        """Histogram tabanlı Gradient Boosting (modern, hızlı sklearn boosting)."""
+        print("⚡ HistGradientBoosting eğitiliyor...")
+        model = HistGradientBoostingClassifier(
+            max_iter=400, learning_rate=0.05, max_depth=None,
+            class_weight='balanced', random_state=self.random_state
+        )
+        model.fit(X_train, y_train)
+        self.models['HistGradientBoosting'] = model
+        return model
+
+    def train_decision_tree(self, X_train, y_train) -> DecisionTreeClassifier:
+        """Tek Karar Ağacı (yorumlanabilir baseline)."""
+        print("🌿 Decision Tree eğitiliyor...")
+        model = DecisionTreeClassifier(
+            max_depth=12, min_samples_leaf=5, class_weight='balanced',
+            random_state=self.random_state
+        )
+        model.fit(X_train, y_train)
+        self.models['DecisionTree'] = model
+        return model
+
+    def train_naive_bayes(self, X_train, y_train) -> GaussianNB:
+        """Gaussian Naive Bayes (olasılıksal baseline)."""
+        print("🎲 Gaussian Naive Bayes eğitiliyor...")
+        model = GaussianNB()
+        model.fit(X_train, y_train)
+        self.models['NaiveBayes'] = model
+        return model
+
+    def train_voting(self, X_train, y_train) -> VotingClassifier:
+        """Yumuşak (soft) oylama topluluğu: RF + Gradient Boosting + Logistic Regression."""
+        print("🗳️ Voting Ensemble (soft) eğitiliyor...")
+        estimators = [
+            ('rf', RandomForestClassifier(n_estimators=200, class_weight='balanced',
+                                          random_state=self.random_state, n_jobs=-1)),
+            ('gb', GradientBoostingClassifier(n_estimators=200, learning_rate=0.05,
+                                              random_state=self.random_state)),
+            ('lr', LogisticRegression(max_iter=2000, class_weight='balanced',
+                                      random_state=self.random_state)),
+        ]
+        model = VotingClassifier(estimators=estimators, voting='soft', n_jobs=-1)
+        model.fit(X_train, y_train)
+        self.models['Voting Ensemble'] = model
+        return model
+
+    def train_lda(self, X_train, y_train) -> LinearDiscriminantAnalysis:
+        """Doğrusal Diskriminant Analizi (LDA)."""
+        print("📏 LDA (Linear Discriminant Analysis) eğitiliyor...")
+        model = LinearDiscriminantAnalysis()
+        model.fit(X_train, y_train)
+        self.models['LDA'] = model
+        return model
+
+    def train_qda(self, X_train, y_train) -> QuadraticDiscriminantAnalysis:
+        """Karesel Diskriminant Analizi (QDA)."""
+        print("📐 QDA (Quadratic Discriminant Analysis) eğitiliyor...")
+        model = QuadraticDiscriminantAnalysis()
+        model.fit(X_train, y_train)
+        self.models['QDA'] = model
+        return model
+
+    def train_bagging(self, X_train, y_train) -> BaggingClassifier:
+        """Bagging topluluğu (karar ağacı tabanlı bootstrap aggregating)."""
+        print("🧺 Bagging eğitiliyor...")
+        model = BaggingClassifier(
+            n_estimators=200, max_samples=0.8, max_features=0.8,
+            random_state=self.random_state, n_jobs=-1
+        )
+        model.fit(X_train, y_train)
+        self.models['Bagging'] = model
+        return model
+
+    def train_ridge(self, X_train, y_train) -> RidgeClassifier:
+        """Ridge sınıflandırıcı (L2 düzenlenmiş doğrusal model).
+
+        predict_proba sağlamaz; skor olarak decision_function kullanılır.
+        """
+        print("🪜 Ridge Classifier eğitiliyor...")
+        model = RidgeClassifier(class_weight='balanced', random_state=self.random_state)
+        model.fit(X_train, y_train)
+        self.models['Ridge'] = model
+        return model
+
+    def train_sgd(self, X_train, y_train) -> SGDClassifier:
+        """SGD tabanlı doğrusal sınıflandırıcı (log-loss → olasılık çıktısı)."""
+        print("🛷 SGD Classifier (log-loss) eğitiliyor...")
+        model = SGDClassifier(
+            loss='log_loss', class_weight='balanced', max_iter=2000,
+            random_state=self.random_state, n_jobs=-1
+        )
+        model.fit(X_train, y_train)
+        self.models['SGD'] = model
+        return model
+
+    # ==================================================================
+    #  Derin Sıralı (Sequence) Modeller — CNN / RNN / Transformer
+    # ==================================================================
+
+    @staticmethod
+    def _reshape_seq(X: np.ndarray) -> np.ndarray:
+        """Tablo özelliklerini (örnek, özellik) -> (örnek, özellik, 1) 3B tensöre çevirir.
+
+        Conv1D/LSTM/GRU katmanları zaman ekseni bekler; burada her özellik
+        vektörü tek kanallı bir sinyal (özellik ekseni = zaman adımı) olarak ele alınır.
+        """
+        X = np.asarray(X, dtype='float32')
+        if X.ndim == 2:
+            return X.reshape((X.shape[0], X.shape[1], 1))
+        return X
+
+    def _fit_keras_sequence(self, name: str, model, X_train, y_train, X_val, y_val,
+                            epochs: int, batch_size: int, patience: int = 12):
+        """Sıralı bir Keras modelini derler ve eğitir; self.models'a kaydeder."""
+        model.compile(optimizer=Adam(learning_rate=0.001),
+                      loss='binary_crossentropy', metrics=['accuracy'])
+        early_stop = EarlyStopping(monitor='val_loss', patience=patience, restore_best_weights=True)
+
+        Xtr, Xvl = self._reshape_seq(X_train), self._reshape_seq(X_val)
+        ytr = np.asarray(y_train).astype('float32').ravel()
+        yvl = np.asarray(y_val).astype('float32').ravel()
+
+        history = model.fit(
+            Xtr, ytr,
+            validation_data=(Xvl, yvl),
+            epochs=epochs, batch_size=batch_size,
+            callbacks=[early_stop], verbose=1
+        )
+        self.models[name] = model
+        return model, history
+
+    def train_lstm(self, X_train, y_train, X_val, y_val, epochs: int = 60, batch_size: int = 32):
+        """Saf LSTM sınıflandırıcısını eğitir."""
+        if Sequential is None:
+            raise ImportError("TensorFlow/Keras bulunamadı.")
+        print("⏳ LSTM eğitiliyor...")
+        n_features = X_train.shape[1]
+        model = Sequential([
+            Input(shape=(n_features, 1)),
+            LSTM(64, return_sequences=True),
+            Dropout(0.3),
+            LSTM(32, return_sequences=False),
+            Dropout(0.3),
+            Dense(32, activation='relu'),
+            Dense(1, activation='sigmoid')
+        ], name='LSTM')
+        return self._fit_keras_sequence('LSTM', model, X_train, y_train, X_val, y_val, epochs, batch_size)
+
+    def train_bilstm(self, X_train, y_train, X_val, y_val, epochs: int = 60, batch_size: int = 32):
+        """Çift Yönlü LSTM (BiLSTM) sınıflandırıcısını eğitir."""
+        if Sequential is None:
+            raise ImportError("TensorFlow/Keras bulunamadı.")
+        print("🔁 BiLSTM eğitiliyor...")
+        n_features = X_train.shape[1]
+        model = Sequential([
+            Input(shape=(n_features, 1)),
+            Bidirectional(LSTM(64, return_sequences=True)),
+            Dropout(0.3),
+            Bidirectional(LSTM(32, return_sequences=False)),
+            Dropout(0.3),
+            Dense(32, activation='relu'),
+            Dense(1, activation='sigmoid')
+        ], name='BiLSTM')
+        return self._fit_keras_sequence('BiLSTM', model, X_train, y_train, X_val, y_val, epochs, batch_size)
+
+    def train_gru(self, X_train, y_train, X_val, y_val, epochs: int = 60, batch_size: int = 32):
+        """Saf GRU sınıflandırıcısını eğitir."""
+        if Sequential is None:
+            raise ImportError("TensorFlow/Keras bulunamadı.")
+        print("🔂 GRU eğitiliyor...")
+        n_features = X_train.shape[1]
+        model = Sequential([
+            Input(shape=(n_features, 1)),
+            GRU(64, return_sequences=True),
+            Dropout(0.3),
+            GRU(32, return_sequences=False),
+            Dropout(0.3),
+            Dense(32, activation='relu'),
+            Dense(1, activation='sigmoid')
+        ], name='GRU')
+        return self._fit_keras_sequence('GRU', model, X_train, y_train, X_val, y_val, epochs, batch_size)
+
+    def train_cnn_bilstm(self, X_train, y_train, X_val, y_val, epochs: int = 60, batch_size: int = 32):
+        """CNN + BiLSTM hibrit modelini eğitir.
+
+        1D evrişim katmanları yerel desenleri çıkarır, ardından çift yönlü LSTM
+        özellik ekseni boyunca bağlamı modeller.
+        """
+        if Sequential is None:
+            raise ImportError("TensorFlow/Keras bulunamadı.")
+        print("🧬 CNN-BiLSTM (hibrit) eğitiliyor...")
+        n_features = X_train.shape[1]
+        model = Sequential([
+            Input(shape=(n_features, 1)),
+            Conv1D(64, kernel_size=3, padding='same', activation='relu'),
+            BatchNormalization(),
+            MaxPooling1D(pool_size=2),
+            Conv1D(128, kernel_size=3, padding='same', activation='relu'),
+            BatchNormalization(),
+            Dropout(0.3),
+            Bidirectional(LSTM(64, return_sequences=True)),
+            Bidirectional(LSTM(32, return_sequences=False)),
+            Dropout(0.3),
+            Dense(32, activation='relu'),
+            Dense(1, activation='sigmoid')
+        ], name='CNN_BiLSTM')
+        return self._fit_keras_sequence('CNN_BiLSTM', model, X_train, y_train, X_val, y_val, epochs, batch_size)
+
+    def train_cnn_gru(self, X_train, y_train, X_val, y_val, epochs: int = 60, batch_size: int = 32):
+        """CNN + GRU hibrit modelini eğitir (CNN-BiLSTM'in daha hafif alternatifi)."""
+        if Sequential is None:
+            raise ImportError("TensorFlow/Keras bulunamadı.")
+        print("🧬 CNN-GRU (hibrit) eğitiliyor...")
+        n_features = X_train.shape[1]
+        model = Sequential([
+            Input(shape=(n_features, 1)),
+            Conv1D(64, kernel_size=3, padding='same', activation='relu'),
+            BatchNormalization(),
+            MaxPooling1D(pool_size=2),
+            Conv1D(128, kernel_size=3, padding='same', activation='relu'),
+            BatchNormalization(),
+            Dropout(0.3),
+            GRU(64, return_sequences=True),
+            GRU(32, return_sequences=False),
+            Dropout(0.3),
+            Dense(32, activation='relu'),
+            Dense(1, activation='sigmoid')
+        ], name='CNN_GRU')
+        return self._fit_keras_sequence('CNN_GRU', model, X_train, y_train, X_val, y_val, epochs, batch_size)
+
+    def train_transformer(self, X_train, y_train, X_val, y_val, epochs: int = 60, batch_size: int = 32):
+        """Self-Attention (Transformer encoder) tabanlı sınıflandırıcıyı eğitir."""
+        if Model is None:
+            raise ImportError("TensorFlow/Keras bulunamadı.")
+        print("🧲 Transformer (self-attention) eğitiliyor...")
+        n_features = X_train.shape[1]
+        head_size, num_heads, ff_dim = 64, 4, 128
+
+        inputs = Input(shape=(n_features, 1))
+        # Tek kanalı küçük bir gömme (embedding) boyutuna projekte et
+        x = Conv1D(filters=head_size, kernel_size=1, padding='same')(inputs)
+
+        # Transformer encoder bloğu (residual + layer norm)
+        attn = MultiHeadAttention(num_heads=num_heads, key_dim=head_size, dropout=0.1)(x, x)
+        x = Add()([x, attn])
+        x = LayerNormalization(epsilon=1e-6)(x)
+        ff = Dense(ff_dim, activation='relu')(x)
+        ff = Dropout(0.1)(ff)
+        ff = Dense(head_size)(ff)
+        x = Add()([x, ff])
+        x = LayerNormalization(epsilon=1e-6)(x)
+
+        x = GlobalAveragePooling1D()(x)
+        x = Dense(64, activation='relu')(x)
+        x = Dropout(0.3)(x)
+        outputs = Dense(1, activation='sigmoid')(x)
+
+        model = Model(inputs, outputs, name='Transformer')
+        return self._fit_keras_sequence('Transformer', model, X_train, y_train, X_val, y_val, epochs, batch_size)
+
+    def train_tcn(self, X_train, y_train, X_val, y_val, epochs: int = 60, batch_size: int = 32):
+        """Temporal Convolutional Network (TCN) — dilated causal convolutions ile."""
+        if Model is None:
+            raise ImportError("TensorFlow/Keras bulunamadı.")
+        print("🌀 TCN (Temporal Conv Network) eğitiliyor...")
+        n_features = X_train.shape[1]
+
+        inputs = Input(shape=(n_features, 1))
+        x = inputs
+        # Genişleyen (dilated) artımlı evrişim blokları
+        for dilation in (1, 2, 4, 8):
+            prev = x
+            x = Conv1D(64, kernel_size=3, padding='causal', dilation_rate=dilation,
+                       activation='relu')(x)
+            x = BatchNormalization()(x)
+            x = SpatialDropout1D(0.1)(x)
+            # Residual bağlantı (kanal sayısı eşleşmiyorsa 1x1 conv ile uyarla)
+            if prev.shape[-1] != x.shape[-1]:
+                prev = Conv1D(64, kernel_size=1, padding='same')(prev)
+            x = Add()([prev, x])
+
+        x = GlobalAveragePooling1D()(x)
+        x = Dense(32, activation='relu')(x)
+        outputs = Dense(1, activation='sigmoid')(x)
+
+        model = Model(inputs, outputs, name='TCN')
+        return self._fit_keras_sequence('TCN', model, X_train, y_train, X_val, y_val, epochs, batch_size)
+
+    def train_cnn1d(self, X_train, y_train, X_val, y_val, epochs: int = 60, batch_size: int = 32):
+        """Saf 1D Evrişimli Sinir Ağı (CNN) sınıflandırıcısı."""
+        if Sequential is None:
+            raise ImportError("TensorFlow/Keras bulunamadı.")
+        print("🧱 1D-CNN eğitiliyor...")
+        n_features = X_train.shape[1]
+        model = Sequential([
+            Input(shape=(n_features, 1)),
+            Conv1D(64, kernel_size=3, padding='same', activation='relu'),
+            BatchNormalization(),
+            MaxPooling1D(pool_size=2),
+            Conv1D(128, kernel_size=3, padding='same', activation='relu'),
+            BatchNormalization(),
+            MaxPooling1D(pool_size=2),
+            Conv1D(64, kernel_size=3, padding='same', activation='relu'),
+            GlobalAveragePooling1D(),
+            Dense(64, activation='relu'),
+            Dropout(0.3),
+            Dense(1, activation='sigmoid')
+        ], name='CNN1D')
+        return self._fit_keras_sequence('CNN1D', model, X_train, y_train, X_val, y_val, epochs, batch_size)
+
+    def train_bigru(self, X_train, y_train, X_val, y_val, epochs: int = 60, batch_size: int = 32):
+        """Çift Yönlü GRU (BiGRU) sınıflandırıcısını eğitir."""
+        if Sequential is None:
+            raise ImportError("TensorFlow/Keras bulunamadı.")
+        print("🔁 BiGRU eğitiliyor...")
+        n_features = X_train.shape[1]
+        model = Sequential([
+            Input(shape=(n_features, 1)),
+            Bidirectional(GRU(64, return_sequences=True)),
+            Dropout(0.3),
+            Bidirectional(GRU(32, return_sequences=False)),
+            Dropout(0.3),
+            Dense(32, activation='relu'),
+            Dense(1, activation='sigmoid')
+        ], name='BiGRU')
+        return self._fit_keras_sequence('BiGRU', model, X_train, y_train, X_val, y_val, epochs, batch_size)
+
+    def train_cnn_lstm(self, X_train, y_train, X_val, y_val, epochs: int = 60, batch_size: int = 32):
+        """CNN + (tek yönlü) LSTM hibrit modelini eğitir."""
+        if Sequential is None:
+            raise ImportError("TensorFlow/Keras bulunamadı.")
+        print("🧬 CNN-LSTM (hibrit) eğitiliyor...")
+        n_features = X_train.shape[1]
+        model = Sequential([
+            Input(shape=(n_features, 1)),
+            Conv1D(64, kernel_size=3, padding='same', activation='relu'),
+            BatchNormalization(),
+            MaxPooling1D(pool_size=2),
+            Conv1D(128, kernel_size=3, padding='same', activation='relu'),
+            BatchNormalization(),
+            Dropout(0.3),
+            LSTM(64, return_sequences=True),
+            LSTM(32, return_sequences=False),
+            Dropout(0.3),
+            Dense(32, activation='relu'),
+            Dense(1, activation='sigmoid')
+        ], name='CNN_LSTM')
+        return self._fit_keras_sequence('CNN_LSTM', model, X_train, y_train, X_val, y_val, epochs, batch_size)
+
+    def train_attention_bilstm(self, X_train, y_train, X_val, y_val, epochs: int = 60, batch_size: int = 32):
+        """BiLSTM + Self-Attention havuzlama (attention pooling) modeli.
+
+        BiLSTM dizi çıktısı üzerine multi-head self-attention uygulanır, ardından
+        zaman ekseni global ortalama ile havuzlanır.
+        """
+        if Model is None:
+            raise ImportError("TensorFlow/Keras bulunamadı.")
+        print("🎯 Attention-BiLSTM eğitiliyor...")
+        n_features = X_train.shape[1]
+
+        inputs = Input(shape=(n_features, 1))
+        x = Bidirectional(LSTM(64, return_sequences=True))(inputs)
+        x = Dropout(0.3)(x)
+        attn = MultiHeadAttention(num_heads=4, key_dim=32, dropout=0.1)(x, x)
+        x = Add()([x, attn])
+        x = LayerNormalization(epsilon=1e-6)(x)
+        x = GlobalAveragePooling1D()(x)
+        x = Dense(64, activation='relu')(x)
+        x = Dropout(0.3)(x)
+        outputs = Dense(1, activation='sigmoid')(x)
+
+        model = Model(inputs, outputs, name='Attention_BiLSTM')
+        return self._fit_keras_sequence('Attention_BiLSTM', model, X_train, y_train, X_val, y_val, epochs, batch_size)
+
+    def train_fcn(self, X_train, y_train, X_val, y_val, epochs: int = 60, batch_size: int = 32):
+        """Fully Convolutional Network (FCN) — zaman serisi sınıflandırma baseline'ı.
+
+        Wang et al. (2017): üç Conv1D bloğu (BN+ReLU) + Global Average Pooling.
+        """
+        if Sequential is None:
+            raise ImportError("TensorFlow/Keras bulunamadı.")
+        print("🧱 FCN (Fully Convolutional Network) eğitiliyor...")
+        n_features = X_train.shape[1]
+        model = Sequential([
+            Input(shape=(n_features, 1)),
+            Conv1D(128, kernel_size=8, padding='same'), BatchNormalization(), Activation('relu'),
+            Conv1D(256, kernel_size=5, padding='same'), BatchNormalization(), Activation('relu'),
+            Conv1D(128, kernel_size=3, padding='same'), BatchNormalization(), Activation('relu'),
+            GlobalAveragePooling1D(),
+            Dense(1, activation='sigmoid')
+        ], name='FCN')
+        return self._fit_keras_sequence('FCN', model, X_train, y_train, X_val, y_val, epochs, batch_size)
+
+    def train_resnet1d(self, X_train, y_train, X_val, y_val, epochs: int = 60, batch_size: int = 32):
+        """ResNet-1D — zaman serisi sınıflandırma için artık (residual) bloklu CNN.
+
+        Wang et al. (2017): 3 residual blok (her biri 3 Conv1D), ardından GAP.
+        """
+        if Model is None:
+            raise ImportError("TensorFlow/Keras bulunamadı.")
+        print("🏗️ ResNet-1D eğitiliyor...")
+        n_features = X_train.shape[1]
+
+        def residual_block(x, filters):
+            shortcut = x
+            for k in (8, 5, 3):
+                x = Conv1D(filters, kernel_size=k, padding='same')(x)
+                x = BatchNormalization()(x)
+                x = Activation('relu')(x)
+            # Boyut uyumu için 1x1 conv
+            if shortcut.shape[-1] != filters:
+                shortcut = Conv1D(filters, kernel_size=1, padding='same')(shortcut)
+            shortcut = BatchNormalization()(shortcut)
+            x = Add()([shortcut, x])
+            return Activation('relu')(x)
+
+        inputs = Input(shape=(n_features, 1))
+        x = residual_block(inputs, 64)
+        x = residual_block(x, 128)
+        x = residual_block(x, 128)
+        x = GlobalAveragePooling1D()(x)
+        outputs = Dense(1, activation='sigmoid')(x)
+        model = Model(inputs, outputs, name='ResNet1D')
+        return self._fit_keras_sequence('ResNet1D', model, X_train, y_train, X_val, y_val, epochs, batch_size)
+
+    def train_inceptiontime(self, X_train, y_train, X_val, y_val, epochs: int = 60, batch_size: int = 32):
+        """InceptionTime — çok ölçekli Inception modülleriyle SOTA TS sınıflandırma.
+
+        Fawaz et al. (2020): bottleneck + paralel farklı kernel boyutları + residual.
+        """
+        if Model is None:
+            raise ImportError("TensorFlow/Keras bulunamadı.")
+        print("🚀 InceptionTime eğitiliyor...")
+        n_features = X_train.shape[1]
+        nb_filters = 32
+
+        def inception_module(x):
+            bottleneck = Conv1D(nb_filters, kernel_size=1, padding='same', use_bias=False)(x)
+            convs = [Conv1D(nb_filters, kernel_size=k, padding='same', use_bias=False)(bottleneck)
+                     for k in (10, 20, 40)]
+            pool = MaxPooling1D(pool_size=3, strides=1, padding='same')(x)
+            pool = Conv1D(nb_filters, kernel_size=1, padding='same', use_bias=False)(pool)
+            from tensorflow.keras.layers import Concatenate
+            out = Concatenate(axis=2)(convs + [pool])
+            out = BatchNormalization()(out)
+            return Activation('relu')(out)
+
+        inputs = Input(shape=(n_features, 1))
+        x = inputs
+        residual = inputs
+        for d in range(6):
+            x = inception_module(x)
+            if d % 3 == 2:  # her 3 modülde bir residual bağlantı
+                res = Conv1D(int(x.shape[-1]), kernel_size=1, padding='same', use_bias=False)(residual)
+                res = BatchNormalization()(res)
+                x = Activation('relu')(Add()([res, x]))
+                residual = x
+        x = GlobalAveragePooling1D()(x)
+        outputs = Dense(1, activation='sigmoid')(x)
+        model = Model(inputs, outputs, name='InceptionTime')
+        return self._fit_keras_sequence('InceptionTime', model, X_train, y_train, X_val, y_val, epochs, batch_size)
+
+    def train_lstm_fcn(self, X_train, y_train, X_val, y_val, epochs: int = 60, batch_size: int = 32):
+        """LSTM-FCN — paralel LSTM dalı + FCN dalı birleşimi (Karim et al. 2018).
+
+        Güçlü zaman serisi sınıflandırma hibriti.
+        """
+        if Model is None:
+            raise ImportError("TensorFlow/Keras bulunamadı.")
+        print("🔀 LSTM-FCN eğitiliyor...")
+        n_features = X_train.shape[1]
+        inputs = Input(shape=(n_features, 1))
+
+        # FCN dalı
+        c = Conv1D(128, kernel_size=8, padding='same')(inputs); c = BatchNormalization()(c); c = Activation('relu')(c)
+        c = Conv1D(256, kernel_size=5, padding='same')(c); c = BatchNormalization()(c); c = Activation('relu')(c)
+        c = Conv1D(128, kernel_size=3, padding='same')(c); c = BatchNormalization()(c); c = Activation('relu')(c)
+        c = GlobalAveragePooling1D()(c)
+
+        # LSTM dalı
+        l = LSTM(64)(inputs)
+        l = Dropout(0.3)(l)
+
+        from tensorflow.keras.layers import Concatenate
+        x = Concatenate()([c, l])
+        outputs = Dense(1, activation='sigmoid')(x)
+        model = Model(inputs, outputs, name='LSTM_FCN')
+        return self._fit_keras_sequence('LSTM_FCN', model, X_train, y_train, X_val, y_val, epochs, batch_size)
+
     def evaluate_model(self, name: str, X_test: np.ndarray, y_test: np.ndarray, threshold: float = 0.5) -> Dict[str, float]:
         """Belirli bir modeli test seti üzerinde değerlendirir."""
         if name not in self.models:
             raise ValueError(f"Model bulunamadı: {name}")
             
         model = self.models[name]
-        
-        # MLP prediction şekli farklıdır
-        if name == 'MLP':
-            y_pred_prob = model.predict(X_test).flatten()
+
+        # Keras model çıktıları (olasılık) farklı şekilde alınır
+        if name in SEQUENCE_MODELS:
+            # Sıralı modeller 3B girdi bekler: (örnek, özellik, 1)
+            y_pred_prob = model.predict(self._reshape_seq(X_test), verbose=0).flatten()
+        elif name == 'MLP':
+            y_pred_prob = model.predict(X_test, verbose=0).flatten()
         elif hasattr(model, "predict_proba"):
             y_pred_prob = model.predict_proba(X_test)[:, 1]
+        elif hasattr(model, "decision_function"):
+            # Ridge gibi olasılık vermeyen doğrusal modeller için karar skoru
+            y_pred_prob = model.decision_function(X_test)
         else:
             y_pred_prob = model.predict(X_test)
 
@@ -234,7 +820,7 @@ class SupervisedAnomalyDetector:
             raise ValueError(f"Model bulunamadı: {name}")
             
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
-        if name == 'MLP':
+        if name in KERAS_MODELS:
             self.models[name].save(filepath)
         else:
             joblib.dump(self.models[name], filepath)
