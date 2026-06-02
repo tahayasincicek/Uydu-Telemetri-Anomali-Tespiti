@@ -326,7 +326,7 @@ class SupervisedAnomalyDetector:
     def train_qda(self, X_train, y_train) -> QuadraticDiscriminantAnalysis:
         """Karesel Diskriminant Analizi (QDA)."""
         print("📐 QDA (Quadratic Discriminant Analysis) eğitiliyor...")
-        model = QuadraticDiscriminantAnalysis()
+        model = QuadraticDiscriminantAnalysis(reg_param=0.1)
         model.fit(X_train, y_train)
         self.models['QDA'] = model
         return model

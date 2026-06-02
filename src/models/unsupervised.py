@@ -32,6 +32,7 @@ try:
     from tensorflow.keras.optimizers import Adam
     from tensorflow.keras.callbacks import EarlyStopping
     import tensorflow as tf
+    import keras
 except ImportError:
     Sequential, Model = None, None
 
@@ -294,20 +295,30 @@ class UnsupervisedAnomalyDetector:
 
     def train_vae(self, X_train: np.ndarray, X_val: np.ndarray, latent_dim: int = 8,
                   epochs: int = 50, batch_size: int = 64, beta: float = 1.0):
-        """Variational Autoencoder (VAE). Anomali skoru = yeniden yapılandırma hatası.
-
-        Not: Lambda örnekleme katmanı içerdiği için kaydedilen model
-        ``load_model(..., safe_mode=False)`` ile yüklenmelidir.
-        """
+        """Variational Autoencoder (VAE). Anomali skoru = yeniden yapılandırma hatası."""
         if Model is None:
             raise ImportError("TensorFlow/Keras bulunamadı.")
         print("🧠 Variational Autoencoder (VAE) eğitiliyor...")
         input_dim = X_train.shape[1]
 
-        def sampling(args):
-            z_mean, z_log_var = args
-            eps = tf.random.normal(shape=tf.shape(z_mean))
-            return z_mean + tf.exp(0.5 * z_log_var) * eps
+        # Keras 3'te Functional model üzerinde add_loss() kaldırıldı;
+        # KL kaybı örnekleme katmanının call() içinde add_loss() ile eklenmeli.
+        class SamplingLayer(keras.layers.Layer):
+            def __init__(self, beta=1.0, **kwargs):
+                super().__init__(**kwargs)
+                self._beta = beta
+
+            def call(self, inputs):
+                z_mean, z_log_var = inputs
+                eps = keras.random.normal(shape=keras.ops.shape(z_mean))
+                kl = -0.5 * self._beta * keras.ops.mean(
+                    keras.ops.sum(
+                        1 + z_log_var - keras.ops.square(z_mean) - keras.ops.exp(z_log_var),
+                        axis=1,
+                    )
+                )
+                self.add_loss(kl)
+                return z_mean + keras.ops.exp(0.5 * z_log_var) * eps
 
         inputs = Input(shape=(input_dim,))
         h = Dense(64, activation='relu')(inputs)
@@ -315,18 +326,13 @@ class UnsupervisedAnomalyDetector:
         h = Dense(32, activation='relu')(h)
         z_mean = Dense(latent_dim, name='z_mean')(h)
         z_log_var = Dense(latent_dim, name='z_log_var')(h)
-        z = Lambda(sampling, output_shape=(latent_dim,), name='z')([z_mean, z_log_var])
+        z = SamplingLayer(beta=beta, name='z')([z_mean, z_log_var])
 
         d = Dense(32, activation='relu')(z)
         d = Dense(64, activation='relu')(d)
         outputs = Dense(input_dim, activation='linear')(d)
 
         vae = Model(inputs, outputs, name='VAE')
-        # KL ıraksaması (regularizasyon)
-        kl_loss = -0.5 * tf.reduce_mean(
-            tf.reduce_sum(1 + z_log_var - tf.square(z_mean) - tf.exp(z_log_var), axis=1)
-        )
-        vae.add_loss(beta * kl_loss)
         vae.compile(optimizer=Adam(learning_rate=0.001), loss='mse')
 
         early_stop = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
