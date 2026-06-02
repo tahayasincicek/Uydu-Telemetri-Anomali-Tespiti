@@ -241,8 +241,9 @@ class SupervisedAnomalyDetector:
     def train_adaboost(self, X_train, y_train) -> AdaBoostClassifier:
         """AdaBoost sınıflandırıcısını eğitir."""
         print("⚡ AdaBoost eğitiliyor...")
+        # Not: scikit-learn 1.6+ sürümünde 'algorithm' parametresi kaldırıldı (yalnızca SAMME).
         model = AdaBoostClassifier(
-            n_estimators=300, learning_rate=0.5, algorithm='SAMME',
+            n_estimators=300, learning_rate=0.5,
             random_state=self.random_state
         )
         model.fit(X_train, y_train)
