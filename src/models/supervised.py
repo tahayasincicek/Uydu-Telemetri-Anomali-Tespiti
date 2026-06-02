@@ -261,8 +261,9 @@ class SupervisedAnomalyDetector:
     def train_logistic_regression(self, X_train, y_train) -> LogisticRegression:
         """Lojistik Regresyon (doğrusal) sınıflandırıcısını eğitir."""
         print("📉 Logistic Regression eğitiliyor...")
+        # Not: scikit-learn 1.8+ sürümünde LogisticRegression'da n_jobs etkisizdir (kaldırıldı).
         model = LogisticRegression(
-            max_iter=2000, class_weight='balanced', random_state=self.random_state, n_jobs=-1
+            max_iter=2000, class_weight='balanced', random_state=self.random_state
         )
         model.fit(X_train, y_train)
         self.models['LogisticRegression'] = model
