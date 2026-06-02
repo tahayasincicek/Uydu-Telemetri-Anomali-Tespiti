@@ -4,6 +4,8 @@
 pandas>=2.0.0
 numpy>=1.24.0
 scipy>=1.10.0
+pyarrow>=14.0.0       # parquet okuma/yazma motoru (read_parquet/to_parquet)
+fastparquet>=2024.2.0 # alternatif parquet motoru
 
 # ========================
 # Makine Öğrenmesi
