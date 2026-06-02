@@ -20,4 +20,11 @@ dependencies:
   - pip:
     - tensorflow>=2.14.0
     - xgboost>=2.0.0
-    - streamlit>=1.28.0
+    - lightgbm>=4.0.0
+    - catboost>=1.2.0
+    - dash>=2.10.0
+    - dash-bootstrap-components>=1.0.0
+    - dash-iconify>=0.1.0
+    - shap
+    - nbformat
+    - reportlab
