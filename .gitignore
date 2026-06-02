@@ -53,43 +53,43 @@ desktop.ini
 # ========================
 # Veri Dosyaları
 # ========================
-data/raw/*.csv
-data/raw/*.json
-data/raw/*.parquet
-data/raw/*.h5
-data/raw/*.hdf5
-data/raw/*.xlsx
-data/raw/*.zip
-data/raw/*.tar.gz
-data/raw/*.gz
-data/processed/*.csv
-data/processed/*.parquet
-data/processed/*.pkl
-data/features/*.csv
-data/features/*.parquet
-data/features/*.pkl
+# data/raw/*.csv
+# data/raw/*.json
+# data/raw/*.parquet
+# data/raw/*.h5
+# data/raw/*.hdf5
+# data/raw/*.xlsx
+# data/raw/*.zip
+# data/raw/*.tar.gz
+# data/raw/*.gz
+# data/processed/*.csv
+# data/processed/*.parquet
+# data/processed/*.pkl
+# data/features/*.csv
+# data/features/*.parquet
+# data/features/*.pkl
 
 # ========================
 # Eğitilmiş Modeller
 # ========================
-models/*.pkl
-models/*.h5
-models/*.hdf5
-models/*.pt
-models/*.pth
-models/*.onnx
-models/*.joblib
-models/*.sav
+# models/*.pkl
+# models/*.h5
+# models/*.hdf5
+# models/*.pt
+# models/*.pth
+# models/*.onnx
+# models/*.joblib
+# models/*.sav
 
 # ========================
 # Raporlar (büyük dosyalar)
 # ========================
-reports/figures/*.png
-reports/figures/*.jpg
-reports/figures/*.svg
-reports/figures/*.pdf
-reports/metrics/*.json
-reports/metrics/*.csv
+# reports/figures/*.png
+# reports/figures/*.jpg
+# reports/figures/*.svg
+# reports/figures/*.pdf
+# reports/metrics/*.json
+# reports/metrics/*.csv
 
 # ========================
 # Log Dosyaları

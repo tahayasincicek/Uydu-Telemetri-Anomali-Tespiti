@@ -15,7 +15,7 @@ Bu proje, uydu telemetri sinyallerindeki anormallikleri tespit etmek için **sup
 - Supervised modeller (Random Forest, XGBoost, SVM, MLP) ile anomali sınıflandırma
 - Unsupervised modeller (Isolation Forest, One-Class SVM, Autoencoder, DBSCAN) ile anomali tespiti
 - Model performanslarının karşılaştırılması ve en iyi modelin seçilmesi
-- Streamlit tabanlı interaktif dashboard ile sonuçların sunulması
+- Dash (Plotly) tabanlı interaktif dashboard ile sonuçların sunulması
 
 ### 📊 Kullanılan Veri Seti
 
@@ -37,7 +37,9 @@ Uydu-Telemetri-Anomali-Tespiti/
 │   ├── 03_feature_engineering.ipynb  # Özellik mühendisliği
 │   ├── 04_model_supervised.ipynb     # Denetimli öğrenme modelleri
 │   ├── 05_model_unsupervised.ipynb   # Denetimsiz öğrenme modelleri
-│   └── 06_model_karsilastirma.ipynb  # Model karşılaştırma ve değerlendirme
+│   ├── 06_model_karsilastirma.ipynb  # Model karşılaştırma ve değerlendirme
+│   ├── 07_shap_analizi.ipynb         # SHAP ile model yorumlanabilirlik analizi
+│   └── 08_ablation_study.ipynb       # Ablasyon analizi
 ├── src/
 │   ├── __init__.py
 │   ├── data_loader.py        # Veri yükleme ve bağlantı modülü
@@ -53,10 +55,11 @@ Uydu-Telemetri-Anomali-Tespiti/
 ├── reports/
 │   ├── figures/              # Grafik ve görselleştirmeler
 │   └── metrics/              # Performans metrikleri
-├── app/                      # Streamlit arayüzü
-│   ├── main.py               # Ana uygulama dosyası
-│   ├── components/           # UI bileşenleri
-│   └── assets/               # Statik dosyalar (CSS, görseller)
+├── app/                      # Dash arayüzü
+│   ├── app.py                # Ana uygulama dosyası
+│   ├── ablation_page.py      # Ablasyon analiz sayfası
+│   ├── utils/                # UI yardımcı bileşenleri
+│   └── assets/               # Statik dosyalar (CSS, vb.)
 ├── tests/                    # Birim testleri
 ├── requirements.txt          # Python bağımlılıkları
 ├── environment.yml           # Conda ortam dosyası
@@ -124,11 +127,13 @@ jupyter notebook notebooks/
 | `04_model_supervised.ipynb` | Random Forest, XGBoost, SVM, MLP eğitimi |
 | `05_model_unsupervised.ipynb` | Isolation Forest, One-Class SVM, Autoencoder |
 | `06_model_karsilastirma.ipynb` | Tüm modellerin karşılaştırılması ve raporlanması |
+| `07_shap_analizi.ipynb` | SHAP ile model yorumlanabilirliği ve özellik önemi |
+| `08_ablation_study.ipynb` | Modeller üzerinde ablasyon (ablation) analizi |
 
-### Streamlit Dashboard
+### Dash Dashboard (Arayüz)
 
 ```bash
-streamlit run app/main.py
+python app/app.py
 ```
 
 ### Komut Satırından Çalıştırma
@@ -168,6 +173,9 @@ predictions = detector.predict(test_features)
 | **XGBoost** | Gradient boosting tabanlı güçlü sınıflandırıcı |
 | **SVM** | Destek vektör makineleri ile sınıflandırma |
 | **MLP** | Çok katmanlı algılayıcı sinir ağı |
+| **LightGBM** | Hızlı ve performanslı gradient boosting |
+| **CatBoost** | Kategorik özelliklerle başarılı gradient boosting |
+| **Stacking Ensemble** | Farklı modelleri birleştiren meta-öğrenme |
 
 ### Unsupervised (Denetimsiz) Modeller
 | Model | Açıklama |
@@ -176,6 +184,7 @@ predictions = detector.predict(test_features)
 | **One-Class SVM** | Tek sınıf SVM ile anomali tespiti |
 | **Autoencoder** | Derin öğrenme tabanlı yeniden yapılandırma hatası |
 | **DBSCAN** | Yoğunluk tabanlı kümeleme ile anomali tespiti |
+| **KMeans** | Uzaklık tabanlı kümeleme |
 
 ---
 
@@ -199,7 +208,7 @@ predictions = detector.predict(test_features)
 | **Makine Öğrenmesi** | scikit-learn, imbalanced-learn |
 | **Derin Öğrenme** | TensorFlow, Keras |
 | **Görselleştirme** | matplotlib, seaborn, plotly |
-| **Dashboard** | Streamlit |
+| **Dashboard** | Dash, Plotly |
 | **Model Saklama** | joblib |
 
 ---
@@ -220,11 +229,11 @@ Bu proje MIT Lisansı altında lisanslanmıştır. Detaylar için [LICENSE](LICE
 
 ---
 
-## 👤 Geliştirici
+## 👥 Geliştiriciler
 
-**Taha Yasin Çiçek**
-
-- GitHub: [@tahayasincicek](https://github.com/tahayasincicek)
+- **Taha Yasin Çiçek** ([@tahayasincicek](https://github.com/tahayasincicek))
+- **Furkan Öztürk** ([@furkanozturk06](https://github.com/furkanozturk06))
+- **Emirhan Keskin** ([@keskinemirhan](https://github.com/keskinemirhan))
 
 ---
 
