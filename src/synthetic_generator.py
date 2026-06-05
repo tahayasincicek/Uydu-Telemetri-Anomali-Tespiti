@@ -248,6 +248,105 @@ class SyntheticTelemetryGenerator:
         return injectors[anomaly_type](signal, profile), anomaly_type
 
     # ───────────────────────────────────────────────
+    #  Onboard artefakt enjeksiyonu
+    # ───────────────────────────────────────────────
+
+    def _apply_onboard_artifacts(self, signal: np.ndarray, timestamps: List[str],
+                                 sampling: int, profile: dict,
+                                 is_anomaly: bool) -> Tuple[np.ndarray, List[str]]:
+        """Gercek uydu operasyonunda olusan sinyal artefaktlarini uygula.
+
+        Bu artefaktlar anomali DEGILDIR — normal operasyon sirasinda da olusur.
+        Anomali segmentlerinde daha yogun gorulur (gercek OPS-SAT verisinde oldugu gibi).
+
+        Artefaktlar:
+          1. Mikro-bosluk (2x expected interval): Tek okuma kaybi
+          2. Sifir-zaman farki: Duplike timestamp
+          3. Sifir-deger noktasi: Sensor sinyal kaybi
+          4. Sabit-deger tekrari: Last-value-hold (sensor donmasi)
+          5. Buyuk bosluk (nadir): Ciddi iletisim kesintisi
+        """
+        s = signal.copy()
+        n = len(s)
+        expected_sec = float(sampling)
+        fmt = "%Y-%m-%dT%H:%M:%S.000Z"
+
+        # ── Zaman damgasi artefaktlari: satirdan yeniden insa ──
+        # Gercek OPS-SAT oranlari:
+        #   Normal:  %22 bosluklu, %21 sifir-td
+        #   Anomali: %51 bosluklu, %42 sifir-td
+        apply_micro_gaps = False
+        apply_zero_td = False
+
+        if is_anomaly:
+            apply_micro_gaps = self.rng.random() < 0.51
+            apply_zero_td = self.rng.random() < 0.42
+        else:
+            apply_micro_gaps = self.rng.random() < 0.22
+            apply_zero_td = self.rng.random() < 0.21
+
+        # Mikro-bosluk ve sifir-td oranlari (segment ici)
+        micro_gap_rate = self.rng.uniform(0.05, 0.25) if apply_micro_gaps else 0.0
+        zero_td_rate = self.rng.uniform(0.01, 0.08) if apply_zero_td else 0.0
+
+        # Buyuk bosluk pozisyonu (sadece anomali, %6 olasilik)
+        big_gap_pos = -1
+        big_gap_sec = 0.0
+        if is_anomaly and self.rng.random() < 0.06:
+            big_gap_pos = int(self.rng.integers(n // 4, max(n // 4 + 1, 3 * n // 4)))
+            big_gap_sec = float(self.rng.choice(
+                [self.rng.uniform(10, 30), self.rng.uniform(30, 130)],
+                p=[0.7, 0.3]))
+
+        # Timestamp dizisini yeniden olustur
+        new_ts = [timestamps[0]]
+        for i in range(1, n):
+            prev_t = datetime.strptime(new_ts[-1], fmt)
+            r = self.rng.random()
+
+            if i == big_gap_pos:
+                # Buyuk bosluk
+                step = expected_sec + big_gap_sec
+            elif r < zero_td_rate:
+                # Duplike timestamp (td = 0)
+                step = 0.0
+            elif r < zero_td_rate + micro_gap_rate:
+                # Mikro-bosluk (td = 2x beklenen, tek okuma kaybi)
+                step = expected_sec * 2.0
+            else:
+                # Normal aralik
+                step = expected_sec
+
+            new_ts.append((prev_t + timedelta(seconds=step)).strftime(fmt))
+
+        # ── Sinyal degeri artefaktlari ──
+
+        # 3. Sifir-deger noktasi
+        if profile["type"] == "magnetometer":
+            # Manyetometre: arada sifir okumalar (%15 olasilik, anomalide %22)
+            zero_prob = 0.22 if is_anomaly else 0.15
+            if self.rng.random() < zero_prob:
+                n_zeros = self.rng.integers(1, max(2, n // 8))
+                zero_pos = self.rng.choice(n, size=min(n_zeros, n), replace=False)
+                s[zero_pos] = 0.0
+        else:
+            # Fotodiyot: sifir bloklari cok yaygin (sensor golgede)
+            if self.rng.random() < 0.40:
+                block_start = self.rng.integers(0, max(1, n // 2))
+                block_len = self.rng.integers(n // 5, max(n // 5 + 1, n // 2))
+                block_end = min(block_start + block_len, n)
+                s[block_start:block_end] = 0.0
+
+        # 4. Sabit-deger tekrari (last-value-hold, sensor donmasi)
+        stuck_prob = 0.18 if is_anomaly else 0.10
+        if self.rng.random() < stuck_prob:
+            run_start = self.rng.integers(0, max(1, n - 5))
+            run_len = self.rng.integers(5, min(35, max(6, n - run_start)))
+            s[run_start:run_start + run_len] = s[run_start]
+
+        return s, new_ts
+
+    # ───────────────────────────────────────────────
     #  Zaman damgasi ureticisi
     # ───────────────────────────────────────────────
 
@@ -255,7 +354,7 @@ class SyntheticTelemetryGenerator:
                              inject_gap: bool = False) -> List[str]:
         """ISO formatinda zaman damgalari uret.
 
-        inject_gap=True ise rastgele bosluklar eklenir.
+        inject_gap=True ise rastgele anomali bosluklari eklenir.
         """
         # sampling = zaman araligi (saniye), orn: 1 = 1Hz, 5 = her 5 saniyede bir
         interval = float(sampling)
@@ -266,7 +365,7 @@ class SyntheticTelemetryGenerator:
             times.append(current.strftime("%Y-%m-%dT%H:%M:%S.000Z"))
             step = interval
             if inject_gap and self.rng.random() < 0.08:
-                # %8 olasilikla bosluk (5-200 saniye)
+                # Anomali kaynaklı bosluk (5-200 saniye)
                 step = self.rng.uniform(5, 200)
             current += timedelta(seconds=step)
 
@@ -350,6 +449,10 @@ class SyntheticTelemetryGenerator:
                 # Zaman damgalari
                 timestamps = self._generate_timestamps(seg_len, sampling,
                                                        inject_gap=inject_gap)
+
+                # Onboard artefaktlar (anomali olmayan operasyonel bozulmalar)
+                signal, timestamps = self._apply_onboard_artifacts(
+                    signal, timestamps, sampling, profile, bool(is_anomaly))
 
                 # Label
                 label = "anomaly" if is_anomaly else "nominal"
