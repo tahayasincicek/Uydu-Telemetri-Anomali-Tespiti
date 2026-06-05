@@ -132,6 +132,7 @@ sidebar = html.Div(className="sidebar", children=[
         nav_item("mdi:brain", "SHAP Analiz", "shap"),
         nav_item("mdi:gauge", "Model Performans", "performance"),
         nav_item("mdi:test-tube", "Ablasyon Analizi", "ablation"),
+        nav_item("mdi:lightning-bolt", "Guc Tuketimi", "power"),
     ]),
     html.Div(className="sidebar-footer", children=[
         html.Div(className="status-indicator", children=[
@@ -277,13 +278,16 @@ def page_analysis():
     sup = [n for n in ["RandomForest","XGBoost","SVM","MLP", "LightGBM", "CatBoost", "Stacking Ensemble",
                        "ExtraTrees","GradientBoosting","HistGradientBoosting","AdaBoost","KNN",
                        "LogisticRegression","DecisionTree","NaiveBayes","Voting Ensemble",
-                       "LDA","QDA","Bagging","Ridge","SGD",
+                       "LDA","QDA","Bagging","Ridge","SGD","LSVC","XGBOD",
                        "LSTM","BiLSTM","GRU","BiGRU","CNN1D","CNN_LSTM","CNN_BiLSTM","CNN_GRU",
                        "Transformer","TCN","Attention_BiLSTM","FCN","ResNet1D","InceptionTime","LSTM_FCN"]
            if n in MODELS]
     unsup = [n for n in ["IsolationForest","OneClassSVM","KMeans","LOF","Autoencoder",
                          "GMM","EllipticEnvelope","PCA","DBSCAN","VAE",
-                         "ECOD","COPOD","HBOS","CBLOF"] if n in MODELS]
+                         "ECOD","COPOD","HBOS","CBLOF",
+                         "ABOD","COF","SOD","SOS","LODA","INNE","LMDD",
+                         "SO_GAAL","MO_GAAL","DeepSVDD","LUNAR","DIF",
+                         "AnoGAN","ALAD"] if n in MODELS]
     def model_option(name):
         f1 = ALL_METRICS.get(name, {}).get("F1", 0)
         return html.Span([name, html.Span(f"F1: {f1:.3f}", className="model-f1-badge")])
@@ -542,8 +546,10 @@ def page_detail():
     return html.Div()
 
 from ablation_page import get_ablation_layout, register_ablation_callbacks
+from power_page import get_power_layout, register_power_callbacks
 PAGES = {"dashboard": page_dashboard, "upload": page_upload, "analysis": page_analysis,
-         "results": page_results, "shap": page_shap, "performance": page_performance, "live": page_live, "detail": page_detail, "ablation": get_ablation_layout}
+         "results": page_results, "shap": page_shap, "performance": page_performance, "live": page_live, "detail": page_detail, "ablation": get_ablation_layout,
+         "power": lambda: get_power_layout(ALL_METRICS)}
 
 # ── Callbacks ──
 @callback(Output("current-page", "data"),
@@ -1687,6 +1693,7 @@ def generate_pdf_report(n, selected):
     )
 
 register_ablation_callbacks(app)
+register_power_callbacks(app, ALL_METRICS)
 
 if __name__ == "__main__":
     app.run(debug=False, host="0.0.0.0", port=8050)

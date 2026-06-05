@@ -1,0 +1,387 @@
+"""
+Guc Tuketimi Simulasyonu Sayfasi
+=================================
+64 anomali tespit algoritmasinin tahmini hesaplama maliyeti,
+egitim suresi, bellek kullanimi ve enerji tuketimini simule eder.
+"""
+
+import numpy as np
+import pandas as pd
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+from dash import html, dcc, callback, Input, Output, no_update
+import dash_bootstrap_components as dbc
+from dash_iconify import DashIconify
+
+PLT_LAYOUT = dict(
+    template="plotly_dark", paper_bgcolor="#080C14", plot_bgcolor="#080C14",
+    font=dict(family="IBM Plex Sans", color="#94A3B8"),
+    margin=dict(l=40, r=20, t=40, b=30),
+)
+
+def _icon(name, size=18, color=None):
+    return DashIconify(icon=name, width=size, color=color or "#64748B")
+
+def _metric_card(ic, value, label, color="blue", footer=None):
+    children = [
+        html.Div(_icon(ic, 20), className="metric-icon"),
+        html.Div(str(value), className="metric-value"),
+        html.Div(label, className="metric-label"),
+    ]
+    if footer:
+        children.append(html.Div(footer, className="metric-card-footer"))
+    return html.Div(className=f"metric-card {color}", children=children)
+
+
+# ── 10 000 orneklik referans veri seti icin guc profilleri ──────────────
+# cpu_watts : Egitim sirasinda ortalama CPU gucu (Watt)
+# train_sec : Egitim suresi (saniye, 10K ornek)
+# infer_ms  : Tek ornek icin cikarim suresi (milisaniye)
+# memory_mb : Zirve bellek kullanimi (MB)
+POWER_PROFILES = {
+    # ── Supervised  Basit ML ──
+    "LogisticRegression": {"cpu_watts": 8,  "train_sec": 0.5,  "infer_ms": 0.02, "memory_mb": 15,  "category": "Gozetimli", "complexity": "Dusuk"},
+    "Ridge":              {"cpu_watts": 6,  "train_sec": 0.3,  "infer_ms": 0.01, "memory_mb": 10,  "category": "Gozetimli", "complexity": "Dusuk"},
+    "SGD":                {"cpu_watts": 7,  "train_sec": 0.4,  "infer_ms": 0.01, "memory_mb": 12,  "category": "Gozetimli", "complexity": "Dusuk"},
+    "NaiveBayes":         {"cpu_watts": 5,  "train_sec": 0.2,  "infer_ms": 0.01, "memory_mb": 8,   "category": "Gozetimli", "complexity": "Dusuk"},
+    "LDA":                {"cpu_watts": 6,  "train_sec": 0.3,  "infer_ms": 0.01, "memory_mb": 12,  "category": "Gozetimli", "complexity": "Dusuk"},
+    "QDA":                {"cpu_watts": 7,  "train_sec": 0.4,  "infer_ms": 0.02, "memory_mb": 15,  "category": "Gozetimli", "complexity": "Dusuk"},
+    "DecisionTree":       {"cpu_watts": 8,  "train_sec": 0.8,  "infer_ms": 0.01, "memory_mb": 20,  "category": "Gozetimli", "complexity": "Dusuk"},
+    "KNN":                {"cpu_watts": 10, "train_sec": 0.1,  "infer_ms": 2.5,  "memory_mb": 150, "category": "Gozetimli", "complexity": "Orta"},
+    "LSVC":               {"cpu_watts": 12, "train_sec": 1.5,  "infer_ms": 0.02, "memory_mb": 25,  "category": "Gozetimli", "complexity": "Orta"},
+    # ── Supervised  Topluluk ──
+    "RandomForest":        {"cpu_watts": 25, "train_sec": 8,   "infer_ms": 0.5,  "memory_mb": 200, "category": "Gozetimli", "complexity": "Orta"},
+    "ExtraTrees":          {"cpu_watts": 22, "train_sec": 6,   "infer_ms": 0.4,  "memory_mb": 180, "category": "Gozetimli", "complexity": "Orta"},
+    "GradientBoosting":    {"cpu_watts": 30, "train_sec": 25,  "infer_ms": 0.3,  "memory_mb": 120, "category": "Gozetimli", "complexity": "Orta"},
+    "HistGradientBoosting":{"cpu_watts": 28, "train_sec": 5,   "infer_ms": 0.2,  "memory_mb": 100, "category": "Gozetimli", "complexity": "Orta"},
+    "AdaBoost":            {"cpu_watts": 20, "train_sec": 10,  "infer_ms": 0.3,  "memory_mb": 80,  "category": "Gozetimli", "complexity": "Orta"},
+    "Bagging":             {"cpu_watts": 22, "train_sec": 7,   "infer_ms": 0.4,  "memory_mb": 170, "category": "Gozetimli", "complexity": "Orta"},
+    "Voting Ensemble":     {"cpu_watts": 35, "train_sec": 15,  "infer_ms": 0.8,  "memory_mb": 250, "category": "Gozetimli", "complexity": "Yuksek"},
+    "XGBoost":             {"cpu_watts": 35, "train_sec": 12,  "infer_ms": 0.15, "memory_mb": 150, "category": "Gozetimli", "complexity": "Orta"},
+    "XGBOD":               {"cpu_watts": 40, "train_sec": 30,  "infer_ms": 0.5,  "memory_mb": 300, "category": "Gozetimli", "complexity": "Yuksek"},
+    "SVM":                 {"cpu_watts": 30, "train_sec": 20,  "infer_ms": 1.0,  "memory_mb": 200, "category": "Gozetimli", "complexity": "Yuksek"},
+    # ── Supervised  Derin Ogrenme ──
+    "MLP":              {"cpu_watts": 45, "train_sec": 60,  "infer_ms": 0.5,  "memory_mb": 300, "category": "Gozetimli", "complexity": "Yuksek"},
+    "LSTM":             {"cpu_watts": 65, "train_sec": 180, "infer_ms": 2.0,  "memory_mb": 500, "category": "Gozetimli", "complexity": "Cok Yuksek"},
+    "BiLSTM":           {"cpu_watts": 75, "train_sec": 250, "infer_ms": 3.5,  "memory_mb": 650, "category": "Gozetimli", "complexity": "Cok Yuksek"},
+    "GRU":              {"cpu_watts": 55, "train_sec": 150, "infer_ms": 1.8,  "memory_mb": 420, "category": "Gozetimli", "complexity": "Cok Yuksek"},
+    "BiGRU":            {"cpu_watts": 65, "train_sec": 200, "infer_ms": 3.0,  "memory_mb": 550, "category": "Gozetimli", "complexity": "Cok Yuksek"},
+    "CNN1D":            {"cpu_watts": 50, "train_sec": 90,  "infer_ms": 1.0,  "memory_mb": 350, "category": "Gozetimli", "complexity": "Yuksek"},
+    "CNN_LSTM":         {"cpu_watts": 70, "train_sec": 220, "infer_ms": 3.0,  "memory_mb": 600, "category": "Gozetimli", "complexity": "Cok Yuksek"},
+    "CNN_BiLSTM":       {"cpu_watts": 80, "train_sec": 280, "infer_ms": 4.0,  "memory_mb": 700, "category": "Gozetimli", "complexity": "Cok Yuksek"},
+    "CNN_GRU":          {"cpu_watts": 65, "train_sec": 190, "infer_ms": 2.5,  "memory_mb": 520, "category": "Gozetimli", "complexity": "Cok Yuksek"},
+    "Transformer":      {"cpu_watts": 85, "train_sec": 300, "infer_ms": 3.5,  "memory_mb": 800, "category": "Gozetimli", "complexity": "Cok Yuksek"},
+    "TCN":              {"cpu_watts": 60, "train_sec": 160, "infer_ms": 2.0,  "memory_mb": 450, "category": "Gozetimli", "complexity": "Cok Yuksek"},
+    "Attention_BiLSTM": {"cpu_watts": 80, "train_sec": 290, "infer_ms": 4.0,  "memory_mb": 750, "category": "Gozetimli", "complexity": "Cok Yuksek"},
+    "FCN":              {"cpu_watts": 55, "train_sec": 100, "infer_ms": 1.2,  "memory_mb": 380, "category": "Gozetimli", "complexity": "Yuksek"},
+    "ResNet1D":         {"cpu_watts": 70, "train_sec": 200, "infer_ms": 2.5,  "memory_mb": 600, "category": "Gozetimli", "complexity": "Cok Yuksek"},
+    "InceptionTime":    {"cpu_watts": 75, "train_sec": 250, "infer_ms": 3.0,  "memory_mb": 700, "category": "Gozetimli", "complexity": "Cok Yuksek"},
+    "LSTM_FCN":         {"cpu_watts": 70, "train_sec": 210, "infer_ms": 2.8,  "memory_mb": 580, "category": "Gozetimli", "complexity": "Cok Yuksek"},
+    # ── Unsupervised  sklearn ──
+    "IsolationForest":  {"cpu_watts": 15, "train_sec": 3,   "infer_ms": 0.3,  "memory_mb": 80,  "category": "Govetimsiz", "complexity": "Dusuk"},
+    "LOF":              {"cpu_watts": 12, "train_sec": 2,   "infer_ms": 1.5,  "memory_mb": 100, "category": "Govetimsiz", "complexity": "Dusuk"},
+    "OneClassSVM":      {"cpu_watts": 25, "train_sec": 15,  "infer_ms": 0.8,  "memory_mb": 150, "category": "Govetimsiz", "complexity": "Orta"},
+    "KMeans":           {"cpu_watts": 10, "train_sec": 2,   "infer_ms": 0.1,  "memory_mb": 50,  "category": "Govetimsiz", "complexity": "Dusuk"},
+    "GMM":              {"cpu_watts": 15, "train_sec": 5,   "infer_ms": 0.3,  "memory_mb": 80,  "category": "Govetimsiz", "complexity": "Orta"},
+    "EllipticEnvelope": {"cpu_watts": 18, "train_sec": 8,   "infer_ms": 0.2,  "memory_mb": 90,  "category": "Govetimsiz", "complexity": "Orta"},
+    "PCA":              {"cpu_watts": 8,  "train_sec": 1,   "infer_ms": 0.05, "memory_mb": 30,  "category": "Govetimsiz", "complexity": "Dusuk"},
+    "DBSCAN":           {"cpu_watts": 20, "train_sec": 10,  "infer_ms": 0.5,  "memory_mb": 200, "category": "Govetimsiz", "complexity": "Orta"},
+    # ── Unsupervised  Derin ──
+    "Autoencoder":      {"cpu_watts": 40, "train_sec": 80,  "infer_ms": 0.4,  "memory_mb": 250, "category": "Govetimsiz", "complexity": "Yuksek"},
+    "LSTM_Autoencoder": {"cpu_watts": 60, "train_sec": 150, "infer_ms": 2.0,  "memory_mb": 400, "category": "Govetimsiz", "complexity": "Cok Yuksek"},
+    "VAE":              {"cpu_watts": 45, "train_sec": 90,  "infer_ms": 0.5,  "memory_mb": 280, "category": "Govetimsiz", "complexity": "Yuksek"},
+    "AnoGAN":           {"cpu_watts": 70, "train_sec": 400, "infer_ms": 1.5,  "memory_mb": 500, "category": "Govetimsiz", "complexity": "Cok Yuksek"},
+    "ALAD":             {"cpu_watts": 75, "train_sec": 350, "infer_ms": 1.2,  "memory_mb": 480, "category": "Govetimsiz", "complexity": "Cok Yuksek"},
+    # ── Unsupervised  PyOD Basit ──
+    "ECOD":  {"cpu_watts": 5,  "train_sec": 1,   "infer_ms": 0.05, "memory_mb": 20,  "category": "Govetimsiz", "complexity": "Dusuk"},
+    "COPOD": {"cpu_watts": 6,  "train_sec": 1.5, "infer_ms": 0.08, "memory_mb": 25,  "category": "Govetimsiz", "complexity": "Dusuk"},
+    "HBOS":  {"cpu_watts": 4,  "train_sec": 0.5, "infer_ms": 0.03, "memory_mb": 15,  "category": "Govetimsiz", "complexity": "Dusuk"},
+    "CBLOF": {"cpu_watts": 10, "train_sec": 3,   "infer_ms": 0.2,  "memory_mb": 60,  "category": "Govetimsiz", "complexity": "Orta"},
+    "ABOD":  {"cpu_watts": 18, "train_sec": 25,  "infer_ms": 5.0,  "memory_mb": 200, "category": "Govetimsiz", "complexity": "Yuksek"},
+    "COF":   {"cpu_watts": 15, "train_sec": 20,  "infer_ms": 3.0,  "memory_mb": 180, "category": "Govetimsiz", "complexity": "Orta"},
+    "SOD":   {"cpu_watts": 14, "train_sec": 15,  "infer_ms": 2.0,  "memory_mb": 150, "category": "Govetimsiz", "complexity": "Orta"},
+    "SOS":   {"cpu_watts": 12, "train_sec": 10,  "infer_ms": 1.5,  "memory_mb": 120, "category": "Govetimsiz", "complexity": "Orta"},
+    "LODA":  {"cpu_watts": 5,  "train_sec": 1,   "infer_ms": 0.05, "memory_mb": 20,  "category": "Govetimsiz", "complexity": "Dusuk"},
+    "INNE":  {"cpu_watts": 12, "train_sec": 5,   "infer_ms": 0.8,  "memory_mb": 80,  "category": "Govetimsiz", "complexity": "Orta"},
+    "LMDD":  {"cpu_watts": 10, "train_sec": 8,   "infer_ms": 0.5,  "memory_mb": 60,  "category": "Govetimsiz", "complexity": "Orta"},
+    "SO_GAAL":  {"cpu_watts": 50, "train_sec": 200, "infer_ms": 1.0, "memory_mb": 350, "category": "Govetimsiz", "complexity": "Cok Yuksek"},
+    "MO_GAAL":  {"cpu_watts": 55, "train_sec": 250, "infer_ms": 1.2, "memory_mb": 400, "category": "Govetimsiz", "complexity": "Cok Yuksek"},
+    "DeepSVDD": {"cpu_watts": 45, "train_sec": 120, "infer_ms": 0.8, "memory_mb": 300, "category": "Govetimsiz", "complexity": "Yuksek"},
+    "LUNAR":    {"cpu_watts": 50, "train_sec": 180, "infer_ms": 1.5, "memory_mb": 400, "category": "Govetimsiz", "complexity": "Cok Yuksek"},
+    "DIF":      {"cpu_watts": 40, "train_sec": 100, "infer_ms": 0.8, "memory_mb": 250, "category": "Govetimsiz", "complexity": "Yuksek"},
+}
+
+COMPLEXITY_COLORS = {
+    "Dusuk": "#10B981",
+    "Orta": "#F59E0B",
+    "Yuksek": "#EF4444",
+    "Cok Yuksek": "#DC2626",
+}
+CATEGORY_COLORS = {"Gozetimli": "#3B82F6", "Govetimsiz": "#8B5CF6"}
+
+# CO2 emission factor (g CO2 per kWh, world average)
+CO2_FACTOR = 400
+
+
+def _build_df(dataset_size: int = 10000):
+    """Profil verisinden olcekli DataFrame olustur."""
+    scale = dataset_size / 10000
+    rows = []
+    for name, p in POWER_PROFILES.items():
+        t = p["train_sec"] * scale
+        energy_wh = p["cpu_watts"] * t / 3600
+        co2_mg = energy_wh * CO2_FACTOR  # miligram degil, miliWh * factor -> mg
+        rows.append({
+            "Model": name,
+            "Kategori": p["category"],
+            "Karmasiklik": p["complexity"],
+            "CPU (W)": p["cpu_watts"],
+            "Egitim (s)": round(t, 2),
+            "Cikarim (ms)": p["infer_ms"],
+            "Bellek (MB)": p["memory_mb"],
+            "Enerji (Wh)": round(energy_wh, 4),
+            "CO2 (g)": round(energy_wh / 1000 * CO2_FACTOR, 4),
+        })
+    return pd.DataFrame(rows)
+
+
+# ═══════════════════════════════════════════════════════════════
+#  Layout
+# ═══════════════════════════════════════════════════════════════
+def get_power_layout(ALL_METRICS=None):
+    if ALL_METRICS is None:
+        ALL_METRICS = {}
+
+    return html.Div([
+        html.Div(className="page-header", children=[
+            html.Div("Guc Tuketimi Simulasyonu", className="page-title"),
+            html.Div("Algoritmalarin hesaplama maliyeti ve enerji analizi", className="page-subtitle"),
+        ]),
+
+        # ── Veri seti boyutu slider ──
+        html.Div(className="panel mb-4", children=[
+            html.Div(className="panel-title", children=[
+                _icon("mdi:database-cog-outline", 16), " Veri Seti Boyutu (ornek sayisi)"]),
+            dcc.Slider(
+                id="power-dataset-slider",
+                min=1000, max=100000, step=1000, value=10000,
+                marks={1000: "1K", 10000: "10K", 25000: "25K", 50000: "50K", 100000: "100K"},
+                tooltip={"placement": "bottom", "always_visible": True},
+            ),
+        ]),
+
+        # ── Ozet kartlar ──
+        html.Div(id="power-summary-cards"),
+
+        # ── Grafikler ──
+        html.Div(id="power-charts"),
+
+        # ── Tablo ──
+        html.Div(id="power-table"),
+    ])
+
+
+# ═══════════════════════════════════════════════════════════════
+#  Callbacks
+# ═══════════════════════════════════════════════════════════════
+def register_power_callbacks(app, ALL_METRICS=None):
+    if ALL_METRICS is None:
+        ALL_METRICS = {}
+
+    @app.callback(
+        Output("power-summary-cards", "children"),
+        Output("power-charts", "children"),
+        Output("power-table", "children"),
+        Input("power-dataset-slider", "value"),
+    )
+    def update_power_page(dataset_size):
+        if dataset_size is None:
+            dataset_size = 10000
+
+        df = _build_df(dataset_size)
+        total_energy = df["Enerji (Wh)"].sum()
+        total_co2 = df["CO2 (g)"].sum()
+        most_efficient = df.loc[df["Enerji (Wh)"].idxmin(), "Model"]
+        most_costly = df.loc[df["Enerji (Wh)"].idxmax(), "Model"]
+        eff_val = df["Enerji (Wh)"].min()
+        cost_val = df["Enerji (Wh)"].max()
+
+        # ── 1) Ozet kartlar ──
+        cards = dbc.Row([
+            dbc.Col(_metric_card("mdi:lightning-bolt", f"{total_energy:.2f} Wh",
+                                 "Toplam Enerji", "cyan",
+                                 f"64 model toplami"), md=3),
+            dbc.Col(_metric_card("mdi:leaf", f"{total_co2:.3f} g",
+                                 "CO2 Emisyonu", "green",
+                                 "Tahmini karbon ayak izi"), md=3),
+            dbc.Col(_metric_card("mdi:speedometer-slow", most_efficient,
+                                 "En Verimli", "green",
+                                 f"{eff_val:.4f} Wh"), md=3),
+            dbc.Col(_metric_card("mdi:speedometer", most_costly,
+                                 "En Maliyetli", "red",
+                                 f"{cost_val:.4f} Wh"), md=3),
+        ], className="mb-4 g-3")
+
+        # ── 2) Enerji bar chart (yatay, sirali) ──
+        df_sorted = df.sort_values("Enerji (Wh)", ascending=True)
+        bar_colors = [COMPLEXITY_COLORS.get(c, "#64748B") for c in df_sorted["Karmasiklik"]]
+
+        fig_energy = go.Figure(go.Bar(
+            y=df_sorted["Model"], x=df_sorted["Enerji (Wh)"],
+            orientation="h", marker_color=bar_colors,
+            text=[f"{v:.4f}" for v in df_sorted["Enerji (Wh)"]],
+            textposition="outside", textfont=dict(size=9, color="#94A3B8"),
+        ))
+        fig_energy.update_layout(
+            **PLT_LAYOUT, height=1200,
+            title=f"Egitim Enerji Tuketimi (Wh) - {dataset_size:,} ornek",
+            xaxis_title="Enerji (Wh)",
+        )
+
+        # ── 3) Guc vs F1 scatter (sadece metrik varsa) ──
+        fig_scatter = go.Figure()
+        if ALL_METRICS:
+            scatter_rows = []
+            for _, row in df.iterrows():
+                m = ALL_METRICS.get(row["Model"], {})
+                f1 = m.get("F1", m.get("F1_Score", None))
+                if f1 is not None:
+                    scatter_rows.append({
+                        "Model": row["Model"], "Enerji (Wh)": row["Enerji (Wh)"],
+                        "F1": f1, "Kategori": row["Kategori"],
+                    })
+            if scatter_rows:
+                sdf = pd.DataFrame(scatter_rows)
+                for cat, color in CATEGORY_COLORS.items():
+                    sub = sdf[sdf["Kategori"] == cat]
+                    if sub.empty:
+                        continue
+                    fig_scatter.add_trace(go.Scatter(
+                        x=sub["Enerji (Wh)"], y=sub["F1"],
+                        mode="markers+text", text=sub["Model"],
+                        textposition="top center", textfont=dict(size=9, color="#94A3B8"),
+                        marker=dict(size=10, color=color, opacity=0.85),
+                        name=cat,
+                    ))
+        fig_scatter.update_layout(
+            **PLT_LAYOUT, height=500,
+            title="Enerji vs F1 Skoru (Verimlilik Haritasi)",
+            xaxis_title="Enerji (Wh)", yaxis_title="F1 Skoru",
+            xaxis_type="log",
+        )
+
+        # ── 4) Kategori bazli pasta grafik ──
+        cat_energy = df.groupby("Kategori")["Enerji (Wh)"].sum().reset_index()
+        fig_pie = go.Figure(go.Pie(
+            labels=cat_energy["Kategori"], values=cat_energy["Enerji (Wh)"],
+            marker=dict(colors=["#3B82F6", "#8B5CF6"]),
+            textinfo="label+percent", textfont=dict(size=12),
+            hole=0.45,
+        ))
+        fig_pie.update_layout(**PLT_LAYOUT, height=350, title="Kategori Bazli Enerji Dagilimi",
+                              showlegend=False)
+
+        # ── 5) Karmasiklik bazli bar chart ──
+        comp_energy = df.groupby("Karmasiklik")["Enerji (Wh)"].mean().reset_index()
+        comp_order = ["Dusuk", "Orta", "Yuksek", "Cok Yuksek"]
+        comp_energy["_order"] = comp_energy["Karmasiklik"].map({v: i for i, v in enumerate(comp_order)})
+        comp_energy = comp_energy.sort_values("_order")
+        fig_comp = go.Figure(go.Bar(
+            x=comp_energy["Karmasiklik"], y=comp_energy["Enerji (Wh)"],
+            marker_color=[COMPLEXITY_COLORS.get(c, "#64748B") for c in comp_energy["Karmasiklik"]],
+            text=[f"{v:.4f}" for v in comp_energy["Enerji (Wh)"]],
+            textposition="outside",
+        ))
+        fig_comp.update_layout(**PLT_LAYOUT, height=350, title="Karmasiklik Seviyesine Gore Ort. Enerji",
+                               yaxis_title="Ort. Enerji (Wh)")
+
+        # ── 6) Bellek kullanimi ──
+        df_mem = df.sort_values("Bellek (MB)", ascending=True)
+        fig_mem = go.Figure(go.Bar(
+            y=df_mem["Model"], x=df_mem["Bellek (MB)"],
+            orientation="h",
+            marker_color=["#06B6D4" if v < 200 else "#F59E0B" if v < 500 else "#EF4444" for v in df_mem["Bellek (MB)"]],
+            text=[f"{v} MB" for v in df_mem["Bellek (MB)"]],
+            textposition="outside", textfont=dict(size=9, color="#94A3B8"),
+        ))
+        fig_mem.update_layout(**PLT_LAYOUT, height=1200, title="Bellek Kullanimi (MB)",
+                              xaxis_title="Bellek (MB)")
+
+        # ── 7) Egitim suresi top-15 ──
+        df_time = df.nlargest(15, "Egitim (s)")
+        fig_time = go.Figure(go.Bar(
+            x=df_time["Model"], y=df_time["Egitim (s)"],
+            marker_color="#F59E0B",
+            text=[f"{v:.1f}s" for v in df_time["Egitim (s)"]],
+            textposition="outside",
+        ))
+        fig_time.update_layout(**PLT_LAYOUT, height=400,
+                               title=f"En Yavas 15 Model - Egitim Suresi ({dataset_size:,} ornek)",
+                               yaxis_title="Sure (saniye)")
+
+        # ── Legend ──
+        legend_items = [
+            html.Span([html.Span(style={"display": "inline-block", "width": "12px", "height": "12px",
+                                         "borderRadius": "2px", "backgroundColor": c, "marginRight": "6px"}),
+                        t], style={"marginRight": "18px", "fontSize": "12px", "color": "#CBD5E1"})
+            for t, c in COMPLEXITY_COLORS.items()
+        ]
+        legend_bar = html.Div(style={"display": "flex", "alignItems": "center", "padding": "10px 0",
+                                      "marginBottom": "8px"}, children=[
+            html.Span("Karmasiklik: ", style={"fontWeight": "600", "fontSize": "12px", "color": "#64748B",
+                                                "marginRight": "12px"}),
+            *legend_items,
+        ])
+
+        charts = html.Div([
+            legend_bar,
+            dbc.Row([
+                dbc.Col(html.Div(className="panel", children=[
+                    dcc.Graph(figure=fig_energy, config={"displayModeBar": False})]), md=6),
+                dbc.Col(html.Div(className="panel", children=[
+                    dcc.Graph(figure=fig_mem, config={"displayModeBar": False})]), md=6),
+            ], className="mb-4 g-3"),
+            dbc.Row([
+                dbc.Col(html.Div(className="panel", children=[
+                    dcc.Graph(figure=fig_scatter, config={"displayModeBar": False})]), md=8),
+                dbc.Col(html.Div([
+                    html.Div(className="panel mb-3", children=[
+                        dcc.Graph(figure=fig_pie, config={"displayModeBar": False})]),
+                    html.Div(className="panel", children=[
+                        dcc.Graph(figure=fig_comp, config={"displayModeBar": False})]),
+                ]), md=4),
+            ], className="mb-4 g-3"),
+            html.Div(className="panel mb-4", children=[
+                dcc.Graph(figure=fig_time, config={"displayModeBar": False})]),
+        ])
+
+        # ── 8) Tablo ──
+        from dash import dash_table
+        table = html.Div(className="panel", children=[
+            html.Div(className="panel-title", children=[
+                _icon("mdi:table-large", 16), f" Detayli Guc Profili ({len(df)} model)"]),
+            dash_table.DataTable(
+                columns=[{"name": c, "id": c} for c in df.columns],
+                data=df.sort_values("Enerji (Wh)", ascending=False).to_dict("records"),
+                page_size=20,
+                sort_action="native",
+                filter_action="native",
+                style_header={"backgroundColor": "#0D1117", "color": "#64748B",
+                               "fontWeight": "600", "border": "1px solid #1E2A3A",
+                               "fontSize": "11px", "textTransform": "uppercase"},
+                style_cell={"backgroundColor": "#151C28", "color": "#F1F5F9",
+                             "border": "1px solid #1E2A3A", "fontFamily": "IBM Plex Sans",
+                             "fontSize": "12px", "padding": "8px"},
+                style_data_conditional=[
+                    {"if": {"row_index": "odd"}, "backgroundColor": "#111827"},
+                    {"if": {"filter_query": '{Karmasiklik} = "Cok Yuksek"', "column_id": "Karmasiklik"},
+                     "color": "#FCA5A5", "fontWeight": "600"},
+                    {"if": {"filter_query": '{Karmasiklik} = "Yuksek"', "column_id": "Karmasiklik"},
+                     "color": "#FCD34D"},
+                    {"if": {"filter_query": '{Karmasiklik} = "Dusuk"', "column_id": "Karmasiklik"},
+                     "color": "#86EFAC"},
+                ],
+            ),
+        ])
+
+        return cards, charts, table
