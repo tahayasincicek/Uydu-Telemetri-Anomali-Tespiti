@@ -24,7 +24,9 @@ SEQUENCE_MODELS = {"LSTM", "BiLSTM", "GRU", "BiGRU", "CNN1D", "CNN_LSTM", "CNN_B
                    "CNN_GRU", "Transformer", "TCN", "Attention_BiLSTM",
                    "FCN", "ResNet1D", "InceptionTime", "LSTM_FCN"}
 # Tek tip API'li (decision_function + predict) PyOD dedektörleri
-PYOD_MODELS = {"ECOD", "COPOD", "HBOS", "CBLOF"}
+PYOD_MODELS = {"ECOD", "COPOD", "HBOS", "CBLOF",
+               "ABOD", "COF", "SOD", "SOS", "LODA", "INNE", "LMDD",
+               "SO_GAAL", "MO_GAAL", "DeepSVDD", "LUNAR", "DIF", "XGBOD"}
 
 
 def _safe_load(path):
@@ -53,7 +55,15 @@ def load_all():
                         ("LogisticRegression", "logisticregression_model.joblib"),
                         ("DecisionTree", "decisiontree_model.joblib"),
                         ("NaiveBayes", "naivebayes_model.joblib"),
-                        ("Voting Ensemble", "voting_ensemble_model.joblib")]:
+                        ("Voting Ensemble", "voting_ensemble_model.joblib"),
+                        ("LDA", "lda_model.joblib"),
+                        ("QDA", "qda_model.joblib"),
+                        ("Bagging", "bagging_model.joblib"),
+                        ("Ridge", "ridge_model.joblib"),
+                        ("SGD", "sgd_model.joblib"),
+                        ("LSVC", "lsvc_model.joblib"),
+                        ("XGBOD", "xgbod_model.joblib"),
+                        ("MLP", "mlp_sklearn_model.joblib")]:
         m = _safe_load(os.path.join(MODEL_DIR, fname))
         if m: models[name] = m
 
@@ -63,7 +73,14 @@ def load_all():
                         ("GMM", "gmm_model.joblib"), ("EllipticEnvelope", "ellipticenvelope_model.joblib"),
                         ("PCA", "pca_model.joblib"), ("DBSCAN", "dbscan_model.joblib"),
                         ("ECOD", "ecod_model.joblib"), ("COPOD", "copod_model.joblib"),
-                        ("HBOS", "hbos_model.joblib"), ("CBLOF", "cblof_model.joblib")]:
+                        ("HBOS", "hbos_model.joblib"), ("CBLOF", "cblof_model.joblib"),
+                        ("ABOD", "abod_model.joblib"), ("COF", "cof_model.joblib"),
+                        ("SOD", "sod_model.joblib"), ("SOS", "sos_model.joblib"),
+                        ("LODA", "loda_model.joblib"), ("INNE", "inne_model.joblib"),
+                        ("LMDD", "lmdd_model.joblib"),
+                        ("SO_GAAL", "so_gaal_model.joblib"), ("MO_GAAL", "mo_gaal_model.joblib"),
+                        ("DeepSVDD", "deepsvdd_model.joblib"),
+                        ("LUNAR", "lunar_model.joblib"), ("DIF", "dif_model.joblib")]:
         m = _safe_load(os.path.join(UNSUP_DIR, fname))
         if m is not None: models[name] = m
 
@@ -80,7 +97,8 @@ def load_all():
                             ("InceptionTime", "inceptiontime_model.keras"), ("LSTM_FCN", "lstm_fcn_model.keras")]:
             p = os.path.join(MODEL_DIR, fname)
             if os.path.exists(p): models[name] = _kload(p)
-        for name, fname in [("Autoencoder", "autoencoder_model.keras"), ("VAE", "vae_model.keras")]:
+        for name, fname in [("Autoencoder", "autoencoder_model.keras"), ("VAE", "vae_model.keras"),
+                            ("AnoGAN", "anogan_model.keras"), ("ALAD", "alad_model.keras")]:
             p = os.path.join(UNSUP_DIR, fname)
             if os.path.exists(p): models[name] = _kload(p)
     except Exception:
@@ -106,12 +124,18 @@ def predict(model, name, X, thresholds, threshold_mult=1.0):
         sc = model.predict(X_seq, verbose=0).flatten()
         pr = (sc >= 0.5).astype(int)
     elif name == "MLP":
-        sc = model.predict(X, verbose=0).flatten()
-        pr = (sc >= 0.5).astype(int)
+        if hasattr(model, "predict_proba"):
+            # sklearn MLPClassifier
+            pr = model.predict(X)
+            sc = model.predict_proba(X)[:, 1]
+        else:
+            # Keras MLP
+            sc = model.predict(X, verbose=0).flatten()
+            pr = (sc >= 0.5).astype(int)
     elif name in PYOD_MODELS:
         sc = model.decision_function(X)
         pr = model.predict(X)
-    elif name in ("Autoencoder", "VAE"):
+    elif name in ("Autoencoder", "VAE", "AnoGAN", "ALAD"):
         recon = model.predict(X, verbose=0)
         sc = np.mean(np.power(X - recon, 2), axis=1)
         t = thresholds.get(name, np.percentile(sc, 90)) * threshold_mult

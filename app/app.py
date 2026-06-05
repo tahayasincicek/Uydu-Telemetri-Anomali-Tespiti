@@ -133,6 +133,8 @@ sidebar = html.Div(className="sidebar", children=[
         nav_item("mdi:gauge", "Model Performans", "performance"),
         nav_item("mdi:test-tube", "Ablasyon Analizi", "ablation"),
         nav_item("mdi:lightning-bolt", "Guc Tuketimi", "power"),
+        nav_item("mdi:flask-outline", "Sentetik Lab", "synthetic"),
+        nav_item("mdi:rocket-launch-outline", "ESA Pipeline", "esa_pipeline"),
     ]),
     html.Div(className="sidebar-footer", children=[
         html.Div(className="status-indicator", children=[
@@ -141,7 +143,7 @@ sidebar = html.Div(className="sidebar", children=[
             icon("mdi:cpu-64-bit", 14), html.Span("v1.0.0")]),
         html.Div(className="sidebar-version", children=[
             icon("mdi:clock-outline", 14), html.Span(time.strftime("%d.%m.%Y %H:%M"))]),
-        html.Div("VER 1.0.0 / MDL 9 / ENV PROD", className="sidebar-sys-info"),
+        html.Div(f"VER 2.0.0 / MDL {len(MODELS)} / ENV PROD", className="sidebar-sys-info"),
     ])
 ])
 
@@ -547,9 +549,12 @@ def page_detail():
 
 from ablation_page import get_ablation_layout, register_ablation_callbacks
 from power_page import get_power_layout, register_power_callbacks
+from synthetic_page import get_synthetic_layout, register_synthetic_callbacks
+from esa_pipeline_page import get_esa_pipeline_layout, register_esa_pipeline_callbacks
 PAGES = {"dashboard": page_dashboard, "upload": page_upload, "analysis": page_analysis,
          "results": page_results, "shap": page_shap, "performance": page_performance, "live": page_live, "detail": page_detail, "ablation": get_ablation_layout,
-         "power": lambda: get_power_layout(ALL_METRICS)}
+         "power": lambda: get_power_layout(ALL_METRICS),
+         "synthetic": get_synthetic_layout, "esa_pipeline": get_esa_pipeline_layout}
 
 # ── Callbacks ──
 @callback(Output("current-page", "data"),
@@ -1694,6 +1699,8 @@ def generate_pdf_report(n, selected):
 
 register_ablation_callbacks(app)
 register_power_callbacks(app, ALL_METRICS)
+register_synthetic_callbacks(app)
+register_esa_pipeline_callbacks(app)
 
 if __name__ == "__main__":
     app.run(debug=False, host="0.0.0.0", port=8050)
