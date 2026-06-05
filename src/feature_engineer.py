@@ -271,17 +271,17 @@ class ReactionWheelFeatureEngineer:
         tek satırlık özet özellikler (RMS, Peak-to-Peak vb.) çıkarır.
         """
         print("Segment bazlı istatistikler ve sinyal özellikleri çıkarılıyor...")
-        
+
         def calculate_segment_stats(group):
             val = group['value'].values
-            
+
             rms = np.sqrt(np.mean(val**2)) if len(val) > 0 else 0
             p2p = np.ptp(val) if len(val) > 0 else 0
             crest_factor = (np.max(np.abs(val)) / rms) if rms > 0 else 0
-            
+
             # Zero crossing rate
             zcr = np.sum(np.diff(np.sign(val)) != 0) / len(val) if len(val) > 1 else 0
-            
+
             return pd.Series({
                 'custom_rms': rms,
                 'custom_p2p': p2p,
@@ -290,9 +290,158 @@ class ReactionWheelFeatureEngineer:
                 'anomaly': group['anomaly'].iloc[0],
                 'channel': group['channel'].iloc[0]
             })
-            
+
         segment_features = df.groupby('segment').apply(calculate_segment_stats).reset_index()
         return segment_features
+
+
+# ═══════════════════════════════════════════════════════════════════════
+#  ESA OPSSAT-AD Feature Extraction Pipeline
+#  ─────────────────────────────────────────
+#  Referans: Ruszczak et al. (2024) "The OPS-SAT benchmark for
+#  detecting anomalies in satellite telemetry"
+#
+#  segments.csv  ──►  dataset.csv  (18 handcrafted feature)
+# ═══════════════════════════════════════════════════════════════════════
+from scipy.signal import find_peaks
+from scipy.ndimage import uniform_filter1d
+from scipy import stats as sp_stats
+
+
+def extract_esa_features(segments_df: pd.DataFrame,
+                         prominence_ratio: float = 0.10) -> pd.DataFrame:
+    """Ham telemetri segmentlerinden ESA OPSSAT-AD 18 handcrafted feature'i cikarir.
+
+    Her segment icin tek satirlik ozet ozellikler hesaplanir.
+
+    Beklenen sutunlar (segments.csv formati):
+        segment, channel, timestamp, value, sampling, anomaly, train[, label]
+
+    Cikti sutunlari (dataset.csv formati):
+        segment, anomaly, train, channel, sampling,
+        duration, len, mean, var, std, kurtosis, skew,
+        n_peaks, smooth10_n_peaks, smooth20_n_peaks,
+        diff_peaks, diff2_peaks, diff_var, diff2_var,
+        gaps_squared, len_weighted, var_div_duration, var_div_len
+
+    Args:
+        segments_df: Ham segments verisi (her satir bir zaman noktasi).
+        prominence_ratio: Tepe tespiti icin minimum belirginlik orani
+                          (sinyal genliginin yuzde kaci). ESA orijinali = 0.10.
+
+    Returns:
+        DataFrame — segment basina 18 ozellik + 5 meta sutun.
+    """
+    required = {'segment', 'value', 'timestamp'}
+    missing = required - set(segments_df.columns)
+    if missing:
+        raise ValueError(f"Eksik sutunlar: {missing}")
+
+    records = []
+    grouped = segments_df.groupby('segment', sort=True)
+    total = len(grouped)
+
+    for i, (seg_id, grp) in enumerate(grouped, 1):
+        if i % 200 == 0 or i == total:
+            print(f"  [{i}/{total}] segment isleniyor...")
+
+        val = grp['value'].values
+        n = len(val)
+        if n == 0:
+            continue
+
+        # ── Meta ──
+        channel = grp['channel'].iloc[0] if 'channel' in grp.columns else 'UNKNOWN'
+        anomaly = int(grp['anomaly'].iloc[0]) if 'anomaly' in grp.columns else 0
+        train = int(grp['train'].iloc[0]) if 'train' in grp.columns else 0
+        sampling = int(grp['sampling'].iloc[0]) if 'sampling' in grp.columns else 1
+
+        # ── Zaman damgasi farklari (saniye) ──
+        ts = pd.to_datetime(grp['timestamp'])
+        if n > 1:
+            td = ts.diff().dt.total_seconds().dropna().values
+            duration = int(ts.iloc[-1].timestamp() - ts.iloc[0].timestamp())
+        else:
+            td = np.array([1.0])
+            duration = 1
+
+        # ═══ GRUP 1: Ham segmentten 12 ozellik ═══
+
+        # Temel istatistikler
+        mean_val = np.mean(val)
+        var_val = np.var(val)                     # populasyon varyansi
+        std_val = np.std(val)                     # populasyon std
+        kurt_val = sp_stats.kurtosis(val) if n > 3 else 0.0   # excess kurtosis
+        skew_val = sp_stats.skew(val) if n > 2 else 0.0
+
+        # Tepe sayisi (%10 belirginlik)
+        p2p = np.ptp(val)
+        prom = prominence_ratio * p2p if p2p > 0 else None
+        peaks, _ = find_peaks(val, prominence=prom)
+        n_peaks = len(peaks)
+
+        # Uzunluk / sure
+        seg_len = n
+        # gaps_squared = sum(dt_i^2)  — zaman damgasi farklarinin kareler toplami
+        gaps_squared = int(np.sum(td ** 2))
+        # len_weighted = len * sampling
+        len_weighted = seg_len * sampling
+        # Oran ozellikleri
+        var_div_duration = var_val / duration if duration > 0 else 0.0
+        var_div_len = var_val / seg_len if seg_len > 0 else 0.0
+
+        # ═══ GRUP 2: Yumusatilmis segmentten 2 ozellik ═══
+        # ESA makalesi "uniform interpolation" kullanir
+        # np.convolve ile sabit cekirdekli yumusatma
+        s10 = np.convolve(val, np.ones(10) / 10, mode='same')
+        s20 = np.convolve(val, np.ones(20) / 20, mode='same')
+        prom10 = prominence_ratio * np.ptp(s10) if np.ptp(s10) > 0 else None
+        prom20 = prominence_ratio * np.ptp(s20) if np.ptp(s20) > 0 else None
+        pk10, _ = find_peaks(s10, prominence=prom10)
+        pk20, _ = find_peaks(s20, prominence=prom20)
+
+        # ═══ GRUP 3: Turevlerden 4 ozellik ═══
+        diff1 = np.diff(val)
+        diff2 = np.diff(diff1)
+
+        prom_d1 = prominence_ratio * np.ptp(diff1) if len(diff1) > 0 and np.ptp(diff1) > 0 else None
+        prom_d2 = prominence_ratio * np.ptp(diff2) if len(diff2) > 0 and np.ptp(diff2) > 0 else None
+        dpk1, _ = find_peaks(diff1, prominence=prom_d1) if len(diff1) > 0 else (np.array([]), {})
+        dpk2, _ = find_peaks(diff2, prominence=prom_d2) if len(diff2) > 0 else (np.array([]), {})
+
+        diff_var = np.var(diff1) if len(diff1) > 0 else 0.0
+        diff2_var = np.var(diff2) if len(diff2) > 0 else 0.0
+
+        # ── Kayit ──
+        records.append({
+            'segment': seg_id,
+            'anomaly': anomaly,
+            'train': train,
+            'channel': channel,
+            'sampling': sampling,
+            'duration': duration,
+            'len': seg_len,
+            'mean': mean_val,
+            'var': var_val,
+            'std': std_val,
+            'kurtosis': kurt_val,
+            'skew': skew_val,
+            'n_peaks': n_peaks,
+            'smooth10_n_peaks': len(pk10),
+            'smooth20_n_peaks': len(pk20),
+            'diff_peaks': len(dpk1),
+            'diff2_peaks': len(dpk2),
+            'diff_var': diff_var,
+            'diff2_var': diff2_var,
+            'gaps_squared': gaps_squared,
+            'len_weighted': len_weighted,
+            'var_div_duration': var_div_duration,
+            'var_div_len': var_div_len,
+        })
+
+    df_out = pd.DataFrame(records)
+    print(f"Tamamlandi: {len(df_out)} segment, 18 ozellik cikarildi.")
+    return df_out
 
     def transform(self, df: pd.DataFrame, columns: List[str], target_col: Optional[str] = 'anomaly', fit: bool = True) -> pd.DataFrame:
         """
