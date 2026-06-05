@@ -27,7 +27,7 @@ try:
     from tensorflow.keras.models import Sequential, Model
     from tensorflow.keras.layers import (
         LSTM, Dense, Dropout, Input, BatchNormalization, RepeatVector,
-        TimeDistributed, Lambda,
+        TimeDistributed, Lambda, Concatenate,
     )
     from tensorflow.keras.optimizers import Adam
     from tensorflow.keras.callbacks import EarlyStopping
@@ -42,12 +42,40 @@ try:
     from pyod.models.copod import COPOD
     from pyod.models.hbos import HBOS
     from pyod.models.cblof import CBLOF
+    from pyod.models.abod import ABOD
+    from pyod.models.cof import COF
+    from pyod.models.sod import SOD
+    from pyod.models.sos import SOS as SOS_Model
+    from pyod.models.loda import LODA
+    from pyod.models.inne import INNE
+    from pyod.models.lmdd import LMDD
+    from pyod.models.so_gaal import SO_GAAL
+    from pyod.models.mo_gaal import MO_GAAL
     _PYOD_AVAILABLE = True
 except ImportError:
     _PYOD_AVAILABLE = False
 
+try:
+    from pyod.models.deep_svdd import DeepSVDD
+    _PYOD_DEEPSVDD_AVAILABLE = True
+except ImportError:
+    _PYOD_DEEPSVDD_AVAILABLE = False
+
+try:
+    from pyod.models.lunar import LUNAR as LUNAR_Model
+    _PYOD_LUNAR_AVAILABLE = True
+except ImportError:
+    _PYOD_LUNAR_AVAILABLE = False
+
+try:
+    from pyod.models.dif import DIF
+    _PYOD_DIF_AVAILABLE = True
+except ImportError:
+    _PYOD_DIF_AVAILABLE = False
+
 # Tek tip API'ye (fit / decision_function / predict) sahip PyOD modelleri
-PYOD_MODELS = {"ECOD", "COPOD", "HBOS", "CBLOF"}
+PYOD_MODELS = {"ECOD", "COPOD", "HBOS", "CBLOF", "ABOD", "COF", "SOD", "SOS",
+               "LODA", "INNE", "LMDD", "SO_GAAL", "MO_GAAL", "DeepSVDD", "LUNAR", "DIF"}
 
 
 class UnsupervisedAnomalyDetector:
@@ -55,8 +83,10 @@ class UnsupervisedAnomalyDetector:
     Etiket gerektirmeyen gözetimsiz algoritmaları kullanarak anomali tespiti yapan sınıf.
 
     sklearn/derin: Isolation Forest, One-Class SVM, K-Means, LOF, Autoencoder,
-        LSTM Autoencoder, GMM, Elliptic Envelope, PCA (recon), DBSCAN, VAE.
-    PyOD: ECOD, COPOD, HBOS, CBLOF.
+        LSTM Autoencoder, GMM, Elliptic Envelope, PCA (recon), DBSCAN, VAE,
+        AnoGAN, ALAD.
+    PyOD: ECOD, COPOD, HBOS, CBLOF, ABOD, COF, SOD, SOS, LODA, INNE, LMDD,
+        SO-GAAL, MO-GAAL, DeepSVDD, LUNAR, DIF.
     """
 
     def __init__(self, random_state: int = 42):
@@ -374,6 +404,319 @@ class UnsupervisedAnomalyDetector:
             trained[name] = det
         return trained
 
+    # ==================================================================
+    #  Ek PyOD Modelleri (Temel)
+    # ==================================================================
+
+    def train_abod(self, X_train: np.ndarray, contamination: float = 0.05):
+        """Açı Tabanlı Aykırı Değer Dedektörü (ABOD)."""
+        if not _PYOD_AVAILABLE:
+            raise ImportError("PyOD bulunamadı (pip install pyod).")
+        print("📐 ABOD eğitiliyor...")
+        model = ABOD(contamination=contamination)
+        model.fit(X_train)
+        self.models['ABOD'] = model
+        self.thresholds['ABOD'] = float(model.threshold_)
+        return model
+
+    def train_cof(self, X_train: np.ndarray, contamination: float = 0.05, n_neighbors: int = 20):
+        """Bağlantı Tabanlı Aykırı Değer Faktörü (COF)."""
+        if not _PYOD_AVAILABLE:
+            raise ImportError("PyOD bulunamadı (pip install pyod).")
+        print("🔗 COF eğitiliyor...")
+        model = COF(contamination=contamination, n_neighbors=n_neighbors)
+        model.fit(X_train)
+        self.models['COF'] = model
+        self.thresholds['COF'] = float(model.threshold_)
+        return model
+
+    def train_sod(self, X_train: np.ndarray, contamination: float = 0.05, n_neighbors: int = 20):
+        """Eksen Paralel Alt Uzaylarda Aykırı Değer Tespiti (SOD)."""
+        if not _PYOD_AVAILABLE:
+            raise ImportError("PyOD bulunamadı (pip install pyod).")
+        print("📊 SOD eğitiliyor...")
+        model = SOD(contamination=contamination, n_neighbors=n_neighbors)
+        model.fit(X_train)
+        self.models['SOD'] = model
+        self.thresholds['SOD'] = float(model.threshold_)
+        return model
+
+    def train_sos(self, X_train: np.ndarray, contamination: float = 0.05):
+        """Stokastik Aykırı Değer Seçimi (SOS)."""
+        if not _PYOD_AVAILABLE:
+            raise ImportError("PyOD bulunamadı (pip install pyod).")
+        print("🎲 SOS eğitiliyor...")
+        model = SOS_Model(contamination=contamination)
+        model.fit(X_train)
+        self.models['SOS'] = model
+        self.thresholds['SOS'] = float(model.threshold_)
+        return model
+
+    def train_loda(self, X_train: np.ndarray, contamination: float = 0.05):
+        """Hafif Çevrimiçi Anomali Dedektörü (LODA)."""
+        if not _PYOD_AVAILABLE:
+            raise ImportError("PyOD bulunamadı (pip install pyod).")
+        print("🪶 LODA eğitiliyor...")
+        model = LODA(contamination=contamination)
+        model.fit(X_train)
+        self.models['LODA'] = model
+        self.thresholds['LODA'] = float(model.threshold_)
+        return model
+
+    def train_inne(self, X_train: np.ndarray, contamination: float = 0.05):
+        """İzolasyon Tabanlı En Yakın Komşu Toplulukları (INNE)."""
+        if not _PYOD_AVAILABLE:
+            raise ImportError("PyOD bulunamadı (pip install pyod).")
+        print("🏝️ INNE eğitiliyor...")
+        model = INNE(contamination=contamination, random_state=self.random_state)
+        model.fit(X_train)
+        self.models['INNE'] = model
+        self.thresholds['INNE'] = float(model.threshold_)
+        return model
+
+    def train_lmdd(self, X_train: np.ndarray, contamination: float = 0.05):
+        """Sapma Tespiti İçin Doğrusal Yöntem (LMDD)."""
+        if not _PYOD_AVAILABLE:
+            raise ImportError("PyOD bulunamadı (pip install pyod).")
+        print("📏 LMDD eğitiliyor...")
+        model = LMDD(contamination=contamination, random_state=self.random_state)
+        model.fit(X_train)
+        self.models['LMDD'] = model
+        self.thresholds['LMDD'] = float(model.threshold_)
+        return model
+
+    def train_so_gaal(self, X_train: np.ndarray, contamination: float = 0.05):
+        """Tek Amaçlı Üretici Çekişmeli Aktif Öğrenme (SO-GAAL)."""
+        if not _PYOD_AVAILABLE:
+            raise ImportError("PyOD bulunamadı (pip install pyod).")
+        print("🎯 SO-GAAL eğitiliyor...")
+        model = SO_GAAL(contamination=contamination)
+        model.fit(X_train)
+        self.models['SO_GAAL'] = model
+        self.thresholds['SO_GAAL'] = float(model.threshold_)
+        return model
+
+    def train_mo_gaal(self, X_train: np.ndarray, contamination: float = 0.05):
+        """Çok Amaçlı Üretici Çekişmeli Aktif Öğrenme (MO-GAAL)."""
+        if not _PYOD_AVAILABLE:
+            raise ImportError("PyOD bulunamadı (pip install pyod).")
+        print("🎯 MO-GAAL eğitiliyor...")
+        model = MO_GAAL(contamination=contamination)
+        model.fit(X_train)
+        self.models['MO_GAAL'] = model
+        self.thresholds['MO_GAAL'] = float(model.threshold_)
+        return model
+
+    # ==================================================================
+    #  Derin Öğrenme PyOD Modelleri (torch tabanlı)
+    # ==================================================================
+
+    def train_deep_svdd(self, X_train: np.ndarray, contamination: float = 0.05, epochs: int = 50):
+        """Derin Tek Sınıf Sınıflandırma (DeepSVDD)."""
+        if not _PYOD_DEEPSVDD_AVAILABLE:
+            raise ImportError("PyOD DeepSVDD bulunamadı (pip install pyod torch).")
+        print("🎯 DeepSVDD eğitiliyor...")
+        model = DeepSVDD(n_features=X_train.shape[1], contamination=contamination,
+                         epochs=epochs, random_state=self.random_state)
+        model.fit(X_train)
+        self.models['DeepSVDD'] = model
+        self.thresholds['DeepSVDD'] = float(model.threshold_)
+        return model
+
+    def train_lunar(self, X_train: np.ndarray, contamination: float = 0.05):
+        """Graf Sinir Ağları ile Yerel Aykırı Değer Tespiti (LUNAR)."""
+        if not _PYOD_LUNAR_AVAILABLE:
+            raise ImportError("PyOD LUNAR bulunamadı (pip install pyod torch torch_geometric).")
+        print("🌙 LUNAR eğitiliyor...")
+        model = LUNAR_Model(contamination=contamination)
+        model.fit(X_train)
+        self.models['LUNAR'] = model
+        self.thresholds['LUNAR'] = float(model.threshold_)
+        return model
+
+    def train_dif(self, X_train: np.ndarray, contamination: float = 0.05, epochs: int = 50):
+        """Derin İzolasyon Ormanı (DIF)."""
+        if not _PYOD_DIF_AVAILABLE:
+            raise ImportError("PyOD DIF bulunamadı (pip install pyod torch).")
+        print("🌲 DIF (Deep Isolation Forest) eğitiliyor...")
+        model = DIF(contamination=contamination, epochs=epochs, random_state=self.random_state)
+        model.fit(X_train)
+        self.models['DIF'] = model
+        self.thresholds['DIF'] = float(model.threshold_)
+        return model
+
+    # ==================================================================
+    #  GAN Tabanlı Anomali Tespiti (TensorFlow/Keras)
+    # ==================================================================
+
+    def train_anogan(self, X_train: np.ndarray, X_val: np.ndarray, latent_dim: int = 32,
+                     epochs: int = 100, batch_size: int = 64):
+        """AnoGAN — Üretici Çekişmeli Ağ ile Anomali Tespiti (f-AnoGAN yaklaşımı).
+
+        GAN eğitimi sonrası bir Encoder ağı eklenerek hızlı anomali skoru hesaplanır.
+        Skor = yeniden yapılandırma hatası (reconstruction error).
+        """
+        if Model is None:
+            raise ImportError("TensorFlow/Keras bulunamadı.")
+        print("🎭 AnoGAN eğitiliyor...")
+        input_dim = X_train.shape[1]
+
+        generator = Sequential([
+            Input(shape=(latent_dim,)),
+            Dense(64, activation='relu'), BatchNormalization(),
+            Dense(128, activation='relu'), BatchNormalization(),
+            Dense(input_dim, activation='linear')
+        ], name='anogan_gen')
+
+        discriminator = Sequential([
+            Input(shape=(input_dim,)),
+            Dense(128, activation='relu'), Dropout(0.3),
+            Dense(64, activation='relu'), Dropout(0.3),
+            Dense(1, activation='sigmoid')
+        ], name='anogan_disc')
+
+        encoder = Sequential([
+            Input(shape=(input_dim,)),
+            Dense(128, activation='relu'), BatchNormalization(),
+            Dense(64, activation='relu'),
+            Dense(latent_dim, activation='linear')
+        ], name='anogan_enc')
+
+        d_opt = Adam(learning_rate=0.0002, beta_1=0.5)
+        g_opt = Adam(learning_rate=0.0002, beta_1=0.5)
+        e_opt = Adam(learning_rate=0.001)
+        bce = tf.keras.losses.BinaryCrossentropy()
+
+        dataset = tf.data.Dataset.from_tensor_slices(
+            X_train.astype('float32')).shuffle(len(X_train)).batch(batch_size)
+
+        for epoch in range(epochs):
+            for real_batch in dataset:
+                bs = tf.shape(real_batch)[0]
+                noise = tf.random.normal((bs, latent_dim))
+                with tf.GradientTape() as d_tape:
+                    fake = generator(noise, training=True)
+                    real_out = discriminator(real_batch, training=True)
+                    fake_out = discriminator(fake, training=True)
+                    d_loss = bce(tf.ones_like(real_out), real_out) + \
+                             bce(tf.zeros_like(fake_out), fake_out)
+                d_grads = d_tape.gradient(d_loss, discriminator.trainable_variables)
+                d_opt.apply_gradients(zip(d_grads, discriminator.trainable_variables))
+
+                noise = tf.random.normal((bs, latent_dim))
+                with tf.GradientTape() as g_tape:
+                    fake = generator(noise, training=True)
+                    fake_out = discriminator(fake, training=True)
+                    g_loss = bce(tf.ones_like(fake_out), fake_out)
+                g_grads = g_tape.gradient(g_loss, generator.trainable_variables)
+                g_opt.apply_gradients(zip(g_grads, generator.trainable_variables))
+
+        generator.trainable = False
+        enc_ds = tf.data.Dataset.from_tensor_slices(
+            X_train.astype('float32')).shuffle(len(X_train)).batch(batch_size)
+        for epoch in range(max(epochs // 2, 20)):
+            for real_batch in enc_ds:
+                with tf.GradientTape() as e_tape:
+                    z = encoder(real_batch, training=True)
+                    recon = generator(z, training=False)
+                    e_loss = tf.reduce_mean(tf.square(real_batch - recon))
+                e_grads = e_tape.gradient(e_loss, encoder.trainable_variables)
+                e_opt.apply_gradients(zip(e_grads, encoder.trainable_variables))
+
+        score_input = Input(shape=(input_dim,))
+        anogan_model = Model(score_input, generator(encoder(score_input)), name='AnoGAN')
+
+        recon = anogan_model.predict(X_train, verbose=0)
+        scores = np.mean(np.square(X_train - recon), axis=1)
+        threshold = float(np.mean(scores) + 3 * np.std(scores))
+
+        self.models['AnoGAN'] = anogan_model
+        self.thresholds['AnoGAN'] = threshold
+        return anogan_model
+
+    def train_alad(self, X_train: np.ndarray, X_val: np.ndarray, latent_dim: int = 32,
+                   epochs: int = 100, batch_size: int = 64):
+        """ALAD — Çekişmeli Öğrenimli Anomali Tespiti (BiGAN tabanlı).
+
+        Encoder-Generator çifti çekişmeli eğitilir; döngüsel tutarlılık (cycle
+        consistency) kaybı ile yeniden yapılandırma kalitesi güçlendirilir.
+        """
+        if Model is None:
+            raise ImportError("TensorFlow/Keras bulunamadı.")
+        print("🎭 ALAD eğitiliyor...")
+        input_dim = X_train.shape[1]
+
+        enc = Sequential([
+            Input(shape=(input_dim,)),
+            Dense(128, activation='relu'), BatchNormalization(),
+            Dense(64, activation='relu'),
+            Dense(latent_dim, activation='linear')
+        ], name='alad_enc')
+
+        gen = Sequential([
+            Input(shape=(latent_dim,)),
+            Dense(64, activation='relu'), BatchNormalization(),
+            Dense(128, activation='relu'), BatchNormalization(),
+            Dense(input_dim, activation='linear')
+        ], name='alad_gen')
+
+        x_in = Input(shape=(input_dim,))
+        z_in = Input(shape=(latent_dim,))
+        xz = Concatenate()([x_in, z_in])
+        d = Dense(128, activation='relu')(xz)
+        d = Dropout(0.3)(d)
+        d = Dense(64, activation='relu')(d)
+        d = Dropout(0.3)(d)
+        d_out = Dense(1, activation='sigmoid')(d)
+        disc = Model([x_in, z_in], d_out, name='alad_disc')
+
+        d_opt = Adam(learning_rate=0.0002, beta_1=0.5)
+        ge_opt = Adam(learning_rate=0.0002, beta_1=0.5)
+        bce = tf.keras.losses.BinaryCrossentropy()
+
+        dataset = tf.data.Dataset.from_tensor_slices(
+            X_train.astype('float32')).shuffle(len(X_train)).batch(batch_size)
+        enc_gen_vars = enc.trainable_variables + gen.trainable_variables
+
+        for epoch in range(epochs):
+            for real_batch in dataset:
+                bs = tf.shape(real_batch)[0]
+                noise = tf.random.normal((bs, latent_dim))
+
+                with tf.GradientTape() as d_tape:
+                    z_enc = enc(real_batch, training=True)
+                    x_gen = gen(noise, training=True)
+                    real_pair = disc([real_batch, z_enc], training=True)
+                    fake_pair = disc([x_gen, noise], training=True)
+                    d_loss = bce(tf.ones_like(real_pair), real_pair) + \
+                             bce(tf.zeros_like(fake_pair), fake_pair)
+                d_grads = d_tape.gradient(d_loss, disc.trainable_variables)
+                d_opt.apply_gradients(zip(d_grads, disc.trainable_variables))
+
+                noise = tf.random.normal((bs, latent_dim))
+                with tf.GradientTape() as ge_tape:
+                    z_enc = enc(real_batch, training=True)
+                    x_gen = gen(noise, training=True)
+                    real_pair = disc([real_batch, z_enc], training=True)
+                    fake_pair = disc([x_gen, noise], training=True)
+                    x_recon = gen(z_enc, training=True)
+                    cycle_loss = tf.reduce_mean(tf.square(real_batch - x_recon))
+                    ge_loss = bce(tf.zeros_like(real_pair), real_pair) + \
+                              bce(tf.ones_like(fake_pair), fake_pair) + cycle_loss
+                ge_grads = ge_tape.gradient(ge_loss, enc_gen_vars)
+                ge_opt.apply_gradients(zip(ge_grads, enc_gen_vars))
+
+        score_input = Input(shape=(input_dim,))
+        alad_model = Model(score_input, gen(enc(score_input)), name='ALAD')
+
+        recon = alad_model.predict(X_train, verbose=0)
+        scores = np.mean(np.square(X_train - recon), axis=1)
+        threshold = float(np.mean(scores) + 3 * np.std(scores))
+
+        self.models['ALAD'] = alad_model
+        self.thresholds['ALAD'] = threshold
+        return alad_model
+
     def compute_ensemble_score(self, X_test: np.ndarray, active_models: List[str] = None) -> np.ndarray:
         """
         Kayıtlı modellerin (aktif olanların) anomali skorlarını normalize edip birleştirir.
@@ -393,12 +736,14 @@ class UnsupervisedAnomalyDetector:
                 scores = -model.score_samples(X_test)
             elif name == 'OneClassSVM':
                 scores = -model.decision_function(X_test)
-            elif name == 'Autoencoder':
+            elif name in ('Autoencoder', 'AnoGAN', 'ALAD'):
                 recon = model.predict(X_test, verbose=0)
                 scores = np.mean(np.power(X_test - recon, 2), axis=1)
             elif name == 'KMeans':
                 dist = model.transform(X_test)
                 scores = np.min(dist, axis=1)
+            elif name in PYOD_MODELS and hasattr(model, 'decision_function'):
+                scores = model.decision_function(X_test)
             else:
                 continue
                 
@@ -422,7 +767,7 @@ class UnsupervisedAnomalyDetector:
         
         for name, model in self.models.items():
             filepath = os.path.join(path, f"{name.lower()}_model")
-            if name in ['Autoencoder', 'LSTM_Autoencoder', 'VAE']:
+            if name in ['Autoencoder', 'LSTM_Autoencoder', 'VAE', 'AnoGAN', 'ALAD']:
                 model.save(filepath + ".keras")
             else:
                 joblib.dump(model, filepath + ".joblib")

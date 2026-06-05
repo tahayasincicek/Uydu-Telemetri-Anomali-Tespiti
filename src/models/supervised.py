@@ -22,7 +22,7 @@ from sklearn.ensemble import (
     BaggingClassifier,
     VotingClassifier,
 )
-from sklearn.svm import SVC
+from sklearn.svm import SVC, LinearSVC
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LogisticRegression, RidgeClassifier, SGDClassifier
 from sklearn.tree import DecisionTreeClassifier
@@ -44,6 +44,13 @@ try:
     import lightgbm as lgb
 except ImportError:
     lgb = None
+
+try:
+    from pyod.models.xgbod import XGBOD as PyOD_XGBOD
+    _XGBOD_AVAILABLE = True
+except ImportError:
+    PyOD_XGBOD = None
+    _XGBOD_AVAILABLE = False
 
 try:
     from tensorflow.keras.models import Sequential, Model
@@ -140,6 +147,15 @@ class SupervisedAnomalyDetector:
         self.models['SVM'] = model
         return model
 
+    def train_lsvc(self, X_train: pd.DataFrame, y_train: pd.Series) -> CalibratedClassifierCV:
+        """Linear SVC (karesel menteşe kaybı) sınıflandırıcısını eğitir."""
+        print("⚔️ Linear SVC eğitiliyor...")
+        base = LinearSVC(class_weight='balanced', max_iter=5000, random_state=self.random_state)
+        model = CalibratedClassifierCV(base, cv=3)
+        model.fit(X_train, y_train)
+        self.models['LSVC'] = model
+        return model
+
     def train_xgboost(self, X_train: pd.DataFrame, y_train: pd.Series, X_val: Optional[pd.DataFrame] = None, y_val: Optional[pd.Series] = None):
         """
         XGBoost modelini eğitir.
@@ -173,6 +189,17 @@ class SupervisedAnomalyDetector:
             model.fit(X_train, y_train)
 
         self.models['XGBoost'] = model
+        return model
+
+    def train_xgbod(self, X_train: pd.DataFrame, y_train: pd.Series):
+        """XGBOD (Extreme Gradient Boosting Outlier Detection) modelini eğitir.
+        Gözetimsiz skor özelliklerini XGBoost ile birleştirir (yarı-gözetimli)."""
+        if not _XGBOD_AVAILABLE:
+            raise ImportError("PyOD/XGBOD bulunamadı (pip install pyod).")
+        print("🚀 XGBOD eğitiliyor...")
+        model = PyOD_XGBOD(random_state=self.random_state)
+        model.fit(np.asarray(X_train), np.asarray(y_train))
+        self.models['XGBOD'] = model
         return model
 
     def train_mlp(self, X_train: np.ndarray, y_train: np.ndarray, X_val: np.ndarray, y_val: np.ndarray, 
