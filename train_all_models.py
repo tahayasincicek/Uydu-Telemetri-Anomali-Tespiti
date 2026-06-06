@@ -12,13 +12,14 @@ import os, sys, json, warnings, time
 import numpy as np
 import pandas as pd
 import joblib
-from sklearn.preprocessing import StandardScaler, LabelEncoder
-from sklearn.metrics import (accuracy_score, precision_score, recall_score,
-                             f1_score, roc_auc_score, confusion_matrix)
+from sklearn.preprocessing import StandardScaler
 
 warnings.filterwarnings("ignore")
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(ROOT, "src"))
+# OPS-SAT benchmark'in 7 zorunlu metrigi (MCC + AUC_PR dahil), AUC_PR sirali
+from metrics import compute_metrics, metrics_table, PRIMARY_SORT_METRIC
 MODEL_DIR = os.path.join(ROOT, "models")
 UNSUP_DIR = os.path.join(MODEL_DIR, "unsupervised")
 METRICS_DIR = os.path.join(ROOT, "reports", "metrics")
@@ -37,14 +38,21 @@ print("=" * 60)
 df = pd.read_csv(os.path.join(ROOT, "data", "raw", "dataset.csv"))
 print(f"\nDataset: {df.shape[0]} segment, {df.shape[1]} sutun")
 
-# Channel encoding
-le = LabelEncoder()
-df["channel_id"] = le.fit_transform(df["channel"])
-
-# Feature columns (18 ESA + channel_id)
-META_COLS = ["segment", "anomaly", "train", "channel"]
-FEATURE_COLS = [c for c in df.columns if c not in META_COLS]
-print(f"Feature sayisi: {len(FEATURE_COLS)}")
+# Kanonik ozellik seti: SADECE 18 resmi ESA handcrafted feature.
+# Benchmark ile birebir kiyaslanabilirlik icin meta sutunlar (channel, sampling)
+# ve channel_id ozellik OLARAK kullanilmaz. Custom ozellikler (RMS/P2P/...) ve
+# channel bilgisi ayri bir "ozellik genisletme" ablasyonunda degerlendirilir.
+# Referans: Ruszczak et al. (2024), 18 handcrafted feature (Figure 2).
+ESA_18_FEATURES = [
+    "mean", "var", "std", "kurtosis", "skew", "n_peaks",
+    "duration", "len", "gaps_squared", "len_weighted",
+    "var_div_duration", "var_div_len",
+    "smooth10_n_peaks", "smooth20_n_peaks",
+    "diff_peaks", "diff2_peaks", "diff_var", "diff2_var",
+]
+FEATURE_COLS = [c for c in ESA_18_FEATURES if c in df.columns]
+assert len(FEATURE_COLS) == 18, f"18 ESA ozelligi beklenirken {len(FEATURE_COLS)} bulundu: {FEATURE_COLS}"
+print(f"Kanonik ozellik sayisi: {len(FEATURE_COLS)} (resmi ESA 18)")
 print(f"Features: {FEATURE_COLS}")
 
 # Train / Test split
@@ -79,30 +87,16 @@ print("Scaler, test_data, segment_features.parquet kaydedildi.\n")
 # ── Metrik Hesaplama ──
 ALL_METRICS = {}
 
-def calc_metrics(name, y_true, y_pred, y_score=None):
-    cm = confusion_matrix(y_true, y_pred)
-    tn = cm[0, 0] if cm.shape[0] > 1 else 0
-    fp = cm[0, 1] if cm.shape[0] > 1 else 0
-    far = fp / (fp + tn) if (fp + tn) > 0 else 0
-    m = {
-        "Accuracy": round(accuracy_score(y_true, y_pred), 4),
-        "Precision": round(precision_score(y_true, y_pred, zero_division=0), 4),
-        "Recall": round(recall_score(y_true, y_pred, zero_division=0), 4),
-        "F1": round(f1_score(y_true, y_pred, zero_division=0), 4),
-        "FAR": round(far, 4),
-    }
-    if y_score is not None:
-        try:
-            m["AUC-ROC"] = round(roc_auc_score(y_true, y_score), 4)
-        except Exception:
-            m["AUC-ROC"] = 0.0
-    else:
-        m["AUC-ROC"] = 0.0
+def calc_metrics(name, y_true, y_pred, y_score=None, inf_time_ms=None):
+    """OPS-SAT benchmark'in 7 zorunlu metrigini (MCC + AUC_PR dahil) hesaplar."""
+    m = compute_metrics(y_true, y_pred, y_score, inf_time_ms=inf_time_ms)
     ALL_METRICS[name] = m
     return m
 
 def print_metrics(name, m):
-    print(f"  {name:30s}  F1={m['F1']:.3f}  AUC={m['AUC-ROC']:.3f}  Acc={m['Accuracy']:.3f}")
+    ap = m.get("AUC_PR", float("nan"))
+    print(f"  {name:30s}  AUC_PR={ap:.3f}  F1={m['F1']:.3f}  "
+          f"MCC={m['MCC']:.3f}  AUC_ROC={m['AUC_ROC']:.3f}")
 
 
 # ══════════════════════════════════════════════════════════════
@@ -442,6 +436,49 @@ if "MLP" in SUP_MODELS:
 
 
 # ══════════════════════════════════════════════════════════════
+#  DERIN SIRALI / HIBRIT AGLAR (15 model) — KANONIK (resmi split, 18 ozellik)
+# ══════════════════════════════════════════════════════════════
+# Bu modeller daha once NB04 tarafindan random split + 24 ozellik ile egitiliyordu;
+# benchmark kiyaslanabilirligi icin burada resmi T uzerinde, 18 ozellikle, val
+# ayrimiyla egitilir ve resmi Psi'de 7 metrikle degerlendirilir. 18 tablo ozelligi
+# (orneklem, ozellik, 1) tensoruyle dizi olarak islenir (SupervisedAnomalyDetector).
+print("\n" + "-" * 60)
+print("  DERIN SIRALI MODELLER (resmi split, 18 ozellik)")
+print("-" * 60)
+try:
+    from sklearn.model_selection import train_test_split as _tts
+    from models.supervised import SupervisedAnomalyDetector
+
+    # Resmi T'den validation ayir (erken durdurma); Psi (X_test_s) DOKUNULMAZ
+    Xtr_d, Xval_d, ytr_d, yval_d = _tts(
+        X_train_s, y_train, test_size=0.15, random_state=42, stratify=y_train)
+
+    det = SupervisedAnomalyDetector(random_state=42)
+    seq_trainers = {
+        "LSTM": det.train_lstm, "BiLSTM": det.train_bilstm, "GRU": det.train_gru,
+        "BiGRU": det.train_bigru, "CNN1D": det.train_cnn1d, "CNN_LSTM": det.train_cnn_lstm,
+        "CNN_BiLSTM": det.train_cnn_bilstm, "CNN_GRU": det.train_cnn_gru,
+        "Transformer": det.train_transformer, "TCN": det.train_tcn,
+        "Attention_BiLSTM": det.train_attention_bilstm, "FCN": det.train_fcn,
+        "ResNet1D": det.train_resnet1d, "InceptionTime": det.train_inceptiontime,
+        "LSTM_FCN": det.train_lstm_fcn,
+    }
+    for name, trainer in seq_trainers.items():
+        try:
+            trainer(Xtr_d, ytr_d, Xval_d, yval_d, epochs=40, batch_size=32)
+            model = det.models[name]
+            prob = model.predict(det._reshape_seq(X_test_s), verbose=0).flatten()
+            pred = (prob >= 0.5).astype(int)
+            m = calc_metrics(name, y_test, pred, prob)
+            print_metrics(name, m)
+            det.save_model(name, os.path.join(MODEL_DIR, f"{name.lower()}_model.keras"))
+        except Exception as e:
+            print(f"  {name:30s}  ATLANDI ({str(e)[:50]})")
+except Exception as e:
+    print(f"  Derin sirali modeller atlandi: {e}")
+
+
+# ══════════════════════════════════════════════════════════════
 #  THRESHOLD VE METRIK KAYDI
 # ══════════════════════════════════════════════════════════════
 print("\n" + "─" * 60)
@@ -463,14 +500,15 @@ print("\n" + "=" * 60)
 print("  OZET")
 print("=" * 60)
 
-# Sort by F1
-sorted_models = sorted(ALL_METRICS.items(), key=lambda x: x[1]["F1"], reverse=True)
-print(f"\n{'Model':30s}  {'F1':>7s}  {'AUC':>7s}  {'Acc':>7s}  {'Prec':>7s}  {'Recall':>7s}")
-print("-" * 75)
-for name, m in sorted_models[:15]:
-    print(f"{name:30s}  {m['F1']:7.4f}  {m['AUC-ROC']:7.4f}  {m['Accuracy']:7.4f}  {m['Precision']:7.4f}  {m['Recall']:7.4f}")
-if len(sorted_models) > 15:
-    print(f"  ... ve {len(sorted_models) - 15} model daha")
+# AUC_PR'a gore sirala (makaleyle ayni birincil olcut)
+df_sorted = metrics_table(ALL_METRICS, sort_by=PRIMARY_SORT_METRIC)
+print(f"\n{'Model':30s}  {'AUC_PR':>7s}  {'F1':>7s}  {'MCC':>7s}  {'AUC_ROC':>7s}  {'Acc':>7s}")
+print("-" * 80)
+for name, row in df_sorted.head(15).iterrows():
+    print(f"{name:30s}  {row['AUC_PR']:7.4f}  {row['F1']:7.4f}  {row['MCC']:7.4f}  "
+          f"{row['AUC_ROC']:7.4f}  {row['Accuracy']:7.4f}")
+if len(df_sorted) > 15:
+    print(f"  ... ve {len(df_sorted) - 15} model daha")
 
 print(f"\nToplam {len(ALL_METRICS)} model egitildi ve kaydedildi.")
 print(f"Model dosyalari: {MODEL_DIR}")

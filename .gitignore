@@ -68,6 +68,15 @@ data/processed/*.pkl
 data/features/*.csv
 data/features/*.parquet
 data/features/*.pkl
+# Sentetik uretilmis veri (yeniden uretilebilir: Notebook 09)
+data/synthetic/
+
+# ========================
+# Referans makaleler (telif) ve egitim artefaktlari
+# ========================
+resources/
+catboost_info/
+reports/*.csv
 
 # ========================
 # Eğitilmiş Modeller

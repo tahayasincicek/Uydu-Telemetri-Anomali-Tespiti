@@ -301,11 +301,215 @@ class ReactionWheelFeatureEngineer:
 #  Referans: Ruszczak et al. (2024) "The OPS-SAT benchmark for
 #  detecting anomalies in satellite telemetry"
 #
-#  segments.csv  ──►  dataset.csv  (18 handcrafted feature)
+#  Tam yasam dongusu:
+#    raw_telemetry  ──►  segments.csv  ──►  dataset.csv
+#    (surekli akis)      (segment_raw      (extract_esa_features
+#                         _telemetry)        18 handcrafted feature)
 # ═══════════════════════════════════════════════════════════════════════
 from scipy.signal import find_peaks
 from scipy.ndimage import uniform_filter1d
 from scipy import stats as sp_stats
+
+
+# Segmentleyici icin varsayilan uzunluk profilleri (gercek OPSSAT-AD'den).
+# synthetic_generator.CHANNEL_PROFILES ile ayni degerler; bagimsizlik icin
+# burada da bulunur. Bilinmeyen kanallar icin _DEFAULT_LEN_PROFILE kullanilir.
+_DEFAULT_LEN_PROFILE = {"len_mean": 120, "len_std": 90, "len_min": 14, "len_max": 700}
+
+
+def segment_raw_telemetry(raw_df: pd.DataFrame,
+                          profiles: Optional[Dict[str, dict]] = None,
+                          train_ratio: float = 0.70,
+                          gap_factor: float = 3.0,
+                          min_gap_seconds: float = 150.0,
+                          min_anomaly_overlap: float = 0.10,
+                          seed: int = 42) -> pd.DataFrame:
+    """Surekli ham telemetriyi segments.csv formatina boler (HIBRIT).
+
+    Iki asamali, gercek veriye dayali segmentasyon:
+      1. **Bosluk-bolme:** Ardisik ornekler arasi Δt, kosu siniri esigini asarsa
+         yeni bir "kosu" (kampanya) baslar. Esik = `max(gap_factor * sampling,
+         min_gap_seconds)`. `min_gap_seconds` tabani, onboard mikro-bosluklarinin
+         (2x sampling) ve buyuk-bosluk artefaktlarinin (<=130s) yanlislikla kosu
+         bolmesini onler — bunlar segment ICINDE kalmalidir (gaps_squared'a katki).
+      2. **Uzunluk-penceresi:** Her kosu, kanalin gercek segment uzunluk
+         dagilimina (`len_mean`/`len_std`, [`len_min`, `len_max`] ile kirpilmis)
+         uyan pencerelere bolunur.
+
+    Anomali etiketi ATANMAZ, TURETILIR: bir segment, icinde ground-truth anomali
+    ornegi (`_anomaly_truth`) tasiyorsa "anomaly" olarak etiketlenir. Bu sutun
+    yoksa tum segmentler nominal kabul edilir.
+
+    Args:
+        raw_df: Surekli ham akis (channel, timestamp, value, sampling
+                [, _anomaly_truth]).
+        profiles: Kanal -> uzunluk profili sozlugu. None ise
+                  synthetic_generator.CHANNEL_PROFILES denenir.
+        train_ratio: Train olarak isaretlenecek segment orani.
+        gap_factor: Kosu siniri esigi (Δt > gap_factor * sampling).
+        seed: Pencere uzunlugu ve train atamasi icin rastgelelik tohumu.
+
+    Returns:
+        DataFrame — segments.csv formati (channel, timestamp, value, label,
+                     sampling, anomaly, segment, train).
+    """
+    if profiles is None:
+        try:
+            from synthetic_generator import CHANNEL_PROFILES as profiles
+        except ImportError:
+            try:
+                from src.synthetic_generator import CHANNEL_PROFILES as profiles
+            except ImportError:
+                profiles = {}
+
+    rng = np.random.default_rng(seed)
+    out = []
+    seg_id = 0
+
+    for ch, g in raw_df.groupby("channel", sort=False):
+        g = g.sort_values("timestamp").reset_index(drop=True)
+        ts = pd.to_datetime(g["timestamp"])
+        dt = ts.diff().dt.total_seconds().fillna(0.0).values
+        samp = int(g["sampling"].mode().values[0]) if "sampling" in g.columns else 1
+        prof = profiles.get(ch, _DEFAULT_LEN_PROFILE)
+        lm, ls = prof["len_mean"], prof["len_std"]
+        lmin, lmax = prof["len_min"], prof["len_max"]
+
+        # 1) Bosluk-bolme: kosu sinirlari (artefakt bosluklarinin uzerinde bir taban ile)
+        gap_threshold = max(gap_factor * samp, min_gap_seconds)
+        run_id = (dt > gap_threshold).cumsum()
+
+        # 2) Her kosu icinde uzunluk-penceresi
+        for _rid, run in g.groupby(run_id, sort=False):
+            run = run.reset_index(drop=True)
+            n = len(run)
+            pos = 0
+            while pos < n:
+                wlen = int(np.clip(round(rng.normal(lm, ls)), lmin, lmax))
+                end = min(pos + wlen, n)
+                # Son artik parca cok kisaysa mevcut pencereye birlestir
+                if 0 < n - end < lmin:
+                    end = n
+                seg_id += 1
+                sl = run.iloc[pos:end]
+                # Etiket TURETME: segment, anomaliyi anlamli oranda iceriyorsa
+                # anomalidir. Tek bir sizan ornek komsu segmenti etiketlemez
+                # (esik = max(3 ornek, min_anomaly_overlap * segment_uzunlugu)).
+                if "_anomaly_truth" in sl.columns:
+                    n_anom = int(sl["_anomaly_truth"].sum())
+                    thresh = max(3, int(np.ceil(min_anomaly_overlap * len(sl))))
+                    anom = int(n_anom >= thresh)
+                else:
+                    anom = 0
+                for _, r in sl.iterrows():
+                    out.append({
+                        "channel": ch,
+                        "timestamp": r["timestamp"],
+                        "value": r["value"],
+                        "label": "anomaly" if anom else "nominal",
+                        "sampling": samp,
+                        "anomaly": anom,
+                        "segment": seg_id,
+                        "train": 0,
+                    })
+                pos = end
+
+    df = pd.DataFrame(out)
+    if len(df) == 0:
+        return df
+
+    # Train/test bayragi (segment bazinda)
+    seg_ids = df["segment"].unique()
+    n_train = int(len(seg_ids) * train_ratio)
+    train_ids = set(rng.choice(seg_ids, size=n_train, replace=False))
+    df["train"] = df["segment"].isin(train_ids).astype(int)
+
+    n_seg = len(seg_ids)
+    n_anom = df.groupby("segment")["anomaly"].first().sum()
+    print(f"Segmentasyon tamamlandi: {n_seg} segment ({n_anom} anomali, "
+          f"%{n_anom / n_seg * 100:.1f}), {len(df):,} satir.")
+    return df
+
+
+def augment_segments_iccs(segments_df: pd.DataFrame,
+                          modes=("omega1", "omega2", "omega3"),
+                          nominal_only: bool = True,
+                          seed: int = 42) -> pd.DataFrame:
+    """ICCS sinyal-seviyesi veri augmentasyonu (Ruszczak et al. 2023).
+
+    Ham segmentlere (segments.csv formati) sinyal-uzayi donusumleri uygular ve
+    yeni (sentetik-olmayan, gercek sinyalden tureyen) segmentler uretir. Makale,
+    uzman-onayli anomalileri korumak icin augmentasyonu YALNIZ nominal segmentlere
+    uygular (nominal_only=True).
+
+    Donusumler (makaledeki terminolojinin yorumu acikca belirtilmistir):
+      - omega1 (OX ekseni etrafinda ayna): dikey yansima, v -> 2*median - v.
+        Carpiklik (skew) isaretini ters cevirir; ortalama/varyans korunur.
+      - omega2 (zaman tersine cevirme): v -> v[::-1]. Sirali/turev tabanli
+        ozellikleri etkiler (dagilimsal ozellikler korunur).
+      - omega3 (kaydirma): dairesel kaydirma (segment uzunlugunun %15-25'i).
+
+    Yeni segmentler nominal (anomaly=0), train=1 olarak isaretlenir ve yeni
+    benzersiz segment kimlikleri alir (orijinal kimliklerle cakismaz).
+
+    Args:
+        segments_df: Ham segments.csv (channel, timestamp, value, sampling,
+                     anomaly, segment[, train]).
+        modes: Uygulanacak donusumler.
+        nominal_only: True ise yalniz nominal (anomaly==0) segmentler augmente edilir.
+        seed: omega3 kaydirma miktari icin rastgelelik tohumu.
+
+    Returns:
+        DataFrame — augmente edilmis YENI segmentler (orijinaller dahil DEGIL),
+                    segments.csv ile ayni sutunlar.
+    """
+    rng = np.random.default_rng(seed)
+    src = segments_df
+    if nominal_only and "anomaly" in src.columns:
+        src = src[src["anomaly"] == 0]
+
+    base_max = int(segments_df["segment"].max())
+    out = []
+    new_seg = base_max
+    for mode in modes:
+        for seg_id, grp in src.groupby("segment", sort=True):
+            g = grp.sort_values("timestamp") if "timestamp" in grp.columns else grp
+            v = g["value"].values.astype(float)
+            n = len(v)
+            if n < 3:
+                continue
+            if mode == "omega1":                         # OX ekseni: dikey ayna
+                med = np.median(v)
+                vv = 2.0 * med - v
+            elif mode == "omega2":                       # zaman tersine cevirme
+                vv = v[::-1].copy()
+            elif mode == "omega3":                        # dairesel kaydirma %15-25
+                shift = int(n * rng.uniform(0.15, 0.25))
+                vv = np.roll(v, shift if shift > 0 else 1)
+            else:
+                continue
+
+            new_seg += 1
+            ch = g["channel"].iloc[0] if "channel" in g.columns else "AUG"
+            samp = int(g["sampling"].iloc[0]) if "sampling" in g.columns else 1
+            ts = g["timestamp"].values if "timestamp" in g.columns else range(n)
+            for i in range(n):
+                out.append({
+                    "channel": ch,
+                    "timestamp": ts[i],
+                    "value": vv[i],
+                    "label": "nominal",
+                    "sampling": samp,
+                    "anomaly": 0,
+                    "segment": new_seg,
+                    "train": 1,
+                })
+
+    aug = pd.DataFrame(out)
+    n_new = aug["segment"].nunique() if len(aug) else 0
+    print(f"ICCS augmentasyon: {modes} -> {n_new} yeni nominal segment "
+          f"(kaynak: {src['segment'].nunique()} nominal segment).")
+    return aug
 
 
 def extract_esa_features(segments_df: pd.DataFrame,

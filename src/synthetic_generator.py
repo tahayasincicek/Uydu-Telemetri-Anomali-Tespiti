@@ -148,6 +148,13 @@ class SyntheticTelemetryGenerator:
         Tipik desen: sifirdan baslar, monoton yukselir (veya tersi),
         ust sinir ~pi/2. Cok az gurultu — gercek veride sinyal
         neredeyse tamamen duzgun.
+
+        Gercek OPS-SAT fotodiyot sinyalleri zamanin cogunu sifira yakin
+        (uydu golgede) gecirir; ortalama/maks orani ~0.15-0.35'tir. Duz
+        rise/fall/sin desenleri bunu yakalamaz (ortalamalari ~0.5*max olur),
+        bu yuzden desenler dusuk-deger egilimli bir us (gamma >= 1) ile
+        sekillendirilir. Gamma, kanal profilinin ort/maks oranindan turetilir:
+            E[max * t**gamma] = max / (gamma + 1)  ->  gamma = max/mean - 1
         """
         pattern = self.rng.choice(["rise", "fall", "plateau", "rise_fall"])
 
@@ -156,15 +163,24 @@ class SyntheticTelemetryGenerator:
         # Gercek PD sinyali cok duzgun, gurultu cok dusuk
         noise_std = max_val * 0.005
 
+        # Dusuk-deger egilimi: profil ort/maks oranindan us (gamma) turet.
+        # Profil ortalamasi sifir bloklarini da icerdiginden, sifir-disi desenin
+        # gercek sifir-disi oranina (~0.15-0.35) oturmasi icin orani ~1.2x olceriz.
+        # (rise_fall = sin**gamma deseni ortalamayi bir miktar yukari ceker.)
+        ratio = profile.get("signal_mean", max_val * 0.3) / max_val if max_val > 0 else 0.3
+        ratio = float(np.clip(ratio * 1.2, 0.08, 0.45))
+        gamma = 1.0 / ratio - 1.0   # ratio kucukse gamma buyur (daha cok sifira yakin)
+
         if pattern == "rise":
-            base = max_val * t
+            base = max_val * t ** gamma
         elif pattern == "fall":
-            base = max_val * (1 - t)
+            base = max_val * (1 - t) ** gamma
         elif pattern == "plateau":
-            level = self.rng.uniform(0, max_val)
+            # Dusuk-deger agirlikli sabit seviye (mean = ratio * max)
+            level = max_val * self.rng.beta(1.0, gamma)
             base = np.full(n, level)
         else:  # rise_fall
-            base = max_val * np.sin(np.pi * t)
+            base = max_val * np.sin(np.pi * t) ** gamma
 
         signal = base + self.rng.normal(0, noise_std, size=n)
         signal = np.clip(signal, 0, max_val * 1.05)
@@ -495,6 +511,158 @@ class SyntheticTelemetryGenerator:
         segments_df = self.generate(n_segments, anomaly_ratio, channels)
         dataset_df = extract_esa_features(segments_df)
         return segments_df, dataset_df
+
+    # ───────────────────────────────────────────────
+    #  Surekli (segmentasyon oncesi) ham akis ureticileri
+    # ───────────────────────────────────────────────
+
+    def _gen_magnetometer_continuous(self, n: int, profile: dict) -> np.ndarray:
+        """Uzun, kesintisiz manyetometre akisi (Ornstein-Uhlenbeck sureci).
+
+        Gercek manyetometre telemetrisi tek bir surekli akistir; bir pencereye
+        (segment) bakildiginda yerel olarak duzgun bir trend gorulur. OU sureci
+        bu davranisi dogal olarak uretir: ortalamaya geri donen, durağan std'si
+        profilin signal_std'sine esit bir rastgele yuruyus.
+        """
+        mu = profile["signal_mean"]
+        target_std = profile["signal_std"]
+        theta = 0.01                                   # ortalamaya donus hizi
+        sigma = target_std * np.sqrt(2 * theta)        # duragan std ~ target_std
+        x = np.empty(n)
+        x[0] = mu
+        for i in range(1, n):
+            x[i] = x[i - 1] + theta * (mu - x[i - 1]) + sigma * self.rng.standard_normal()
+        # cok kucuk olcum gurultusu
+        x = x + self.rng.normal(0, target_std * 0.02, size=n)
+        return np.clip(x, profile["signal_min"] * 1.2, profile["signal_max"] * 1.2)
+
+    def _gen_photodiode_continuous(self, n: int, profile: dict) -> np.ndarray:
+        """Uzun, kesintisiz fotodiyot akisi (yorunge-periyodik gunduz/golge).
+
+        Fotodiyot, yorunge boyunca gunes acisina gore periyodik bir desen izler.
+        Surekli akis, dusuk-deger egilimli (gamma) bir sinusoidal dongu olarak
+        modellenir; periyot yorunge suresini temsil eder.
+        """
+        max_val = profile["signal_max"]
+        # Dusuk-deger egilimi (segment ureticisiyle ayni mantik)
+        ratio = profile.get("signal_mean", max_val * 0.3) / max_val if max_val > 0 else 0.3
+        ratio = float(np.clip(ratio * 1.2, 0.08, 0.45))
+        gamma = 1.0 / ratio - 1.0
+
+        period = int(self.rng.integers(150, 600))      # yorunge periyodu (ornek)
+        phase = self.rng.uniform(0, 2 * np.pi)
+        t = np.arange(n)
+        cycle = 0.5 * (1 + np.sin(2 * np.pi * t / period + phase))   # [0, 1]
+        base = max_val * cycle ** gamma
+        base = base + self.rng.normal(0, max_val * 0.005, size=n)
+        return np.clip(base, 0, max_val * 1.05)
+
+    def generate_raw_stream(self,
+                            channels: Optional[List[str]] = None,
+                            n_segments_hint: int = 500,
+                            anomaly_ratio: float = 0.20,
+                            inter_campaign_gap: Tuple[float, float] = (300.0, 7200.0)
+                            ) -> pd.DataFrame:
+        """Segmentasyon ONCESI surekli ham telemetri akisi uret.
+
+        Gercek OPS-SAT yasam dongusunu taklit eder: kanal basina kesintisiz
+        toplama kampanyalari, aralarinda zaman bosluklari. Anomaliler akisa
+        enjekte edilir ve ornek-bazli bir ground-truth maskesi tutulur — segment
+        SINIRI veya segment ETIKETI yoktur. Segmentasyon ayri bir adimdir
+        (`feature_engineer.segment_raw_telemetry`).
+
+        Args:
+            channels: Kullanilacak kanallar (None = tum kanallar).
+            n_segments_hint: Segmentasyon sonrasi yaklasik segment sayisi hedefi
+                (kampanya boyutlandirmasi icin kullanilir).
+            anomaly_ratio: Anomalili olmasi beklenen pencere orani.
+            inter_campaign_gap: Kampanyalar arasi bosluk araligi (saniye).
+
+        Returns:
+            DataFrame — surekli ham akis (channel, timestamp, value, sampling,
+                         _anomaly_truth). `_anomaly_truth` yalnizca dogrulama /
+                         etiket turetme icindir; gercek ham veride bulunmaz.
+        """
+        if channels is None:
+            channels = list(CHANNEL_PROFILES.keys())
+
+        weights = np.array([CHANNEL_PROFILES[c]["weight"] for c in channels])
+        weights /= weights.sum()
+        seg_alloc = self.rng.multinomial(n_segments_hint, weights)
+        fmt = "%Y-%m-%dT%H:%M:%S.000Z"
+
+        rows = []
+        for ci, ch in enumerate(channels):
+            profile = CHANNEL_PROFILES[ch]
+            target_segs = int(seg_alloc[ci])
+            if target_segs <= 0:
+                continue
+
+            produced = 0
+            cur = self.base_time + timedelta(seconds=int(self.rng.integers(0, 86400)))
+
+            while produced < target_segs:
+                # Kampanya = k adet segment-uzunlugu kadar kesintisiz akis
+                k = int(min(target_segs - produced, self.rng.integers(2, 9)))
+                seg_lens = [
+                    int(np.clip(self.rng.normal(profile["len_mean"], profile["len_std"]),
+                                profile["len_min"], profile["len_max"]))
+                    for _ in range(k)
+                ]
+                L = int(sum(seg_lens))
+                sampling = int(self.rng.choice(profile["sampling_options"],
+                                               p=profile["sampling_weights"]))
+
+                # Surekli sinyal (tum kampanya boyunca tek parca)
+                if profile["type"] == "magnetometer":
+                    signal = self._gen_magnetometer_continuous(L, profile)
+                else:
+                    signal = self._gen_photodiode_continuous(L, profile)
+
+                # Anomalileri alt-pencerelerin MERKEZINE enjekte et (~anomaly_ratio).
+                # Merkeze lokalize etmek, segmentleyici bagimsiz kestiginde anomalinin
+                # komsu segmente tasmasini (etiket yayilmasi) azaltir.
+                anom_mask = np.zeros(L, dtype=int)
+                offsets = np.cumsum([0] + seg_lens)
+                for j in range(k):
+                    if self.rng.random() < anomaly_ratio:
+                        a, b = int(offsets[j]), int(offsets[j + 1])
+                        margin = int((b - a) * 0.20)        # merkez %60'a lokalize et
+                        ca, cb = a + margin, b - margin
+                        if cb - ca < 3:                     # cok kisa pencere: tamamini kullan
+                            ca, cb = a, b
+                        sub, _atype = self._inject_anomaly(signal[ca:cb].copy(), profile)
+                        signal[ca:cb] = sub
+                        anom_mask[ca:cb] = 1
+
+                # Surekli zaman damgalari + onboard artefaktlar
+                timestamps = [
+                    (cur + timedelta(seconds=int(i * sampling))).strftime(fmt)
+                    for i in range(L)
+                ]
+                signal, timestamps = self._apply_onboard_artifacts(
+                    signal, timestamps, sampling, profile, bool(anom_mask.any()))
+
+                for i in range(L):
+                    rows.append({
+                        "channel": ch,
+                        "timestamp": timestamps[i],
+                        "value": signal[i],
+                        "sampling": sampling,
+                        "_anomaly_truth": int(anom_mask[i]),
+                    })
+
+                produced += k
+                # Kampanyalar arasi zaman boslugu
+                last_t = datetime.strptime(timestamps[-1], fmt)
+                gap = float(self.rng.uniform(*inter_campaign_gap))
+                cur = last_t + timedelta(seconds=gap)
+
+        df = pd.DataFrame(rows)
+        n_anom_samples = int(df["_anomaly_truth"].sum()) if len(df) else 0
+        print(f"Ham akis uretildi: {len(df):,} ornek, {len(channels)} kanal, "
+              f"{n_anom_samples:,} anomali ornegi.")
+        return df
 
 
 # ═══════════════════════════════════════════════════════════
