@@ -237,7 +237,7 @@ body {
 .col-grid-item {
   display: flex; align-items: center; justify-content: space-between;
   padding: 5px 10px; border-radius: 0; font-size: 12px;
-  background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04);
+  background: var(--bg-secondary); border: 1px solid var(--border);
 }
 .col-grid-item .col-name { color: var(--text-secondary); font-weight: 500; }
 .col-grid-item .col-dtype {
