@@ -440,17 +440,17 @@ def _performance_recommendation():
     ])
 
 
-def page_performance():
-    if not ALL_METRICS:
-        return html.Div("Metrik verisi bulunamadi.")
-
-    mdf = pd.DataFrame(ALL_METRICS).T
-    cols = [c for c in BENCHMARK_METRICS + ["FAR"] if c in mdf.columns]
-    ranked = sorted(ALL_METRICS, key=lambda n: ALL_METRICS[n].get(PRIMARY_METRIC, 0), reverse=True)
-
-    fig_roc = go.Figure()
+_ROC_FIG_CACHE = None
+def build_roc_figure():
+    """ROC eğrilerini (tüm modeller için Ψ üzerinde predict) bir kez hesaplar ve
+    önbelleğe alır. Bu işlem ~3-12 sn sürdüğü için her sayfa ziyaretinde tekrar
+    edilmez; ilk hesaplama sırasında sayfada bir yükleme göstergesi (spinner) çıkar."""
+    global _ROC_FIG_CACHE
+    if _ROC_FIG_CACHE is not None:
+        return _ROC_FIG_CACHE
+    from sklearn.metrics import roc_curve, auc
+    fig = go.Figure()
     if TEST_DATA:
-        from sklearn.metrics import roc_curve, auc
         X_t, y_t = TEST_DATA["X_test"], TEST_DATA["y_test"]
         clrs = ["#3B82F6","#10B981","#F59E0B","#EF4444","#8B5CF6","#06B6D4","#F778A1","#A78BFA","#FB923C"]
         for i, (name, model) in enumerate(MODELS.items()):
@@ -458,12 +458,23 @@ def page_performance():
                 _, prob = predict(model, name, X_t, THRESHOLDS, 1.0)
                 fpr, tpr, _ = roc_curve(y_t, prob)
                 a = auc(fpr, tpr)
-                fig_roc.add_trace(go.Scatter(x=fpr, y=tpr, mode="lines", name=f"{name} ({a:.3f})",
-                                             line=dict(color=clrs[i % len(clrs)], width=2)))
+                fig.add_trace(go.Scatter(x=fpr, y=tpr, mode="lines", name=f"{name} ({a:.3f})",
+                                         line=dict(color=clrs[i % len(clrs)], width=2)))
             except Exception as e:
                 print(f"ROC çizilemedi ({name}):", e)
-    fig_roc.add_trace(go.Scatter(x=[0,1], y=[0,1], mode="lines", line=dict(dash="dash", color="#4A5568"), showlegend=False))
-    fig_roc.update_layout(**PLT_LAYOUT, height=400, title="ROC Egrileri", xaxis_title="FPR", yaxis_title="TPR")
+    fig.add_trace(go.Scatter(x=[0,1], y=[0,1], mode="lines", line=dict(dash="dash", color="#4A5568"), showlegend=False))
+    fig.update_layout(**PLT_LAYOUT, height=400, title="ROC Eğrileri", xaxis_title="FPR", yaxis_title="TPR")
+    _ROC_FIG_CACHE = fig
+    return fig
+
+
+def page_performance():
+    if not ALL_METRICS:
+        return html.Div("Metrik verisi bulunamadi.")
+
+    mdf = pd.DataFrame(ALL_METRICS).T
+    cols = [c for c in BENCHMARK_METRICS + ["FAR"] if c in mdf.columns]
+    ranked = sorted(ALL_METRICS, key=lambda n: ALL_METRICS[n].get(PRIMARY_METRIC, 0), reverse=True)
 
     top = ranked[:6]
     cats = ["Accuracy","Precision","Recall","F1","MCC","AUC_ROC","AUC_PR"]
@@ -502,7 +513,14 @@ def page_performance():
         _performance_recommendation(),
         html.Br(),
         dbc.Row([
-            dbc.Col(html.Div(className="panel", children=[dcc.Graph(figure=fig_roc, config={"displayModeBar": False})]), md=7),
+            dbc.Col(html.Div(className="panel", children=[
+                dcc.Loading(id="loading-roc", type="circle", color="#3B82F6",
+                            children=html.Div(id="performance-roc", children=[
+                                html.Div([icon("mdi:chart-bell-curve-cumulative", 28, "#3B82F6"),
+                                          html.Br(), html.Br(),
+                                          "ROC eğrileri hesaplanıyor (42 model)..."],
+                                         className="info-box", style={"textAlign": "center"})]))
+            ]), md=7),
             dbc.Col(html.Div(className="panel", children=[dcc.Graph(figure=fig_radar, config={"displayModeBar": False})]), md=5),
         ], className="g-3")
     ])
@@ -553,13 +571,20 @@ def page_live():
     channels = LIVE_DATA['channel'].unique().tolist() if not LIVE_DATA.empty and 'channel' in LIVE_DATA.columns else []
     fast_models = [n for n in ["IsolationForest", "LOF", "OneClassSVM", "KMeans"] if n in MODELS]
     
+    # Grafikleri başlangıçta boş iz'lerle (trace) kur — extendData yalnızca var olan
+    # iz'leri uzatabilir; aksi halde "Başlat"ta (Sıfırla'ya basılmadan) hiçbir şey çizilmez.
     fig_sig = go.Figure()
     fig_sig.update_layout(**PLT_LAYOUT, height=300,
                           xaxis=dict(showgrid=True, gridcolor="#1C2A3A"), yaxis=dict(showgrid=True, gridcolor="#1C2A3A"))
+    fig_sig.add_trace(go.Scatter(x=[], y=[], mode="lines", line=dict(color="#6A8099", width=1.5), name="Sinyal"))
+    fig_sig.add_trace(go.Scatter(x=[], y=[], mode="markers", marker=dict(color="#FF3B5C", size=8), name="Anomali"))
     fig_score = go.Figure()
     fig_score.update_layout(**PLT_LAYOUT, height=150,
                             xaxis=dict(showgrid=True, gridcolor="#1C2A3A"), yaxis=dict(range=[0, 1.05]))
-                            
+    fig_score.add_trace(go.Scatter(x=[], y=[], mode="lines", line=dict(color="#00C8FF", width=2),
+                                   fill='tozeroy', fillcolor='rgba(0,200,255,0.1)', name="Skor"))
+    fig_score.add_hline(y=0.5, line_dash="dash", line_color="#FF3B5C")
+
     return html.Div(className="live-page-container", children=[
         html.Div(className="page-header", children=[
             html.Div("Canlı İzleme", className="page-title"),
@@ -669,6 +694,14 @@ def render_page(page_id):
     if page_id == "detail":
         return html.Div(), {"display": "none"}, {"display": "none"}, {"display": "block"}
     return PAGES.get(page_id, page_dashboard)(), {"display": "block"}, {"display": "none"}, {"display": "none"}
+
+@callback(Output("performance-roc", "children"), Input("current-page", "data"))
+def load_performance_roc(page_id):
+    """Model Performans sayfasi acildiginda agir ROC hesabini (onbellekli) yukler;
+    dcc.Loading sayesinde hesap suresince spinner gosterilir."""
+    if page_id != "performance":
+        return no_update
+    return dcc.Graph(figure=build_roc_figure(), config={"displayModeBar": False})
 
 @callback(Output("uploaded-data", "data"), Output("upload-preview", "children"),
           Input("file-upload", "contents"), Input("btn-demo", "n_clicks"),
