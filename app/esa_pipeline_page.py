@@ -12,16 +12,11 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from dash import html, dcc, callback, Input, Output, State, no_update, ctx, dash_table
 import dash_bootstrap_components as dbc
-from dash_iconify import DashIconify
+
+from utils.ui import PLT_LAYOUT, icon as _icon, metric_card as _metric_card
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(ROOT, "src"))
-
-PLT_LAYOUT = dict(
-    template="plotly_dark", paper_bgcolor="#080C14", plot_bgcolor="#080C14",
-    font=dict(family="IBM Plex Sans", color="#94A3B8"),
-    margin=dict(l=40, r=20, t=40, b=30),
-)
 
 SEGMENTS_PATH = os.path.join(ROOT, "data", "raw", "segments.csv")
 DATASET_PATH = os.path.join(ROOT, "data", "raw", "dataset.csv")
@@ -48,20 +43,6 @@ ESA_FEATURES = [
     ("var_div_duration", "Varyans/Sure", "Birim zamandaki varyans"),
     ("var_div_len", "Varyans/Uzunluk", "Veri noktasi basina varyans"),
 ]
-
-def _icon(name, size=18, color=None):
-    return DashIconify(icon=name, width=size, color=color or "#64748B")
-
-def _metric_card(ic, value, label, color="blue", footer=None):
-    children = [
-        html.Div(_icon(ic, 20), className="metric-icon"),
-        html.Div(str(value), className="metric-value"),
-        html.Div(label, className="metric-label"),
-    ]
-    if footer:
-        children.append(html.Div(footer, className="metric-card-footer"))
-    return html.Div(className=f"metric-card {color}", children=children)
-
 
 def get_esa_pipeline_layout():
     has_segments = os.path.exists(SEGMENTS_PATH)

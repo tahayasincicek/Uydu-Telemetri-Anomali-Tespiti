@@ -11,26 +11,8 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from dash import html, dcc, callback, Input, Output, no_update
 import dash_bootstrap_components as dbc
-from dash_iconify import DashIconify
 
-PLT_LAYOUT = dict(
-    template="plotly_dark", paper_bgcolor="#080C14", plot_bgcolor="#080C14",
-    font=dict(family="IBM Plex Sans", color="#94A3B8"),
-    margin=dict(l=40, r=20, t=40, b=30),
-)
-
-def _icon(name, size=18, color=None):
-    return DashIconify(icon=name, width=size, color=color or "#64748B")
-
-def _metric_card(ic, value, label, color="blue", footer=None):
-    children = [
-        html.Div(_icon(ic, 20), className="metric-icon"),
-        html.Div(str(value), className="metric-value"),
-        html.Div(label, className="metric-label"),
-    ]
-    if footer:
-        children.append(html.Div(footer, className="metric-card-footer"))
-    return html.Div(className=f"metric-card {color}", children=children)
+from utils.ui import PLT_LAYOUT, icon as _icon, metric_card as _metric_card
 
 
 # ── 10 000 orneklik referans veri seti icin guc profilleri ──────────────
@@ -129,8 +111,8 @@ def _build_df(dataset_size: int = 10000):
     rows = []
     for name, p in POWER_PROFILES.items():
         t = p["train_sec"] * scale
-        energy_wh = p["cpu_watts"] * t / 3600
-        co2_mg = energy_wh * CO2_FACTOR  # miligram degil, miliWh * factor -> mg
+        energy_wh = p["cpu_watts"] * t / 3600          # Wh
+        # CO2 (g) = enerji(kWh) * faktor(g/kWh) = (energy_wh/1000) * CO2_FACTOR
         rows.append({
             "Model": name,
             "Kategori": p["category"],

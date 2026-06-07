@@ -5,8 +5,12 @@ from scipy.signal import find_peaks
 
 def extract_features_from_raw(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Takes raw telemetry signals grouped by segment and calculates the 24 required
-    statistical and signal processing features for the ML models.
+    Ham telemetri sinyallerini segment bazında gruplar ve kanonik **18 ESA
+    handcrafted** özelliğini hesaplar (kanonik modeller bu 18 özelliği bekler;
+    bkz. models/test_data.joblib feature_cols ve docs/veri_ve_pipeline.md).
+
+    Not: Eski sürüm `custom_rms/p2p/crest/zcr` ve `channel_id` (24 özellik) de
+    üretiyordu; kanonik pipeline 18 ESA özelliğine geçtiği için bunlar kaldırıldı.
     """
     # Group by segment to calculate features per segment
     features = []
@@ -73,28 +77,12 @@ def extract_features_from_raw(df: pd.DataFrame) -> pd.DataFrame:
         # Div features
         f_dict['var_div_duration'] = f_dict['var'] / f_dict['duration'] if f_dict['duration'] > 0 else 0
         f_dict['var_div_len'] = f_dict['var'] / f_dict['len'] if f_dict['len'] > 0 else 0
-        
-        # Custom signal features (RMS, P2P, Crest, ZCR)
-        rms = np.sqrt(np.mean(val**2)) if len(val) > 0 else 0
-        p2p = np.ptp(val) if len(val) > 0 else 0
-        crest_factor = (np.max(np.abs(val)) / rms) if rms > 0 else 0
-        zcr = np.sum(np.diff(np.sign(val)) != 0) / n_len if n_len > 1 else 0
-        
-        f_dict['custom_rms'] = rms
-        f_dict['custom_p2p'] = p2p
-        f_dict['custom_crest_factor'] = crest_factor
-        f_dict['custom_zcr'] = zcr
-        
+
         features.append(f_dict)
-        
+
     df_features = pd.DataFrame(features)
-    
-    # Handle channel_id
-    if not df_features.empty:
-        # Give unique int for each channel. If CADC0872 is present, try to keep it 0
-        df_features['channel_id'] = pd.factorize(df_features['channel'])[0]
-        
+
     # Fill any NaNs
     df_features = df_features.fillna(0)
-    
+
     return df_features

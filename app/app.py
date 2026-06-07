@@ -26,6 +26,8 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.dirname(__file__))
 from utils.model_loader import load_all, predict, load_metrics
+from utils.feature_extractor import extract_features_from_raw
+from utils.ui import PLT_LAYOUT, icon, metric_card
 import joblib
 
 MODELS, THRESHOLDS, SCALER, TEST_DATA = load_all()
@@ -69,33 +71,46 @@ FEATURE_NAMES_TR = {
     'len_weighted': 'Agirlikli Uzunluk',
     'var_div_duration': 'Varyans/Sure',
     'var_div_len': 'Varyans/Uzunluk',
-    'custom_rms': 'RMS Degeri',
-    'custom_p2p': 'Tepeden Tepeye',
-    'custom_crest_factor': 'Tepe Faktoru',
-    'custom_zcr': 'Sifir Gecis Orani',
-    'channel_id': 'Kanal Numarasi',
 }
 
 DROP_COLS = ['segment', 'anomaly', 'train', 'channel']
 FEATURE_COLS = TEST_DATA.get("feature_cols", None) if TEST_DATA else None
 
-PLT_LAYOUT = dict(template="plotly_dark", paper_bgcolor="#080C14", plot_bgcolor="#080C14",
-                   font=dict(family="IBM Plex Sans", color="#94A3B8"), margin=dict(l=40, r=20, t=40, b=30))
+# ── Kanonik 7 metrik (src/metrics.py ile aynı; AUC_PR birincil sıralama ölçütü) ──
+BENCHMARK_METRICS = ["Accuracy", "Precision", "Recall", "F1", "MCC", "AUC_ROC", "AUC_PR"]
+PRIMARY_METRIC = "AUC_PR"
 
-# ── Helpers ──
-def icon(name, size=18, color=None):
-    return DashIconify(icon=name, width=size, color=color or "#64748B")
+SUP_MODEL_NAMES = ["RandomForest","XGBoost","SVM","MLP","LightGBM","CatBoost","Stacking Ensemble",
+                   "ExtraTrees","GradientBoosting","HistGradientBoosting","AdaBoost","KNN",
+                   "LogisticRegression","DecisionTree","NaiveBayes","Voting Ensemble",
+                   "LDA","QDA","Bagging","Ridge","SGD","LSVC","XGBOD",
+                   "LSTM","BiLSTM","GRU","BiGRU","CNN1D","CNN_LSTM","CNN_BiLSTM","CNN_GRU",
+                   "Transformer","TCN","Attention_BiLSTM","FCN","ResNet1D","InceptionTime","LSTM_FCN"]
+UNSUP_MODEL_NAMES = ["IsolationForest","OneClassSVM","KMeans","LOF","Autoencoder",
+                     "GMM","EllipticEnvelope","PCA","DBSCAN","VAE",
+                     "ECOD","COPOD","HBOS","CBLOF",
+                     "ABOD","COF","SOD","SOS","LODA","INNE","LMDD",
+                     "SO_GAAL","MO_GAAL","DeepSVDD","LUNAR","DIF","AnoGAN","ALAD"]
 
-def metric_card(ic, value, label, color="blue", footer=None):
-    children = [
-        html.Div(icon(ic, 20), className="metric-icon"),
-        html.Div(str(value), className="metric-value"),
-        html.Div(label, className="metric-label"),
-    ]
-    if footer:
-        children.append(html.Div(footer, className="metric-card-footer"))
-    return html.Div(className=f"metric-card {color}", children=children)
+_SHAP_EXPLAINERS = {}
+def get_tree_explainer(model):
+    """TreeExplainer'ı model başına bir kez kurup önbelleğe alır (her tıklamada
+    yeniden kurmamak için — detay sayfasında belirgin hızlanma sağlar)."""
+    key = id(model)
+    if key not in _SHAP_EXPLAINERS:
+        import shap
+        _SHAP_EXPLAINERS[key] = shap.TreeExplainer(model)
+    return _SHAP_EXPLAINERS[key]
 
+def best_model(metric=PRIMARY_METRIC, among=None):
+    """ALL_METRICS içinde verilen metriğe göre en iyi modeli (ad, metrik_dict) döndürür."""
+    pool = {n: v for n, v in ALL_METRICS.items() if among is None or n in among}
+    if not pool:
+        return None, {}
+    name = max(pool, key=lambda n: pool[n].get(metric, 0))
+    return name, pool[name]
+
+# ── Helpers ──  (PLT_LAYOUT, icon, metric_card için utils/ui.py'ye bakınız)
 def nav_item(ic, text, page_id):
     return html.Button(id={"type": "nav", "page": page_id}, n_clicks=0,
                        className="nav-item", children=[icon(ic, 18), html.Span(text)])
@@ -193,35 +208,36 @@ app.layout = html.Div(id="app-root", children=[
 
 # ── Page builders ──
 def page_dashboard():
-    m_best = ALL_METRICS.get("MLP", {})
+    best_name, m_best = best_model(PRIMARY_METRIC)   # AUC_PR'a göre en iyi model
     df_seg = pd.read_parquet(DEMO_PATH) if os.path.exists(DEMO_PATH) else pd.DataFrame()
     n_seg = len(df_seg)
     anom_ratio = f"%{df_seg['anomaly'].mean()*100:.1f}" if 'anomaly' in df_seg.columns else "N/A"
 
-    heatmap_data = {n: {k: ALL_METRICS[n].get(k, 0) for k in ["Accuracy","Precision","Recall","F1","AUC-ROC"]}
-                    for n in ALL_METRICS}
+    # AUC_PR'a göre en iyi 15 modelle 7-metrik ısı haritası (okunabilirlik için)
+    ordered = sorted(ALL_METRICS, key=lambda n: ALL_METRICS[n].get(PRIMARY_METRIC, 0), reverse=True)[:15]
+    heatmap_data = {n: {k: ALL_METRICS[n].get(k, 0) for k in BENCHMARK_METRICS} for n in ordered}
     hdf = pd.DataFrame(heatmap_data).T
     fig_heat = px.imshow(hdf, text_auto=".3f", color_continuous_scale="Blues",
                          labels=dict(color="Skor"), aspect="auto")
-    fig_heat.update_layout(**PLT_LAYOUT, height=360, title="Model Performans Matrisi",
+    fig_heat.update_layout(**PLT_LAYOUT, height=420, title="Model Performans Matrisi (AUC-PR ilk 15)",
                            coloraxis_colorbar=dict(title=""))
 
-    f1_data = {n: ALL_METRICS[n].get("F1", 0) for n in ALL_METRICS}
-    f1_sorted = dict(sorted(f1_data.items(), key=lambda x: x[1]))
-    colors = ["#EF4444" if v < 0.5 else "#F59E0B" if v < 0.7 else "#10B981" for v in f1_sorted.values()]
-    fig_rank = go.Figure(go.Bar(y=list(f1_sorted.keys()), x=list(f1_sorted.values()),
-                                orientation='h', marker_color=colors, text=[f"{v:.3f}" for v in f1_sorted.values()],
+    pr_data = {n: ALL_METRICS[n].get(PRIMARY_METRIC, 0) for n in ALL_METRICS}
+    pr_sorted = dict(sorted(pr_data.items(), key=lambda x: x[1]))
+    colors = ["#EF4444" if v < 0.5 else "#F59E0B" if v < 0.7 else "#10B981" for v in pr_sorted.values()]
+    fig_rank = go.Figure(go.Bar(y=list(pr_sorted.keys()), x=list(pr_sorted.values()),
+                                orientation='h', marker_color=colors, text=[f"{v:.3f}" for v in pr_sorted.values()],
                                 textposition='outside'))
-    fig_rank.update_layout(**PLT_LAYOUT, height=360, title="F1 Skor Sıralaması", xaxis_range=[0, 1.05])
+    fig_rank.update_layout(**PLT_LAYOUT, height=420, title="AUC-PR Sıralaması", xaxis_range=[0, 1.05])
 
     n_anomaly = int(df_seg['anomaly'].sum()) if 'anomaly' in df_seg.columns else 0
 
     now = time.strftime("%Y-%m-%d %H:%M")
     log_rows = [
-        [now, "Sistem başlatıldı", "9 model yüklendi", "Başarılı"],
+        [now, "Sistem başlatıldı", f"{len(MODELS)} model yüklendi", "Başarılı"],
         [now, "Veri seti yüklendi", f"{n_seg} segment, {len(FEATURE_COLS or [])} özellik", "Başarılı"],
         [now, "Model eğitimi", "OPSSAT-AD dataset", "Başarılı"],
-        [now, "En iyi model", f"MLP - AUC: {m_best.get('AUC-ROC',0):.3f}", "Başarılı"],
+        [now, "En iyi model", f"{best_name} - AUC-PR: {m_best.get(PRIMARY_METRIC,0):.3f}", "Başarılı"],
     ]
     def status_badge(s):
         cls = "badge-success" if s == "Başarılı" else "badge-error"
@@ -234,8 +250,8 @@ def page_dashboard():
         dbc.Row([
             dbc.Col(metric_card("mdi:database-outline", n_seg, "Toplam Segment", "blue", f"{n_seg} segment işlendi"), md=3),
             dbc.Col(metric_card("mdi:alert-circle-outline", anom_ratio, "Anomali Oranı", "red", f"{n_anomaly} anomali tespit edildi"), md=3),
-            dbc.Col(metric_card("mdi:trophy-outline", "MLP", "En İyi Model", "green", f"F1: {m_best.get('F1',0):.3f}"), md=3),
-            dbc.Col(metric_card("mdi:chart-arc", f"{m_best.get('AUC-ROC',0):.3f}", "AUC-ROC", "cyan", "Test seti üzerinde"), md=3),
+            dbc.Col(metric_card("mdi:trophy-outline", best_name or "N/A", "En İyi Model", "green", f"F1: {m_best.get('F1',0):.3f}"), md=3),
+            dbc.Col(metric_card("mdi:chart-arc", f"{m_best.get(PRIMARY_METRIC,0):.3f}", "AUC-PR (en iyi)", "cyan", "Resmi test seti (Ψ)"), md=3),
         ], className="mb-4 g-3"),
         dbc.Row([
             dbc.Col(html.Div(className="panel", children=[dcc.Graph(figure=fig_heat, config={"displayModeBar": False})]), md=8),
@@ -277,19 +293,8 @@ def page_upload():
 
 
 def page_analysis():
-    sup = [n for n in ["RandomForest","XGBoost","SVM","MLP", "LightGBM", "CatBoost", "Stacking Ensemble",
-                       "ExtraTrees","GradientBoosting","HistGradientBoosting","AdaBoost","KNN",
-                       "LogisticRegression","DecisionTree","NaiveBayes","Voting Ensemble",
-                       "LDA","QDA","Bagging","Ridge","SGD","LSVC","XGBOD",
-                       "LSTM","BiLSTM","GRU","BiGRU","CNN1D","CNN_LSTM","CNN_BiLSTM","CNN_GRU",
-                       "Transformer","TCN","Attention_BiLSTM","FCN","ResNet1D","InceptionTime","LSTM_FCN"]
-           if n in MODELS]
-    unsup = [n for n in ["IsolationForest","OneClassSVM","KMeans","LOF","Autoencoder",
-                         "GMM","EllipticEnvelope","PCA","DBSCAN","VAE",
-                         "ECOD","COPOD","HBOS","CBLOF",
-                         "ABOD","COF","SOD","SOS","LODA","INNE","LMDD",
-                         "SO_GAAL","MO_GAAL","DeepSVDD","LUNAR","DIF",
-                         "AnoGAN","ALAD"] if n in MODELS]
+    sup = [n for n in SUP_MODEL_NAMES if n in MODELS]
+    unsup = [n for n in UNSUP_MODEL_NAMES if n in MODELS]
     def model_option(name):
         f1 = ALL_METRICS.get(name, {}).get("F1", 0)
         return html.Span([name, html.Span(f"F1: {f1:.3f}", className="model-f1-badge")])
@@ -343,12 +348,34 @@ def page_results():
     ])
 
 
+def _performance_recommendation():
+    """ALL_METRICS'ten veri-güdümlü öneri kutusu üretir (AUC_PR birincil ölçüt)."""
+    best_name, m = best_model(PRIMARY_METRIC)
+    if not best_name:
+        return html.Div()
+    u_name, um = best_model(PRIMARY_METRIC, among=set(UNSUP_MODEL_NAMES))
+    parts = [
+        f"{best_name} modeli {m.get('AUC_PR',0):.3f} AUC-PR, {m.get('F1',0):.3f} F1 ve "
+        f"{m.get('MCC',0):.3f} MCC ile resmi test setinde (Ψ) en yüksek performansı göstermiştir. ",
+    ]
+    if "FAR" in m:
+        parts.append(f"Yanlış alarm oranı (FAR) {m.get('FAR',0):.3f}. ")
+    if u_name:
+        parts.append(f"Gözetimsiz modeller arasında {u_name} {um.get('AUC_PR',0):.3f} AUC-PR ile öne çıkmaktadır.")
+    return html.Div(className="recommendation-box", children=[
+        html.Div(className="rec-title", children=[icon("mdi:trophy-outline", 18, "#3B82F6"), f"Önerimiz: {best_name}"]),
+        html.Div(className="rec-body", children=parts),
+    ])
+
+
 def page_performance():
     if not ALL_METRICS:
         return html.Div("Metrik verisi bulunamadi.")
 
     mdf = pd.DataFrame(ALL_METRICS).T
-    cols = [c for c in ["Accuracy","Precision","Recall","F1","AUC-ROC","FAR"] if c in mdf.columns]
+    cols = [c for c in BENCHMARK_METRICS + ["FAR"] if c in mdf.columns]
+    # Tabloyu birincil metriğe (AUC_PR) göre azalan sırala
+    ranked = sorted(ALL_METRICS, key=lambda n: ALL_METRICS[n].get(PRIMARY_METRIC, 0), reverse=True)
 
     # ROC
     fig_roc = go.Figure()
@@ -364,13 +391,14 @@ def page_performance():
                 a = auc(fpr, tpr)
                 fig_roc.add_trace(go.Scatter(x=fpr, y=tpr, mode="lines", name=f"{name} ({a:.3f})",
                                              line=dict(color=clrs[i % len(clrs)], width=2)))
-            except: pass
+            except Exception as e:
+                print(f"ROC çizilemedi ({name}):", e)
     fig_roc.add_trace(go.Scatter(x=[0,1], y=[0,1], mode="lines", line=dict(dash="dash", color="#4A5568"), showlegend=False))
     fig_roc.update_layout(**PLT_LAYOUT, height=400, title="ROC Egrileri", xaxis_title="FPR", yaxis_title="TPR")
 
-    # Radar
-    top = [n for n in ["MLP","XGBoost","RandomForest","Autoencoder","LOF", "LightGBM", "CatBoost", "Stacking Ensemble"] if n in ALL_METRICS]
-    cats = ["Accuracy","Precision","Recall","F1","AUC-ROC"]
+    # Radar: AUC_PR'a göre en iyi 6 model
+    top = ranked[:6]
+    cats = ["Accuracy","Precision","Recall","F1","MCC","AUC_ROC","AUC_PR"]
     fig_radar = go.Figure()
     for n in top:
         vals = [ALL_METRICS[n].get(c, 0) for c in cats]
@@ -385,30 +413,25 @@ def page_performance():
             html.Div(className="panel-title", children=[icon("mdi:table", 16), "Metrik Tablosu"]),
             dash_table.DataTable(
                 columns=[{"name": "Model", "id": "Model"}] + [{"name": c, "id": c} for c in cols],
-                data=[{"Model": n, **{c: f"{ALL_METRICS[n].get(c,0):.4f}" for c in cols}} for n in ALL_METRICS],
+                data=[{"Model": n, **{c: f"{ALL_METRICS[n].get(c,0):.4f}" for c in cols}} for n in ranked],
                 style_header={"backgroundColor": "#0D1117", "color": "#64748B", "fontWeight": "600",
                                "border": "1px solid #1E2A3A", "textTransform": "uppercase", "fontSize": "11px"},
                 style_cell={"backgroundColor": "#151C28", "color": "#F1F5F9", "border": "1px solid #1E2A3A",
                              "fontFamily": "IBM Plex Sans", "fontSize": "12.5px", "padding": "10px"},
                 style_data_conditional=[
                     {"if": {"row_index": "odd"}, "backgroundColor": "#111827"},
-                    {"if": {"filter_query": '{AUC-ROC} > 0.95', "column_id": "AUC-ROC"}, "color": "#00FF9C", "fontWeight": "600"},
-                    {"if": {"filter_query": '{AUC-ROC} > 0.80 && {AUC-ROC} <= 0.95', "column_id": "AUC-ROC"}, "color": "#FFB300"},
-                    {"if": {"filter_query": '{AUC-ROC} <= 0.80', "column_id": "AUC-ROC"}, "color": "#FF3B5C"},
-                    {"if": {"filter_query": '{F1} > 0.95', "column_id": "F1"}, "color": "#00FF9C", "fontWeight": "600"},
-                    {"if": {"filter_query": '{F1} > 0.80 && {F1} <= 0.95', "column_id": "F1"}, "color": "#FFB300"},
-                    {"if": {"filter_query": '{F1} <= 0.80', "column_id": "F1"}, "color": "#FF3B5C"},
+                ] + [
+                    cond
+                    for col in ["AUC_PR", "AUC_ROC", "F1", "MCC"] if col in cols
+                    for cond in [
+                        {"if": {"filter_query": f'{{{col}}} > 0.95', "column_id": col}, "color": "#00FF9C", "fontWeight": "600"},
+                        {"if": {"filter_query": f'{{{col}}} > 0.80 && {{{col}}} <= 0.95', "column_id": col}, "color": "#FFB300"},
+                        {"if": {"filter_query": f'{{{col}}} <= 0.80', "column_id": col}, "color": "#FF3B5C"},
+                    ]
                 ],
             )
         ]),
-        html.Div(className="recommendation-box", children=[
-            html.Div(className="rec-title", children=[icon("mdi:trophy-outline", 18, "#3B82F6"), "Önerimiz: MLP"]),
-            html.Div(className="rec-body", children=[
-                "MLP modeli 0.992 AUC-ROC ve 0.919 F1 skoru ile en yüksek performansı göstermiştir. ",
-                "Yanlış alarm oranı (FAR) 0.018 ile gözlemsel operasyonlar için güvenlidir. ",
-                "Gözetimsiz modeller arasında Autoencoder 0.893 AUC-ROC ile öne çıkmaktadır."
-            ])
-        ]),
+        _performance_recommendation(),
         html.Br(),
         dbc.Row([
             dbc.Col(html.Div(className="panel", children=[dcc.Graph(figure=fig_roc, config={"displayModeBar": False})]), md=7),
@@ -607,30 +630,34 @@ def handle_upload(contents, demo_clicks, filename):
             else:
                 df = pd.read_csv(io.StringIO(decoded.decode('utf-8')))
                 
-            # YABANCI VE RAW VERİ TESPİTİ (AUTO-ADAPTATION)
-            if 'custom_rms' not in df.columns:
+            # RAW vs ÖZELLİK-ÇIKARILMIŞ VERİ TESPİTİ (AUTO-ADAPTATION)
+            # Sentinel: 18 ESA özelliğinin çekirdeği zaten varsa veri "featurized"
+            # sayılır (eski 'custom_rms' sentinel'i hem üretilmiyordu hem de kanonik
+            # 18-özellik verisinde hiç bulunmuyordu -> yanlış yeniden çıkarım yapardı).
+            ESA_CORE = {'mean', 'var', 'std', 'n_peaks', 'diff_var'}
+            is_featurized = ESA_CORE.issubset(set(df.columns))
+            if not is_featurized:
                 # 1. Value (Sensör Değeri) Sütununu Bul
                 if 'value' not in df.columns:
                     num_cols = df.select_dtypes(include=[np.number]).columns.tolist()
                     if num_cols:
                         # İlk bulduğumuz sayısal sütunu 'value' olarak atıyoruz
                         df = df.rename(columns={num_cols[0]: 'value'})
-                
+
                 # 2. Otomatik Segmentasyon (Eğer 'segment' yoksa)
                 if 'segment' not in df.columns:
                     # Sonsuz veriyi 250'şer satırlık vagonlara böler
                     df['segment'] = np.repeat(np.arange(len(df) // 250 + 1), 250)[:len(df)]
-                
+
                 # 3. Zorunlu Meta Verilerin Eksikliklerini Gider
                 if 'channel' not in df.columns: df['channel'] = 'AUTO_SENSOR'
                 if 'anomaly' not in df.columns: df['anomaly'] = 0
                 if 'train' not in df.columns: df['train'] = 0
                 if 'sampling' not in df.columns: df['sampling'] = 1
-                
-                # Sinyal işleme ve istatistiksel 24 özelliği hesapla
-                from utils.feature_extractor import extract_features_from_raw
+
+                # Her segment için kanonik 18 ESA özelliğini hesapla
                 df = extract_features_from_raw(df)
-                
+
             return df.to_json(date_format='iso', orient='split'), build_preview(df, filename)
         except Exception as e:
             import traceback
@@ -1326,35 +1353,26 @@ def update_live_sim(n_int, state, channel, model_name, speed, current_alarms):
     times = chunk['timestamp'].tolist()
     vals = chunk['value'].tolist()
     
-    # ── Feature Extraction ──
+    # ── Özellik çıkarımı: kayan pencereden kanonik 18 ESA özelliği ──
+    # (eskiden yalnız 4 özellik dolduruluyordu; modeller 18 özellik bekler)
     start_win = max(0, end_idx - 30)
     win_data = df_slice.iloc[start_win:end_idx]['value'].values
-    
-    if len(win_data) > 0:
-        mean_val = np.mean(win_data)
-        std_val = np.std(win_data)
-        var_val = np.var(win_data)
-        max_val = np.max(win_data)
-        min_val = np.min(win_data)
-        l_val = len(win_data)
+
+    if FEATURE_COLS and len(win_data) >= 3:
+        samp = df_slice['sampling'].iloc[0] if 'sampling' in df_slice.columns else 1
+        win_df = pd.DataFrame({'value': win_data, 'segment': 0,
+                               'channel': channel, 'sampling': samp})
+        feats = extract_features_from_raw(win_df)
+        X = feats.reindex(columns=FEATURE_COLS, fill_value=0).fillna(0).values
+    elif FEATURE_COLS:
+        X = np.zeros((1, len(FEATURE_COLS)))            # pencere çok kısa
     else:
-        mean_val = std_val = var_val = max_val = min_val = l_val = 0
-        
-    if FEATURE_COLS:
-        feat_dict = {c: 0 for c in FEATURE_COLS}
-        feat_dict['mean'] = mean_val
-        feat_dict['std'] = std_val
-        feat_dict['var'] = var_val
-        feat_dict['len'] = l_val
-        feat_dict['custom_rms'] = np.sqrt(np.mean(win_data**2)) if len(win_data)>0 else 0
-        feat_dict['custom_p2p'] = max_val - min_val
-        X = pd.DataFrame([feat_dict])[FEATURE_COLS].values
-    else:
-        X = np.array([[mean_val, std_val, min_val, max_val]])
-        
+        X = np.array([[np.mean(win_data) if len(win_data) else 0,
+                       np.std(win_data) if len(win_data) else 0, 0, 0]])
+
     if SCALER:
         try: X = SCALER.transform(X)
-        except: pass
+        except Exception as e: print("Live scaler hatası:", e)
         
     # Predict
     model = MODELS.get(model_name)
@@ -1526,13 +1544,12 @@ def render_anomaly_detail(selected, current_page, all_anomalies, data_json):
                 html.Tbody(table_rows)
             ])
             
-            # Dynamic SHAP calculation
-            import shap
+            # Dynamic SHAP calculation (explainer önbellekten)
             if "XGBoost" in MODELS:
                 try:
                     xgb_model = MODELS["XGBoost"]
                     X_row = row_data[FEATURE_COLS].to_frame().T
-                    explainer = shap.TreeExplainer(xgb_model)
+                    explainer = get_tree_explainer(xgb_model)
                     sv = explainer.shap_values(X_row)[0]
                     
                     # Ensure SHAP values are extracted correctly (might be 2D for multiclass, but typically 1D for binary)
@@ -1703,4 +1720,10 @@ register_synthetic_callbacks(app)
 register_esa_pipeline_callbacks(app)
 
 if __name__ == "__main__":
-    app.run(debug=False, host="0.0.0.0", port=8050)
+    # Ortam değişkenleriyle yapılandırılabilir (varsayılanlar korunur).
+    # Yalnız yerel erişim için: DASH_HOST=127.0.0.1
+    app.run(
+        debug=os.environ.get("DASH_DEBUG", "0") == "1",
+        host=os.environ.get("DASH_HOST", "0.0.0.0"),
+        port=int(os.environ.get("DASH_PORT", "8050")),
+    )

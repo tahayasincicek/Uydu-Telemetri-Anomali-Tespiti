@@ -1,7 +1,9 @@
 """Model loading and prediction utilities."""
-import os, json, joblib, warnings
+import os, json, joblib, warnings, logging
 import numpy as np
 import pandas as pd
+
+log = logging.getLogger("dashboard.model_loader")
 
 # ── TensorFlow environment fixes (must be set BEFORE importing tf) ──
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"           # suppress TF info/warning logs
@@ -32,7 +34,8 @@ PYOD_MODELS = {"ECOD", "COPOD", "HBOS", "CBLOF",
 def _safe_load(path):
     try:
         return joblib.load(path) if os.path.exists(path) else None
-    except Exception:
+    except Exception as e:
+        log.warning("Model yüklenemedi (%s): %s", os.path.basename(path), e)
         return None
 
 
@@ -40,6 +43,22 @@ def _kload(path):
     """Keras modelini güvenli şekilde yükler (VAE'nin Lambda katmanı için safe_mode=False)."""
     from tensorflow.keras.models import load_model
     return load_model(path, compile=False, safe_mode=False)
+
+
+def _keras_feature_dim(model):
+    """Keras modelinin beklediği düz özellik sayısını döndürür.
+    Dense/MLP -> (None, F) => F;  sıralı -> (None, T, 1) => T*1 = T. Bilinmezse None."""
+    try:
+        shp = model.input_shape
+        if isinstance(shp, list):
+            shp = shp[0]
+        dims = [d for d in shp if d is not None]
+        flat = 1
+        for d in dims:
+            flat *= d
+        return flat
+    except Exception:
+        return None
 
 
 def load_all():
@@ -84,34 +103,48 @@ def load_all():
         m = _safe_load(os.path.join(UNSUP_DIR, fname))
         if m is not None: models[name] = m
 
-    try:
-        # MLP + derin sıralı/hibrit ağlar
-        for name, fname in [("MLP", "mlp_model.keras"), ("LSTM", "lstm_model.keras"),
-                            ("BiLSTM", "bilstm_model.keras"), ("GRU", "gru_model.keras"),
-                            ("BiGRU", "bigru_model.keras"), ("CNN1D", "cnn1d_model.keras"),
-                            ("CNN_LSTM", "cnn_lstm_model.keras"),
-                            ("CNN_BiLSTM", "cnn_bilstm_model.keras"), ("CNN_GRU", "cnn_gru_model.keras"),
-                            ("Transformer", "transformer_model.keras"), ("TCN", "tcn_model.keras"),
-                            ("Attention_BiLSTM", "attention_bilstm_model.keras"),
-                            ("FCN", "fcn_model.keras"), ("ResNet1D", "resnet1d_model.keras"),
-                            ("InceptionTime", "inceptiontime_model.keras"), ("LSTM_FCN", "lstm_fcn_model.keras")]:
-            p = os.path.join(MODEL_DIR, fname)
-            if os.path.exists(p): models[name] = _kload(p)
-        for name, fname in [("Autoencoder", "autoencoder_model.keras"), ("VAE", "vae_model.keras"),
-                            ("AnoGAN", "anogan_model.keras"), ("ALAD", "alad_model.keras")]:
-            p = os.path.join(UNSUP_DIR, fname)
-            if os.path.exists(p): models[name] = _kload(p)
-    except Exception:
-        pass
+    scaler = _safe_load(os.path.join(MODEL_DIR, "scaler.joblib"))
+    test_data = _safe_load(os.path.join(MODEL_DIR, "test_data.joblib"))
+    # Kanonik özellik sayısı (18 ESA). Bununla uyumsuz Keras modelleri atlanır
+    # (ör. eski 24-özellik mlp_model.keras / autoencoder_model.keras), aksi halde
+    # doğru sklearn modelini ezip çıkarımı bozarlar.
+    n_features = len(test_data["feature_cols"]) if test_data and test_data.get("feature_cols") else None
+
+    def _load_keras_checked(name, path):
+        if not os.path.exists(path):
+            return
+        try:
+            m = _kload(path)
+        except Exception as e:
+            log.warning("Keras modeli yüklenemedi (%s): %s", name, e)
+            return
+        fdim = _keras_feature_dim(m)
+        if n_features is not None and fdim is not None and fdim != n_features:
+            log.warning("'%s' atlandı: %s özellik bekliyor, kanonik %s (uyumsuz, muhtemelen eski model)",
+                        name, fdim, n_features)
+            return
+        models[name] = m   # uyumlu -> (varsa sklearn karşılığını yalnız uyumluysa ezer)
+
+    # MLP + derin sıralı/hibrit ağlar
+    for name, fname in [("MLP", "mlp_model.keras"), ("LSTM", "lstm_model.keras"),
+                        ("BiLSTM", "bilstm_model.keras"), ("GRU", "gru_model.keras"),
+                        ("BiGRU", "bigru_model.keras"), ("CNN1D", "cnn1d_model.keras"),
+                        ("CNN_LSTM", "cnn_lstm_model.keras"),
+                        ("CNN_BiLSTM", "cnn_bilstm_model.keras"), ("CNN_GRU", "cnn_gru_model.keras"),
+                        ("Transformer", "transformer_model.keras"), ("TCN", "tcn_model.keras"),
+                        ("Attention_BiLSTM", "attention_bilstm_model.keras"),
+                        ("FCN", "fcn_model.keras"), ("ResNet1D", "resnet1d_model.keras"),
+                        ("InceptionTime", "inceptiontime_model.keras"), ("LSTM_FCN", "lstm_fcn_model.keras")]:
+        _load_keras_checked(name, os.path.join(MODEL_DIR, fname))
+    for name, fname in [("Autoencoder", "autoencoder_model.keras"), ("VAE", "vae_model.keras"),
+                        ("AnoGAN", "anogan_model.keras"), ("ALAD", "alad_model.keras")]:
+        _load_keras_checked(name, os.path.join(UNSUP_DIR, fname))
 
     thresholds = {}
     tp = os.path.join(UNSUP_DIR, "unsupervised_thresholds.json")
     if os.path.exists(tp):
         with open(tp) as f:
             thresholds = json.load(f)
-
-    scaler = _safe_load(os.path.join(MODEL_DIR, "scaler.joblib"))
-    test_data = _safe_load(os.path.join(MODEL_DIR, "test_data.joblib"))
 
     return models, thresholds, scaler, test_data
 
@@ -158,7 +191,7 @@ def predict(model, name, X, thresholds, threshold_mult=1.0):
         t = thresholds.get(name, np.percentile(sc, 90)) * threshold_mult
         pr = (sc > t).astype(int)
     elif name == "DBSCAN":
-        sc = model.kneighbors(X)[0].ravel()  # en yakın çekirdek noktaya uzaklık
+        sc = model.kneighbors(X)[0].min(axis=1)  # en yakın çekirdek noktaya uzaklık (örnek başına)
         t = thresholds.get(name, np.percentile(sc, 90)) * threshold_mult
         pr = (sc > t).astype(int)
     elif hasattr(model, "predict_proba"):
@@ -174,13 +207,15 @@ def predict(model, name, X, thresholds, threshold_mult=1.0):
 
 
 def load_metrics():
-    metrics = {}
+    """Kanonik final_comparison.json'u yükler (7 metrik: Accuracy/Precision/Recall/
+    F1/MCC/AUC_ROC/AUC_PR + FAR/FNR, AUC_PR sıralı).
+
+    Not: Eski şemalı adv_metrics.json (tireli 'AUC-ROC', MCC/AUC_PR yok) bilinçli
+    olarak BİRLEŞTİRİLMEZ — kanonik anahtarları bozar ve karışık şema yaratırdı.
+    """
     p1 = os.path.join(ROOT, "reports", "metrics", "final_comparison.json")
-    p2 = os.path.join(ROOT, "reports", "metrics", "adv_metrics.json")
     if os.path.exists(p1):
         with open(p1) as f:
-            metrics.update(json.load(f))
-    if os.path.exists(p2):
-        with open(p2) as f:
-            metrics.update(json.load(f))
-    return metrics
+            return json.load(f)
+    log.warning("final_comparison.json bulunamadı: %s", p1)
+    return {}

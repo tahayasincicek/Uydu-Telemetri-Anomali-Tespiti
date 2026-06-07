@@ -6,23 +6,11 @@ import plotly.express as px
 import plotly.graph_objects as go
 from dash import html, dcc, callback, Input, Output
 import dash_bootstrap_components as dbc
-from dash_iconify import DashIconify
+
+from utils.ui import PLT_LAYOUT, icon, metric_card
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 ABLATION_PKL = os.path.join(ROOT, "models", "ablation_results.pkl")
-
-PLT_LAYOUT = dict(template="plotly_dark", paper_bgcolor="#080C14", plot_bgcolor="#080C14",
-                   font=dict(family="IBM Plex Sans", color="#94A3B8"), margin=dict(l=40, r=20, t=40, b=30))
-
-def icon(name, size=18, color=None):
-    return DashIconify(icon=name, width=size, color=color or "#64748B")
-
-def metric_card(ic, value, label, color="blue"):
-    return html.Div(className=f"metric-card {color}", children=[
-        html.Div(icon(ic, 20), className="metric-icon"),
-        html.Div(str(value), className="metric-value"),
-        html.Div(label, className="metric-label"),
-    ])
 
 def get_ablation_layout():
     if not os.path.exists(ABLATION_PKL):
