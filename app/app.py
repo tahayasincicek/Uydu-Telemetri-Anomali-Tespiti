@@ -89,6 +89,19 @@ UNSUP_MODEL_NAMES = ["IsolationForest","OneClassSVM","KMeans","LOF","Autoencoder
                      "ABOD","COF","SOD","SOS","LODA","INNE","LMDD",
                      "SO_GAAL","MO_GAAL","DeepSVDD","LUNAR","DIF","AnoGAN","ALAD"]
 
+# ── Operatör tespit profilleri (preset) — gözetimli, güvenilir modeller ──
+ANALYSIS_PRESETS = {
+    "hizli": {"title": "Hızlı Tarama", "icon": "mdi:flash",
+              "desc": "Tek hafif model ile düşük maliyetli ön tarama.",
+              "sup": ["HistGradientBoosting"], "unsup": [], "thr": 1.0},
+    "dogru": {"title": "Yüksek Doğruluk", "icon": "mdi:bullseye-arrow",
+              "desc": "En iyi modellerin topluluğu — en güvenilir tespit.",
+              "sup": ["ExtraTrees", "Voting Ensemble", "MLP"], "unsup": [], "thr": 1.0},
+    "dusuk_alarm": {"title": "Düşük Yanlış Alarm", "icon": "mdi:shield-check-outline",
+                    "desc": "Yüksek kesinlikli modeller + sıkı eşik; yanlış alarmı en aza indirir.",
+                    "sup": ["Stacking Ensemble", "Voting Ensemble"], "unsup": [], "thr": 1.15},
+}
+
 _SHAP_EXPLAINERS = {}
 def get_tree_explainer(model):
     """TreeExplainer'ı model başına bir kez kurup önbelleğe alır (her tıklamada
@@ -133,18 +146,27 @@ sidebar = html.Div(className="sidebar", children=[
                   html.Div("Anomali Tespit Sistemi", className="logo-sub")])
     ]),
     html.Div(className="sidebar-nav", children=[
-        nav_item("mdi:view-dashboard", "Dashboard", "dashboard"),
-        nav_item("mdi:upload", "Veri Yükle", "upload"),
+        html.Div("OPERASYON", className="nav-section-label",
+                 style={"fontSize": "10px", "letterSpacing": "2px", "color": "#3A5068",
+                        "fontWeight": "600", "padding": "8px 16px 4px"}),
+        nav_item("mdi:view-dashboard", "Operasyon Paneli", "dashboard"),
         nav_item("mdi:satellite-variant", "Canlı İzleme", "live"),
+        nav_item("mdi:upload", "Veri Yükle", "upload"),
         nav_item("mdi:chart-timeline-variant", "Analiz", "analysis"),
         nav_item("mdi:chart-scatter-plot", "Sonuçlar", "results"),
         nav_item("mdi:magnify-expand", "Anomali Detay", "detail"),
-        nav_item("mdi:brain", "SHAP Analiz", "shap"),
-        nav_item("mdi:gauge", "Model Performans", "performance"),
-        nav_item("mdi:test-tube", "Ablasyon Analizi", "ablation"),
-        nav_item("mdi:lightning-bolt", "Guc Tuketimi", "power"),
-        nav_item("mdi:flask-outline", "Sentetik Lab", "synthetic"),
-        nav_item("mdi:rocket-launch-outline", "ESA Pipeline", "esa_pipeline"),
+        html.Details(open=False, className="nav-group", children=[
+            html.Summary("GELİŞTİRİCİ / ARAŞTIRMA", className="nav-group-header",
+                         style={"fontSize": "10px", "letterSpacing": "2px", "color": "#3A5068",
+                                "fontWeight": "600", "padding": "12px 16px 4px", "cursor": "pointer",
+                                "userSelect": "none", "outline": "none"}),
+            nav_item("mdi:gauge", "Model Performans", "performance"),
+            nav_item("mdi:brain", "SHAP Analiz", "shap"),
+            nav_item("mdi:test-tube", "Ablasyon Analizi", "ablation"),
+            nav_item("mdi:lightning-bolt", "Güç Tüketimi", "power"),
+            nav_item("mdi:flask-outline", "Sentetik Lab", "synthetic"),
+            nav_item("mdi:rocket-launch-outline", "ESA Pipeline", "esa_pipeline"),
+        ]),
     ]),
     html.Div(className="sidebar-footer", children=[
         html.Div(className="status-indicator", children=[
@@ -202,59 +224,91 @@ app.layout = html.Div(id="app-root", children=[
 ])
 
 def page_dashboard():
-    best_name, m_best = best_model(PRIMARY_METRIC)
+    """Operasyon paneli — anomali tespit ekibi için telemetri sağlık durumu ve alarm özeti.
+    (Model performans/benchmark görünümü Geliştirici > Model Performans sayfasındadır.)"""
     df_seg = pd.read_parquet(DEMO_PATH) if os.path.exists(DEMO_PATH) else pd.DataFrame()
     n_seg = len(df_seg)
-    anom_ratio = f"%{df_seg['anomaly'].mean()*100:.1f}" if 'anomaly' in df_seg.columns else "N/A"
+    has_anom = 'anomaly' in df_seg.columns and n_seg > 0
+    has_ch = 'channel' in df_seg.columns and n_seg > 0
+    n_anomaly = int(df_seg['anomaly'].sum()) if has_anom else 0
+    anom_ratio = f"%{df_seg['anomaly'].mean()*100:.1f}" if has_anom else "N/A"
+    n_channels = int(df_seg['channel'].nunique()) if has_ch else 0
+    n_raw = len(LIVE_DATA)
 
-    ordered = sorted(ALL_METRICS, key=lambda n: ALL_METRICS[n].get(PRIMARY_METRIC, 0), reverse=True)[:15]
-    heatmap_data = {n: {k: ALL_METRICS[n].get(k, 0) for k in BENCHMARK_METRICS} for n in ordered}
-    hdf = pd.DataFrame(heatmap_data).T
-    fig_heat = px.imshow(hdf, text_auto=".3f", color_continuous_scale="Blues",
-                         labels=dict(color="Skor"), aspect="auto")
-    fig_heat.update_layout(**PLT_LAYOUT, height=420, title="Model Performans Matrisi (AUC-PR ilk 15)",
-                           coloraxis_colorbar=dict(title=""))
+    # ── Kanal sağlığı: kanal başına anomali oranı (hangi sensör sorunlu) ──
+    fig_health = go.Figure()
+    if has_anom and has_ch:
+        ch = df_seg.groupby('channel')['anomaly'].agg(['sum', 'count'])
+        ch['rate'] = 100 * ch['sum'] / ch['count']
+        ch = ch.sort_values('rate')
+        bar_clr = ["#10B981" if r < 15 else "#F59E0B" if r < 30 else "#EF4444" for r in ch['rate']]
+        fig_health = go.Figure(go.Bar(
+            y=ch.index.tolist(), x=ch['rate'].tolist(), orientation='h', marker_color=bar_clr,
+            text=[f"{r:.0f}%  ({int(s)}/{int(c)})" for r, s, c in zip(ch['rate'], ch['sum'], ch['count'])],
+            textposition='outside', textfont=dict(size=10, color="#94A3B8")))
+        fig_health.update_layout(**PLT_LAYOUT, height=360, title="Kanal Sağlığı — Anomali Oranı (%)",
+                                 xaxis_title="Anomali oranı (%)", xaxis_range=[0, max(ch['rate']) * 1.25 + 5])
 
-    pr_data = {n: ALL_METRICS[n].get(PRIMARY_METRIC, 0) for n in ALL_METRICS}
-    pr_sorted = dict(sorted(pr_data.items(), key=lambda x: x[1]))
-    colors = ["#EF4444" if v < 0.5 else "#F59E0B" if v < 0.7 else "#10B981" for v in pr_sorted.values()]
-    fig_rank = go.Figure(go.Bar(y=list(pr_sorted.keys()), x=list(pr_sorted.values()),
-                                orientation='h', marker_color=colors, text=[f"{v:.3f}" for v in pr_sorted.values()],
-                                textposition='outside'))
-    fig_rank.update_layout(**PLT_LAYOUT, height=420, title="AUC-PR Sıralaması", xaxis_range=[0, 1.05])
+    # ── Son alarmlar: anomalik segmentler, değişkenliğe (var) göre şiddet ──
+    alarm_rows = []
+    if has_anom:
+        anoms = df_seg[df_seg['anomaly'] == 1].copy()
+        if 'var' in df_seg.columns and len(anoms):
+            p50, p85 = df_seg['var'].quantile(0.50), df_seg['var'].quantile(0.85)
+            anoms = anoms.sort_values('var', ascending=False)
+            for _, r in anoms.head(12).iterrows():
+                v = r['var']
+                sev = ("Kritik", "badge-error") if v >= p85 else (("Uyarı", "badge-warning") if v >= p50 else ("Düşük", "badge-success"))
+                seg_id = int(r['segment']) if 'segment' in r else "-"
+                chn = r['channel'] if 'channel' in r else "-"
+                alarm_rows.append((seg_id, chn, f"{v:.3g}", sev))
 
-    n_anomaly = int(df_seg['anomaly'].sum()) if 'anomaly' in df_seg.columns else 0
+    def sev_badge(sev):
+        return html.Span(sev[0], className=sev[1])
 
-    now = time.strftime("%Y-%m-%d %H:%M")
-    log_rows = [
-        [now, "Sistem başlatıldı", f"{len(MODELS)} model yüklendi", "Başarılı"],
-        [now, "Veri seti yüklendi", f"{n_seg} segment, {len(FEATURE_COLS or [])} özellik", "Başarılı"],
-        [now, "Model eğitimi", "OPSSAT-AD dataset", "Başarılı"],
-        [now, "En iyi model", f"{best_name} - AUC-PR: {m_best.get(PRIMARY_METRIC,0):.3f}", "Başarılı"],
-    ]
-    def status_badge(s):
-        cls = "badge-success" if s == "Başarılı" else "badge-error"
-        return html.Span(s, className=cls)
+    now = time.strftime("%d.%m.%Y %H:%M")
 
     return html.Div([
         html.Div(className="page-header", children=[
-            html.Div("Dashboard", className="page-title"),
-            html.Div("Sistem durumu ve model performans özeti", className="page-subtitle")]),
+            html.Div("Operasyon Paneli", className="page-title"),
+            html.Div("Telemetri sağlık durumu ve anomali alarm özeti", className="page-subtitle")]),
+
         dbc.Row([
-            dbc.Col(metric_card("mdi:database-outline", n_seg, "Toplam Segment", "blue", f"{n_seg} segment işlendi"), md=3),
-            dbc.Col(metric_card("mdi:alert-circle-outline", anom_ratio, "Anomali Oranı", "red", f"{n_anomaly} anomali tespit edildi"), md=3),
-            dbc.Col(metric_card("mdi:trophy-outline", best_name or "N/A", "En İyi Model", "green", f"F1: {m_best.get('F1',0):.3f}"), md=3),
-            dbc.Col(metric_card("mdi:chart-arc", f"{m_best.get(PRIMARY_METRIC,0):.3f}", "AUC-PR (en iyi)", "cyan", "Resmi test seti (Ψ)"), md=3),
+            dbc.Col(metric_card("mdi:database-outline", f"{n_seg:,}", "İzlenen Segment", "blue",
+                                f"{n_raw:,} ham ölçüm"), md=3),
+            dbc.Col(metric_card("mdi:alert-circle-outline", n_anomaly, "Aktif Anomali", "red",
+                                f"{anom_ratio} oran"), md=3),
+            dbc.Col(metric_card("mdi:satellite-uplink", n_channels, "İzlenen Kanal", "cyan",
+                                "Manyetometre + Fotodiyot"), md=3),
+            dbc.Col(metric_card("mdi:check-network-outline", "Aktif", "Sistem Durumu", "green",
+                                f"{len(MODELS)} model hazır"), md=3),
         ], className="mb-4 g-3"),
+
         dbc.Row([
-            dbc.Col(html.Div(className="panel", children=[dcc.Graph(figure=fig_heat, config={"displayModeBar": False})]), md=8),
-            dbc.Col(html.Div(className="panel", children=[dcc.Graph(figure=fig_rank, config={"displayModeBar": False})]), md=4),
+            dbc.Col(html.Div(className="panel", children=[
+                dcc.Graph(figure=fig_health, config={"displayModeBar": False})]), md=7),
+            dbc.Col(html.Div(className="panel", style={"height": "100%"}, children=[
+                html.Div(className="panel-title", children=[icon("mdi:information-outline", 16), "Sistem Durumu"]),
+                html.Table(className="log-table", children=[html.Tbody([
+                    html.Tr([html.Td("Veri akışı"), html.Td(html.Span("AKTİF", className="badge-success"))]),
+                    html.Tr([html.Td("Ham telemetri"), html.Td(f"{n_raw:,} ölçüm")]),
+                    html.Tr([html.Td("İzlenen kanal"), html.Td(f"{n_channels} kanal")]),
+                    html.Tr([html.Td("Tespit motoru"), html.Td(f"{len(MODELS)} model yüklü")]),
+                    html.Tr([html.Td("Son güncelleme"), html.Td(now)]),
+                ])]),
+                html.Div(style={"marginTop": "12px", "fontSize": "11px", "color": "#64748B"},
+                         children="Model geliştirme ve benchmark için sol menüde Geliştirici / Araştırma bölümüne bakınız."),
+            ]), md=5),
         ], className="mb-4 g-3"),
+
         html.Div(className="panel", children=[
-            html.Div(className="panel-title", children=[icon("mdi:history", 16), "Son Aktivite"]),
+            html.Div(className="panel-title", children=[
+                icon("mdi:bell-alert-outline", 16), f"Son Alarmlar ({len(alarm_rows)} anomali)"]),
             html.Table(className="log-table", children=[
-                html.Thead(html.Tr([html.Th(c) for c in ["Zaman", "İşlem", "Detay", "Durum"]])),
-                html.Tbody([html.Tr([html.Td(row[0]), html.Td(row[1]), html.Td(row[2]), html.Td(status_badge(row[3]))]) for row in log_rows])
+                html.Thead(html.Tr([html.Th(c) for c in ["Segment", "Kanal", "Değişkenlik (var)", "Şiddet"]])),
+                html.Tbody([html.Tr([html.Td(seg), html.Td(chn), html.Td(val), html.Td(sev_badge(sev))])
+                            for seg, chn, val, sev in alarm_rows]
+                           or [html.Tr([html.Td("Anomali kaydı yok", colSpan=4)])])
             ])
         ])
     ])
@@ -291,28 +345,53 @@ def page_analysis():
     def model_option(name):
         f1 = ALL_METRICS.get(name, {}).get("F1", 0)
         return html.Span([name, html.Span(f"F1: {f1:.3f}", className="model-f1-badge")])
+
+    def preset_option(key, p):
+        return {"value": key, "label": html.Span([
+            html.Span([icon(p["icon"], 15, "#06B6D4"), html.Span(p["title"],
+                       style={"fontWeight": "600", "marginLeft": "6px"})]),
+            html.Div(p["desc"], style={"fontSize": "11px", "color": "#64748B",
+                                       "marginLeft": "21px", "lineHeight": "1.4"}),
+        ])}
+    # Varsayılan profil: Yüksek Doğruluk
+    default = ANALYSIS_PRESETS["dogru"]
+    def_sup = [m for m in default["sup"] if m in MODELS]
+
     return html.Div([
         html.Div(className="page-header", children=[
             html.Div("Anomali Analizi", className="page-title"),
-            html.Div("Model seçimi ve anomali tespit işlemleri", className="page-subtitle")]),
+            html.Div("Tespit profili seçin ve analizi başlatın", className="page-subtitle")]),
         dbc.Row([
             dbc.Col([html.Div(className="panel", children=[
-                html.Div(className="panel-title", children=[icon("mdi:tune-vertical", 16), "Analiz Ayarları"]),
-                html.Div("GÖZETİMLİ", className="section-label"),
-                dcc.Checklist(id="sup-models", options=[{"label": model_option(n), "value": n} for n in sup],
-                              value=sup[:2], className="model-checklist", inputStyle={"marginRight": "8px"}),
-                html.Div("GÖZETİMSİZ", className="section-label"),
-                dcc.Checklist(id="unsup-models", options=[{"label": model_option(n), "value": n} for n in unsup],
-                              value=["Autoencoder","LOF"] if "Autoencoder" in unsup else unsup[:1],
-                              className="model-checklist", inputStyle={"marginRight": "8px"}),
-                html.Div("EŞİK ÇARPANI", className="section-label"),
-                dcc.Slider(id="threshold-slider", min=0.5, max=1.5, step=0.05, value=1.0,
-                           marks={0.5: "0.5", 1.0: "1.0", 1.5: "1.5"},
-                           tooltip={"placement": "bottom", "always_visible": False}),
-                html.Div("Düşük değer: hassas tespit, yüksek yanlış alarm. Yüksek değer: güvenilir ama az tespit.",
-                         style={"fontSize": "11px", "color": "#64748B", "marginTop": "8px", "lineHeight": "1.5"}),
+                html.Div(className="panel-title", children=[icon("mdi:tune-vertical", 16), "Tespit Profili"]),
+                dcc.RadioItems(
+                    id="preset-select",
+                    options=[preset_option(k, p) for k, p in ANALYSIS_PRESETS.items()],
+                    value="dogru", className="preset-radio",
+                    inputStyle={"marginRight": "8px"},
+                    labelStyle={"display": "block", "padding": "8px 0", "cursor": "pointer"}),
+                html.Button("Analizi Başlat", id="btn-analyze", n_clicks=0, className="btn-primary",
+                            style={"width": "100%", "marginTop": "12px"}),
                 html.Div(id="selection-counter", className="selection-counter"),
-                html.Button("Analizi Başlat", id="btn-analyze", n_clicks=0, className="btn-primary"),
+
+                html.Details(open=False, style={"marginTop": "16px"}, children=[
+                    html.Summary("Gelişmiş — model seçimi", style={
+                        "fontSize": "11px", "letterSpacing": "1px", "color": "#3A5068",
+                        "fontWeight": "600", "cursor": "pointer", "userSelect": "none",
+                        "outline": "none", "padding": "4px 0"}),
+                    html.Div("GÖZETİMLİ", className="section-label"),
+                    dcc.Checklist(id="sup-models", options=[{"label": model_option(n), "value": n} for n in sup],
+                                  value=def_sup, className="model-checklist", inputStyle={"marginRight": "8px"}),
+                    html.Div("GÖZETİMSİZ", className="section-label"),
+                    dcc.Checklist(id="unsup-models", options=[{"label": model_option(n), "value": n} for n in unsup],
+                                  value=[], className="model-checklist", inputStyle={"marginRight": "8px"}),
+                    html.Div("EŞİK ÇARPANI", className="section-label"),
+                    dcc.Slider(id="threshold-slider", min=0.5, max=1.5, step=0.05, value=default["thr"],
+                               marks={0.5: "0.5", 1.0: "1.0", 1.5: "1.5"},
+                               tooltip={"placement": "bottom", "always_visible": False}),
+                    html.Div("Düşük değer: hassas tespit, yüksek yanlış alarm. Yüksek değer: güvenilir ama az tespit.",
+                             style={"fontSize": "11px", "color": "#64748B", "marginTop": "8px", "lineHeight": "1.5"}),
+                ]),
             ])], md=3),
             dbc.Col([
                 dcc.Loading(
@@ -755,12 +834,24 @@ def run_analysis(n, sup_sel, unsup_sel, thresh_mult, data_json):
 
     return html.Div([summary, html.Div(className="panel-title", children=[icon("mdi:format-list-bulleted",16), "Model Sonuçları"]), *rows]), json.dumps(results)
 
+@callback(Output("sup-models", "value"), Output("unsup-models", "value"),
+          Output("threshold-slider", "value"),
+          Input("preset-select", "value"), prevent_initial_call=True)
+def apply_preset(preset):
+    """Seçilen operatör profilini gelişmiş kontrollere (model seçimi + eşik) uygular."""
+    p = ANALYSIS_PRESETS.get(preset)
+    if not p:
+        return no_update, no_update, no_update
+    sup = [m for m in p["sup"] if m in MODELS]
+    unsup = [m for m in p["unsup"] if m in MODELS]
+    return sup, unsup, p["thr"]
+
 @callback(Output("selection-counter", "children"),
           Input("sup-models", "value"), Input("unsup-models", "value"))
 def update_counter(sup_sel, unsup_sel):
     ns = len(sup_sel or [])
     nu = len(unsup_sel or [])
-    return f"{ns} gözetimli + {nu} gözetimsiz seçildi"
+    return f"{ns} gözetimli + {nu} gözetimsiz model etkin"
 
 @callback(Output("results-content", "children"),
           Input("prediction-results", "data"),
