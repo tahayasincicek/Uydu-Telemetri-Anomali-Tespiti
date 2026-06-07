@@ -163,7 +163,7 @@ body {
 }
 .metric-card:hover {
   background: var(--bg-card-hover); border-color: #CBD5E1;
-  transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 .metric-card::before {
   content: ''; position: absolute; left: 0; top: 0; bottom: 0;
@@ -294,7 +294,7 @@ body {
   letter-spacing: 0.5px !important; color: var(--text-muted) !important;
 }
 .dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner tr:nth-child(even) td {
-  background-color: rgba(21,28,40,0.6) !important;
+  background-color: #F1F5F9 !important;
 }
 
 /* ── Tabs ── */
@@ -324,7 +324,7 @@ body {
 /* ── Log Table ── */
 .log-table { width: 100%; border-collapse: collapse; }
 .log-table th { padding: 10px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); border-bottom: 1px solid var(--border); text-align: left; font-weight: 600; }
-.log-table td { padding: 10px 12px; font-size: 12.5px; border-bottom: 1px solid rgba(30,42,58,0.5); color: var(--text-secondary); }
+.log-table td { padding: 10px 12px; font-size: 12.5px; border-bottom: 1px solid var(--border); color: var(--text-secondary); }
 .log-table td:first-child { font-family: 'Inter', sans-serif; font-size: 11px; color: var(--text-muted); }
 
 /* ── Selection Counter ── */
@@ -378,7 +378,7 @@ div[class*="slider-tooltip"],
   background-color: #EEF2F8 !important;
   color: #1E293B !important;
   border: 1px solid #E2E8F0 !important;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.5) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12) !important;
   font-size: 12px !important;
   font-family: 'Inter', sans-serif !important;
   padding: 4px 8px !important;
