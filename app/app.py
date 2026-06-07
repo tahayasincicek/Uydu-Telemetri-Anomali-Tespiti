@@ -1501,10 +1501,18 @@ def update_live_sim(n_int, state, channel, model_name, speed, current_alarms):
         
     sig_x = [times]
     sig_y = [vals]
-    
-    anom_x = [[times[-1]]] if is_anom else [[]]
-    anom_y = [[vals[-1]]] if is_anom else [[]]
-    
+
+    # Anomali iz'ini sinyalle AYNI uzunlukta besle (ayni x'ler, yalniz anomali
+    # noktasinda y dolu, gerisi None). Boylece iki iz maxpoints=200 ile ayni
+    # pencerede birlikte kayar; eski anomali noktalari cizgiyle birlikte soldan
+    # dusulur (aksi halde stale anomali isaretleri x-eksenini gererek cizgiyi
+    # "soldan kayboluyor" gibi gosteriyordu).
+    anom_marks = [None] * len(times)
+    if is_anom and times:
+        anom_marks[-1] = vals[-1]
+    anom_x = [times]
+    anom_y = [anom_marks]
+
     sig_update = (dict(x=sig_x + anom_x, y=sig_y + anom_y), [0, 1], 200)
     score_update = (dict(x=[[times[-1]]], y=[[norm_score]]), [0], 200)
     
