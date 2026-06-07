@@ -1007,13 +1007,13 @@ def update_results(pred_json, data_json):
         html.Div(className="panel mb-4", children=[dcc.Graph(figure=fig_scores, config={"displayModeBar": False})]),
         dbc.Row([
             dbc.Col(html.Div(className="metric-card red", style={"padding":"12px"}, children=[
-                html.Span(f"{n_crit}", style={"fontSize":"20px","fontWeight":"700","fontFamily":"IBM Plex Mono"}),
+                html.Span(f"{n_crit}", style={"fontSize":"20px","fontWeight":"700","fontFamily":"Inter, sans-serif"}),
                 html.Span(" Kritik", style={"color":"#DC2626","fontSize":"12px","marginLeft":"6px"})]), md=4),
             dbc.Col(html.Div(className="metric-card yellow", style={"padding":"12px"}, children=[
-                html.Span(f"{n_warn}", style={"fontSize":"20px","fontWeight":"700","fontFamily":"IBM Plex Mono"}),
+                html.Span(f"{n_warn}", style={"fontSize":"20px","fontWeight":"700","fontFamily":"Inter, sans-serif"}),
                 html.Span(" Uyarı", style={"color":"#D97706","fontSize":"12px","marginLeft":"6px"})]), md=4),
             dbc.Col(html.Div(className="metric-card green", style={"padding":"12px"}, children=[
-                html.Span(f"{n_low}", style={"fontSize":"20px","fontWeight":"700","fontFamily":"IBM Plex Mono"}),
+                html.Span(f"{n_low}", style={"fontSize":"20px","fontWeight":"700","fontFamily":"Inter, sans-serif"}),
                 html.Span(" Düşük", style={"color":"#16A34A","fontSize":"12px","marginLeft":"6px"})]), md=4),
         ], className="mb-3 g-3"),
         html.Div(className="panel", children=[
@@ -1310,7 +1310,7 @@ def update_shap_waterfall(selected_idx):
             html.Div(className="shap-explanation-item", children=[
                 html.Div(f"{rank}. {lbl}", className="shap-exp-title"),
                 html.Div([
-                    html.Span(f"SHAP: {val:+.4f}", style={"color": color, "fontFamily": "IBM Plex Mono, monospace", "fontSize": "13px", "fontWeight": "600"}),
+                    html.Span(f"SHAP: {val:+.4f}", style={"color": color, "fontFamily": "Inter, sans-serif", "fontSize": "13px", "fontWeight": "600"}),
                     html.Span(f" - {direction}", style={"color": "#475569", "fontSize": "13px"}),
                 ], className="shap-exp-value"),
                 html.Div(f"Ozellik degeri: {data_row[i]:.4f}", className="shap-exp-desc")
@@ -1711,7 +1711,7 @@ def render_anomaly_detail(selected, current_page, all_anomalies, data_json):
                 html.Div(style={"marginTop": "20px"}, children=[
                     html.Div(className="shap-feat-card", style={"borderLeft": "4px solid #FF3B5C" if top_shaps[0]>0 else "4px solid #16A34A"}, children=[
                         html.Div(top_feats[0], style={"fontWeight": "bold"}),
-                        html.Div(f"SHAP: {top_shaps[0]:.3f}", style={"fontFamily": "IBM Plex Mono", "color": "#FF3B5C" if top_shaps[0]>0 else "#16A34A"})
+                        html.Div(f"SHAP: {top_shaps[0]:.3f}", style={"fontFamily": "Inter, sans-serif", "color": "#FF3B5C" if top_shaps[0]>0 else "#16A34A"})
                     ])
                 ])
             ]), md=6)

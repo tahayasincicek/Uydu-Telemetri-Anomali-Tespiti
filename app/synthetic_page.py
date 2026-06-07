@@ -79,7 +79,7 @@ def get_synthetic_layout():
     for ch, info in CHANNEL_INFO.items():
         channel_options.append({
             "label": html.Span([
-                html.Span(ch, style={"fontFamily": "IBM Plex Mono", "fontSize": "11px"}),
+                html.Span(ch, style={"fontFamily": "Inter, sans-serif", "fontSize": "11px"}),
                 html.Span(f"  {info['type']} ({info['axis']})",
                           style={"color": "#64748B", "fontSize": "11px", "marginLeft": "8px"})
             ]),
@@ -121,7 +121,7 @@ def get_synthetic_layout():
                 dcc.Input(id="synth-seed", type="number", value=42,
                           style={"backgroundColor": "#FFFFFF", "border": "1px solid #E2E8F0",
                                  "color": "#1E293B", "borderRadius": "0", "padding": "8px",
-                                 "width": "100%", "fontFamily": "IBM Plex Mono"}),
+                                 "width": "100%", "fontFamily": "Inter, sans-serif"}),
 
                 html.Div(style={"marginTop": "20px"}, children=[
                     html.Button([_icon("mdi:play-circle", 18), " Veri Uret"],

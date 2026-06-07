@@ -118,7 +118,7 @@ def get_esa_pipeline_layout():
                             html.Div(style={"display": "flex", "justifyContent": "space-between",
                                              "padding": "6px 0", "borderBottom": "1px solid #E2E8F0"}, children=[
                                 html.Div([
-                                    html.Span(f_name, style={"fontFamily": "IBM Plex Mono", "fontSize": "11px",
+                                    html.Span(f_name, style={"fontFamily": "Inter, sans-serif", "fontSize": "11px",
                                                                "color": "#06B6D4"}),
                                     html.Br(),
                                     html.Span(f_desc, style={"fontSize": "10px", "color": "#64748B"}),
