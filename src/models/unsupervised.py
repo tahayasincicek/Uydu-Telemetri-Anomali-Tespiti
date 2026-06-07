@@ -98,7 +98,7 @@ class UnsupervisedAnomalyDetector:
         """
         Isolation Forest modelini eğitir.
         """
-        print("🌲 Isolation Forest eğitiliyor...")
+        print("Isolation Forest eğitiliyor...")
         model = IsolationForest(
             n_estimators=200, 
             max_features=1.0, 
@@ -124,7 +124,7 @@ class UnsupervisedAnomalyDetector:
         if Sequential is None:
             raise ImportError("TensorFlow/Keras bulunamadı.")
             
-        print("🧠 Autoencoder eğitiliyor...")
+        print("Autoencoder eğitiliyor...")
         input_dim = X_train.shape[1]
         
         model = Sequential([
@@ -175,7 +175,7 @@ class UnsupervisedAnomalyDetector:
         if Sequential is None:
             raise ImportError("TensorFlow/Keras bulunamadı.")
             
-        print("⏳ LSTM Autoencoder eğitiliyor...")
+        print("LSTM Autoencoder eğitiliyor...")
         
         model = Sequential([
             # Encoder
@@ -216,7 +216,7 @@ class UnsupervisedAnomalyDetector:
         """
         One-Class SVM modelini eğitir. (Sadece normal verilerle eğitilmesi tavsiye edilir).
         """
-        print("⚔️ One-Class SVM eğitiliyor...")
+        print("One-Class SVM eğitiliyor...")
         model = OneClassSVM(kernel='rbf', gamma='scale', nu=nu)
         model.fit(X_train)
         
@@ -233,7 +233,7 @@ class UnsupervisedAnomalyDetector:
         K-Means Clustering modelini eğitir.
         Küme merkezine uzaklık anomali skoru olarak kullanılır.
         """
-        print(f"🎯 K-Means (K={n_clusters}) eğitiliyor...")
+        print(f"K-Means (K={n_clusters}) eğitiliyor...")
         model = KMeans(n_clusters=n_clusters, random_state=self.random_state, n_init='auto')
         model.fit(X_train)
         
@@ -250,7 +250,7 @@ class UnsupervisedAnomalyDetector:
         """
         Local Outlier Factor (LOF) modelini eğitir. Novelty modu açık.
         """
-        print("🔍 Local Outlier Factor (LOF) eğitiliyor...")
+        print("Local Outlier Factor (LOF) eğitiliyor...")
         model = LocalOutlierFactor(n_neighbors=n_neighbors, novelty=True)
         model.fit(X_train)
         
@@ -267,7 +267,7 @@ class UnsupervisedAnomalyDetector:
 
     def train_gmm(self, X_train: np.ndarray, n_components: int = 3) -> GaussianMixture:
         """Gaussian Mixture Model (GMM). Düşük olabilirlik = anomali."""
-        print("🔔 Gaussian Mixture Model eğitiliyor...")
+        print("Gaussian Mixture Model eğitiliyor...")
         model = GaussianMixture(n_components=n_components, covariance_type='full',
                                 random_state=self.random_state)
         model.fit(X_train)
@@ -279,7 +279,7 @@ class UnsupervisedAnomalyDetector:
 
     def train_elliptic_envelope(self, X_train: np.ndarray, contamination: float = 0.05) -> EllipticEnvelope:
         """Elliptic Envelope (robust kovaryans tabanlı Mahalanobis anomali tespiti)."""
-        print("🥚 Elliptic Envelope eğitiliyor...")
+        print("Elliptic Envelope eğitiliyor...")
         model = EllipticEnvelope(contamination=contamination, random_state=self.random_state)
         model.fit(X_train)
         scores = -model.score_samples(X_train)
@@ -290,7 +290,7 @@ class UnsupervisedAnomalyDetector:
 
     def train_pca(self, X_train: np.ndarray, n_components: float = 0.95) -> PCA:
         """PCA tabanlı yeniden yapılandırma hatası ile anomali tespiti."""
-        print("📉 PCA (reconstruction error) eğitiliyor...")
+        print("PCA (reconstruction error) eğitiliyor...")
         model = PCA(n_components=n_components, random_state=self.random_state)
         model.fit(X_train)
         recon = model.inverse_transform(model.transform(X_train))
@@ -305,7 +305,7 @@ class UnsupervisedAnomalyDetector:
         çekirdek noktaya uzaklık. Kaydedilen model bir NearestNeighbors nesnesidir
         (DBSCAN doğrudan yeni veri üzerinde predict desteklemez).
         """
-        print("🌌 DBSCAN (core-distance novelty) eğitiliyor...")
+        print("DBSCAN (core-distance novelty) eğitiliyor...")
         db = DBSCAN(eps=eps, min_samples=min_samples, n_jobs=-1)
         labels = db.fit_predict(X_train)
         # Çekirdek (gürültü olmayan) noktalar
@@ -328,7 +328,7 @@ class UnsupervisedAnomalyDetector:
         """Variational Autoencoder (VAE). Anomali skoru = yeniden yapılandırma hatası."""
         if Model is None:
             raise ImportError("TensorFlow/Keras bulunamadı.")
-        print("🧠 Variational Autoencoder (VAE) eğitiliyor...")
+        print("Variational Autoencoder (VAE) eğitiliyor...")
         input_dim = X_train.shape[1]
 
         # Keras 3'te Functional model üzerinde add_loss() kaldırıldı;
@@ -387,9 +387,9 @@ class UnsupervisedAnomalyDetector:
         ``predict`` (0/1) ve skor için ``decision_function`` kullanılır.
         """
         if not _PYOD_AVAILABLE:
-            print("⚠️ PyOD kurulu değil — atlanıyor (pip install pyod).")
+            print("PyOD kurulu değil — atlanıyor (pip install pyod).")
             return {}
-        print("🧪 PyOD dedektörleri (ECOD, COPOD, HBOS, CBLOF) eğitiliyor...")
+        print("PyOD dedektörleri (ECOD, COPOD, HBOS, CBLOF) eğitiliyor...")
         detectors = {
             'ECOD':  ECOD(contamination=contamination),
             'COPOD': COPOD(contamination=contamination),
@@ -412,7 +412,7 @@ class UnsupervisedAnomalyDetector:
         """Açı Tabanlı Aykırı Değer Dedektörü (ABOD)."""
         if not _PYOD_AVAILABLE:
             raise ImportError("PyOD bulunamadı (pip install pyod).")
-        print("📐 ABOD eğitiliyor...")
+        print("ABOD eğitiliyor...")
         model = ABOD(contamination=contamination)
         model.fit(X_train)
         self.models['ABOD'] = model
@@ -423,7 +423,7 @@ class UnsupervisedAnomalyDetector:
         """Bağlantı Tabanlı Aykırı Değer Faktörü (COF)."""
         if not _PYOD_AVAILABLE:
             raise ImportError("PyOD bulunamadı (pip install pyod).")
-        print("🔗 COF eğitiliyor...")
+        print("COF eğitiliyor...")
         model = COF(contamination=contamination, n_neighbors=n_neighbors)
         model.fit(X_train)
         self.models['COF'] = model
@@ -434,7 +434,7 @@ class UnsupervisedAnomalyDetector:
         """Eksen Paralel Alt Uzaylarda Aykırı Değer Tespiti (SOD)."""
         if not _PYOD_AVAILABLE:
             raise ImportError("PyOD bulunamadı (pip install pyod).")
-        print("📊 SOD eğitiliyor...")
+        print("SOD eğitiliyor...")
         model = SOD(contamination=contamination, n_neighbors=n_neighbors)
         model.fit(X_train)
         self.models['SOD'] = model
@@ -445,7 +445,7 @@ class UnsupervisedAnomalyDetector:
         """Stokastik Aykırı Değer Seçimi (SOS)."""
         if not _PYOD_AVAILABLE:
             raise ImportError("PyOD bulunamadı (pip install pyod).")
-        print("🎲 SOS eğitiliyor...")
+        print("SOS eğitiliyor...")
         model = SOS_Model(contamination=contamination)
         model.fit(X_train)
         self.models['SOS'] = model
@@ -456,7 +456,7 @@ class UnsupervisedAnomalyDetector:
         """Hafif Çevrimiçi Anomali Dedektörü (LODA)."""
         if not _PYOD_AVAILABLE:
             raise ImportError("PyOD bulunamadı (pip install pyod).")
-        print("🪶 LODA eğitiliyor...")
+        print("LODA eğitiliyor...")
         model = LODA(contamination=contamination)
         model.fit(X_train)
         self.models['LODA'] = model
@@ -467,7 +467,7 @@ class UnsupervisedAnomalyDetector:
         """İzolasyon Tabanlı En Yakın Komşu Toplulukları (INNE)."""
         if not _PYOD_AVAILABLE:
             raise ImportError("PyOD bulunamadı (pip install pyod).")
-        print("🏝️ INNE eğitiliyor...")
+        print("INNE eğitiliyor...")
         model = INNE(contamination=contamination, random_state=self.random_state)
         model.fit(X_train)
         self.models['INNE'] = model
@@ -478,7 +478,7 @@ class UnsupervisedAnomalyDetector:
         """Sapma Tespiti İçin Doğrusal Yöntem (LMDD)."""
         if not _PYOD_AVAILABLE:
             raise ImportError("PyOD bulunamadı (pip install pyod).")
-        print("📏 LMDD eğitiliyor...")
+        print("LMDD eğitiliyor...")
         model = LMDD(contamination=contamination, random_state=self.random_state)
         model.fit(X_train)
         self.models['LMDD'] = model
@@ -489,7 +489,7 @@ class UnsupervisedAnomalyDetector:
         """Tek Amaçlı Üretici Çekişmeli Aktif Öğrenme (SO-GAAL)."""
         if not _PYOD_AVAILABLE:
             raise ImportError("PyOD bulunamadı (pip install pyod).")
-        print("🎯 SO-GAAL eğitiliyor...")
+        print("SO-GAAL eğitiliyor...")
         model = SO_GAAL(contamination=contamination)
         model.fit(X_train)
         self.models['SO_GAAL'] = model
@@ -500,7 +500,7 @@ class UnsupervisedAnomalyDetector:
         """Çok Amaçlı Üretici Çekişmeli Aktif Öğrenme (MO-GAAL)."""
         if not _PYOD_AVAILABLE:
             raise ImportError("PyOD bulunamadı (pip install pyod).")
-        print("🎯 MO-GAAL eğitiliyor...")
+        print("MO-GAAL eğitiliyor...")
         model = MO_GAAL(contamination=contamination)
         model.fit(X_train)
         self.models['MO_GAAL'] = model
@@ -515,7 +515,7 @@ class UnsupervisedAnomalyDetector:
         """Derin Tek Sınıf Sınıflandırma (DeepSVDD)."""
         if not _PYOD_DEEPSVDD_AVAILABLE:
             raise ImportError("PyOD DeepSVDD bulunamadı (pip install pyod torch).")
-        print("🎯 DeepSVDD eğitiliyor...")
+        print("DeepSVDD eğitiliyor...")
         model = DeepSVDD(n_features=X_train.shape[1], contamination=contamination,
                          epochs=epochs, random_state=self.random_state)
         model.fit(X_train)
@@ -527,7 +527,7 @@ class UnsupervisedAnomalyDetector:
         """Graf Sinir Ağları ile Yerel Aykırı Değer Tespiti (LUNAR)."""
         if not _PYOD_LUNAR_AVAILABLE:
             raise ImportError("PyOD LUNAR bulunamadı (pip install pyod torch torch_geometric).")
-        print("🌙 LUNAR eğitiliyor...")
+        print("LUNAR eğitiliyor...")
         model = LUNAR_Model(contamination=contamination)
         model.fit(X_train)
         self.models['LUNAR'] = model
@@ -538,7 +538,7 @@ class UnsupervisedAnomalyDetector:
         """Derin İzolasyon Ormanı (DIF)."""
         if not _PYOD_DIF_AVAILABLE:
             raise ImportError("PyOD DIF bulunamadı (pip install pyod torch).")
-        print("🌲 DIF (Deep Isolation Forest) eğitiliyor...")
+        print("DIF (Deep Isolation Forest) eğitiliyor...")
         model = DIF(contamination=contamination, epochs=epochs, random_state=self.random_state)
         model.fit(X_train)
         self.models['DIF'] = model
@@ -558,7 +558,7 @@ class UnsupervisedAnomalyDetector:
         """
         if Model is None:
             raise ImportError("TensorFlow/Keras bulunamadı.")
-        print("🎭 AnoGAN eğitiliyor...")
+        print("AnoGAN eğitiliyor...")
         input_dim = X_train.shape[1]
 
         generator = Sequential([
@@ -643,7 +643,7 @@ class UnsupervisedAnomalyDetector:
         """
         if Model is None:
             raise ImportError("TensorFlow/Keras bulunamadı.")
-        print("🎭 ALAD eğitiliyor...")
+        print("ALAD eğitiliyor...")
         input_dim = X_train.shape[1]
 
         enc = Sequential([
@@ -724,7 +724,7 @@ class UnsupervisedAnomalyDetector:
         if active_models is None:
             active_models = ['IsolationForest', 'Autoencoder', 'OneClassSVM', 'KMeans', 'LOF']
             
-        print(f"🤝 Ensemble Anomali Skoru Hesaplanıyor ({len(active_models)} model)...")
+        print(f"Ensemble Anomali Skoru Hesaplanıyor ({len(active_models)} model)...")
         scores_matrix = []
         
         for name in active_models:
@@ -775,4 +775,4 @@ class UnsupervisedAnomalyDetector:
         # Thresholds JSON kaydı
         with open(os.path.join(path, "unsupervised_thresholds.json"), "w", encoding='utf-8') as f:
             json.dump(self.thresholds, f, indent=4)
-        print("✅ Gözetimsiz modeller başarıyla kaydedildi.")
+        print("Gözetimsiz modeller başarıyla kaydedildi.")

@@ -232,4 +232,4 @@ class ModelEvaluator:
         
         with open(path_json, 'w', encoding='utf-8') as f:
             json.dump(self.metrics, f, indent=4)
-        print(f"✅ Metrikler kaydedildi: {path_csv}")
+        print(f"Metrikler kaydedildi: {path_csv}")

@@ -680,6 +680,6 @@ def extract_esa_features(segments_df: pd.DataFrame,
         df, final_features = self.select_features(df, protected_cols=columns, target_col=target_col, fit=fit)
         
         self.feature_metadata['total_features_generated'] = len(final_features)
-        print(f"✅ İşlem tamam! Toplam {len(final_features)} adet özellik üretildi ve seçildi.")
+        print(f"İşlem tamam! Toplam {len(final_features)} adet özellik üretildi ve seçildi.")
         
         return df

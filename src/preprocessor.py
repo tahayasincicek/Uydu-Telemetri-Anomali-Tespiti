@@ -237,7 +237,7 @@ class TelemetriPreprocessor:
             raise RuntimeError("Kaydedilecek eğitilmiş bir scaler yok!")
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
         joblib.dump(self.scaler, filepath)
-        print(f"✅ Scaler {filepath} konumuna kaydedildi.")
+        print(f"Scaler {filepath} konumuna kaydedildi.")
 
     def load_scaler(self, filepath: str):
         """Daha önceden kaydedilmiş scaler objesini yükler."""
@@ -245,7 +245,7 @@ class TelemetriPreprocessor:
             raise FileNotFoundError(f"Dosya bulunamadı: {filepath}")
         self.scaler = joblib.load(filepath)
         self.is_fitted = True
-        print(f"✅ Scaler {filepath} konumundan yüklendi.")
+        print(f"Scaler {filepath} konumundan yüklendi.")
 
     def generate_report(self, filepath: Optional[str] = None) -> Dict:
         """Uygulanan ön işleme adımlarının özetini JSON formatında döndürür ve kaydeder."""
@@ -268,6 +268,6 @@ class TelemetriPreprocessor:
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
             with open(filepath, 'w', encoding='utf-8') as f:
                 json.dump(report, f, indent=4, ensure_ascii=False)
-            print(f"📝 Ön işleme raporu kaydedildi: {filepath}")
+            print(f"Ön işleme raporu kaydedildi: {filepath}")
             
         return report

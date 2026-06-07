@@ -78,7 +78,7 @@ class TelemetryDataLoader:
         else:
             raise ValueError(f"Desteklenmeyen dosya formatı: {ext}")
 
-        print(f"✅ Veri başarıyla yüklendi: {filepath}")
+        print(f"Veri başarıyla yüklendi: {filepath}")
         print(f"   Boyut: {self.data.shape[0]} satır × {self.data.shape[1]} sütun")
 
         return self.data
@@ -138,22 +138,22 @@ class TelemetryDataLoader:
 
         # Boş veri kontrolü
         if self.data.empty:
-            print("⚠️  Veri seti boş!")
+            print("Veri seti boş!")
             is_valid = False
 
         # Gerekli sütun kontrolü
         if required_columns:
             missing = set(required_columns) - set(self.data.columns)
             if missing:
-                print(f"⚠️  Eksik sütunlar: {missing}")
+                print(f"Eksik sütunlar: {missing}")
                 is_valid = False
 
         # Tamamen boş sütun kontrolü
         empty_cols = self.data.columns[self.data.isnull().all()].tolist()
         if empty_cols:
-            print(f"⚠️  Tamamen boş sütunlar: {empty_cols}")
+            print(f"Tamamen boş sütunlar: {empty_cols}")
 
         if is_valid:
-            print("✅ Veri doğrulama başarılı.")
+            print("Veri doğrulama başarılı.")
 
         return is_valid
