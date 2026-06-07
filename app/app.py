@@ -124,6 +124,10 @@ def nav_item(ic, text, page_id):
     return html.Button(id={"type": "nav", "page": page_id}, n_clicks=0,
                        className="nav-item", children=[icon(ic, 18), html.Span(text)])
 
+def nav_subgroup(text):
+    return html.Div(text, style={"fontSize": "9px", "letterSpacing": "1.5px", "color": "#2A3A4E",
+                                 "fontWeight": "600", "padding": "10px 16px 2px"})
+
 topbar = html.Div(className="topbar", children=[
     html.Div(className="topbar-left", children=[
         html.Span("Uydu Telemetri Anomali Tespiti", className="topbar-title"),
@@ -160,14 +164,18 @@ sidebar = html.Div(className="sidebar", children=[
                          style={"fontSize": "10px", "letterSpacing": "2px", "color": "#3A5068",
                                 "fontWeight": "600", "padding": "12px 16px 4px", "cursor": "pointer",
                                 "userSelect": "none", "outline": "none"}),
+            nav_subgroup("MODELLER"),
             nav_item("mdi:gauge", "Model Performans", "performance"),
-            nav_item("mdi:scale-balance", "Benchmark", "benchmark"),
-            nav_item("mdi:chart-box-outline", "Augmentasyon", "augmentation"),
             nav_item("mdi:brain", "SHAP Analiz", "shap"),
             nav_item("mdi:test-tube", "Ablasyon Analizi", "ablation"),
-            nav_item("mdi:lightning-bolt", "Güç Tüketimi", "power"),
+            nav_subgroup("ARAŞTIRMA BULGULARI"),
+            nav_item("mdi:book-open-variant", "Araştırma Özeti", "summary"),
+            nav_item("mdi:scale-balance", "Benchmark", "benchmark"),
+            nav_item("mdi:chart-box-outline", "Augmentasyon", "augmentation"),
+            nav_subgroup("VERİ & PIPELINE"),
             nav_item("mdi:flask-outline", "Sentetik Lab", "synthetic"),
             nav_item("mdi:rocket-launch-outline", "ESA Pipeline", "esa_pipeline"),
+            nav_item("mdi:lightning-bolt", "Güç Tüketimi", "power"),
         ]),
     ]),
     html.Div(className="sidebar-footer", children=[
@@ -711,11 +719,13 @@ from synthetic_page import get_synthetic_layout, register_synthetic_callbacks
 from esa_pipeline_page import get_esa_pipeline_layout, register_esa_pipeline_callbacks
 from benchmark_page import get_benchmark_layout
 from augmentation_page import get_augmentation_layout
+from summary_page import get_summary_layout
 PAGES = {"dashboard": page_dashboard, "upload": page_upload, "analysis": page_analysis,
          "results": page_results, "shap": page_shap, "performance": page_performance, "live": page_live, "detail": page_detail, "ablation": get_ablation_layout,
          "power": lambda: get_power_layout(ALL_METRICS),
          "synthetic": get_synthetic_layout, "esa_pipeline": get_esa_pipeline_layout,
-         "benchmark": get_benchmark_layout, "augmentation": get_augmentation_layout}
+         "benchmark": get_benchmark_layout, "augmentation": get_augmentation_layout,
+         "summary": lambda: get_summary_layout(ALL_METRICS)}
 
 @callback(Output("current-page", "data"),
           [Input({"type": "nav", "page": p}, "n_clicks") for p in PAGES],
