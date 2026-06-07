@@ -161,6 +161,8 @@ sidebar = html.Div(className="sidebar", children=[
                                 "fontWeight": "600", "padding": "12px 16px 4px", "cursor": "pointer",
                                 "userSelect": "none", "outline": "none"}),
             nav_item("mdi:gauge", "Model Performans", "performance"),
+            nav_item("mdi:scale-balance", "Benchmark", "benchmark"),
+            nav_item("mdi:chart-box-outline", "Augmentasyon", "augmentation"),
             nav_item("mdi:brain", "SHAP Analiz", "shap"),
             nav_item("mdi:test-tube", "Ablasyon Analizi", "ablation"),
             nav_item("mdi:lightning-bolt", "Güç Tüketimi", "power"),
@@ -661,10 +663,13 @@ from ablation_page import get_ablation_layout, register_ablation_callbacks
 from power_page import get_power_layout, register_power_callbacks
 from synthetic_page import get_synthetic_layout, register_synthetic_callbacks
 from esa_pipeline_page import get_esa_pipeline_layout, register_esa_pipeline_callbacks
+from benchmark_page import get_benchmark_layout
+from augmentation_page import get_augmentation_layout
 PAGES = {"dashboard": page_dashboard, "upload": page_upload, "analysis": page_analysis,
          "results": page_results, "shap": page_shap, "performance": page_performance, "live": page_live, "detail": page_detail, "ablation": get_ablation_layout,
          "power": lambda: get_power_layout(ALL_METRICS),
-         "synthetic": get_synthetic_layout, "esa_pipeline": get_esa_pipeline_layout}
+         "synthetic": get_synthetic_layout, "esa_pipeline": get_esa_pipeline_layout,
+         "benchmark": get_benchmark_layout, "augmentation": get_augmentation_layout}
 
 @callback(Output("current-page", "data"),
           [Input({"type": "nav", "page": p}, "n_clicks") for p in PAGES],
