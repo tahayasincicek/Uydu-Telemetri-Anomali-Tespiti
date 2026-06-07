@@ -128,19 +128,10 @@ def nav_subgroup(text):
     return html.Div(text, style={"fontSize": "9px", "letterSpacing": "1.5px", "color": "#94A3B8",
                                  "fontWeight": "600", "padding": "10px 16px 2px"})
 
-topbar = html.Div(className="topbar", children=[
-    html.Div(className="topbar-left", children=[
-        html.Span("Uydu Telemetri Anomali Tespiti", className="topbar-title"),
-    ]),
-    html.Div(id="utc-clock", className="topbar-center"),
-    html.Div(className="topbar-right", children=[
-        html.Div(className="topbar-status", children=[
-            html.Span(id="global-live-dot", className="topbar-dot"), html.Span("VERİ AKIŞI")]),
-        html.Div(className="topbar-status", children=[
-            html.Span(className="topbar-dot"), html.Span("MODEL")]),
-        html.Div(className="topbar-status", children=[
-            html.Span(className="topbar-dot"), html.Span("SİSTEM")]),
-    ]),
+# Üst bar kaldırıldı (sade tasarım). Canlı izleme callback'i global-live-dot'a
+# yazdığı için onu gizli bir öğe olarak tutuyoruz (callback sözleşmesi bozulmasın).
+hidden_refs = html.Div(style={"display": "none"}, children=[
+    html.Span(id="global-live-dot"),
 ])
 
 sidebar = html.Div(className="sidebar", children=[
@@ -201,10 +192,9 @@ app.layout = html.Div(id="app-root", children=[
     dcc.Store(id="anomaly-list"),
     dcc.Download(id="download-pdf-report"),
     dcc.Store(id="live-sim-state", data={"index": 0, "is_running": False, "anomalies": []}),
-    dcc.Interval(id="clock-interval", interval=1000, n_intervals=0),
     dcc.Interval(id="live-interval", interval=500, n_intervals=0, disabled=True),
     dcc.Download(id="download-csv"),
-    topbar,
+    hidden_refs,
     sidebar,
     html.Div(id="page-content", className="main-content"),
     html.Div(id="results-overlay", className="main-content",
@@ -733,17 +723,6 @@ PAGES = {"dashboard": page_dashboard, "upload": page_upload, "analysis": page_an
 def navigate(*clicks):
     if not ctx.triggered_id: return "dashboard"
     return ctx.triggered_id["page"]
-
-app.clientside_callback(
-    """
-    function(n_intervals) {
-        var d = new Date();
-        return "UTC  " + d.toISOString().replace('T', '  ').substring(0, 19);
-    }
-    """,
-    Output("utc-clock", "children"),
-    Input("clock-interval", "n_intervals")
-)
 
 @callback(Output("page-content", "children"), Output("page-content", "style"),
           Output("results-overlay", "style"),
