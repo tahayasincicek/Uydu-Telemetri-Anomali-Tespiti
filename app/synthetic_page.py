@@ -120,7 +120,7 @@ def get_synthetic_layout():
                 html.Div("RASTGELELIK TOHUMU", className="section-label", style={"marginTop": "16px"}),
                 dcc.Input(id="synth-seed", type="number", value=42,
                           style={"backgroundColor": "#FFFFFF", "border": "1px solid #E2E8F0",
-                                 "color": "#1E293B", "borderRadius": "6px", "padding": "8px",
+                                 "color": "#1E293B", "borderRadius": "0", "padding": "8px",
                                  "width": "100%", "fontFamily": "IBM Plex Mono"}),
 
                 html.Div(style={"marginTop": "20px"}, children=[

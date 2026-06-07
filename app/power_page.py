@@ -298,7 +298,7 @@ def register_power_callbacks(app, ALL_METRICS=None):
 
         legend_items = [
             html.Span([html.Span(style={"display": "inline-block", "width": "12px", "height": "12px",
-                                         "borderRadius": "2px", "backgroundColor": c, "marginRight": "6px"}),
+                                         "borderRadius": "0", "backgroundColor": c, "marginRight": "6px"}),
                         t], style={"marginRight": "18px", "fontSize": "12px", "color": "#334155"})
             for t, c in COMPLEXITY_COLORS.items()
         ]
