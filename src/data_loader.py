@@ -136,19 +136,16 @@ class TelemetryDataLoader:
 
         is_valid = True
 
-        # Boş veri kontrolü
         if self.data.empty:
             print("Veri seti boş!")
             is_valid = False
 
-        # Gerekli sütun kontrolü
         if required_columns:
             missing = set(required_columns) - set(self.data.columns)
             if missing:
                 print(f"Eksik sütunlar: {missing}")
                 is_valid = False
 
-        # Tamamen boş sütun kontrolü
         empty_cols = self.data.columns[self.data.isnull().all()].tolist()
         if empty_cols:
             print(f"Tamamen boş sütunlar: {empty_cols}")

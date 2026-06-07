@@ -42,7 +42,6 @@ class ModelEvaluator:
         """Belirtilen modelleri diskten yükler."""
         print("Modeller yükleniyor...")
         
-        # Supervised Models
         for name in supervised_list:
             path_joblib = os.path.join(self.models_dir, f"{name.lower()}_model.joblib")
             path_keras = os.path.join(self.models_dir, f"{name.lower()}_model.keras")
@@ -54,7 +53,6 @@ class ModelEvaluator:
                 self.models[name] = load_model(path_keras)
                 self.model_sizes[name] = os.path.getsize(path_keras) / (1024 * 1024)
                 
-        # Unsupervised Models
         unsup_dir = os.path.join(self.models_dir, 'unsupervised')
         for name in unsupervised_list:
             path_joblib = os.path.join(unsup_dir, f"{name.lower()}_model.joblib")
@@ -67,7 +65,6 @@ class ModelEvaluator:
                 self.models[name] = load_model(path_keras)
                 self.model_sizes[name] = os.path.getsize(path_keras) / (1024 * 1024)
 
-        # Unsupervised Eşik Değerlerini Yükle
         thresh_path = os.path.join(unsup_dir, 'unsupervised_thresholds.json')
         if os.path.exists(thresh_path):
             with open(thresh_path, 'r', encoding='utf-8') as f:
@@ -84,15 +81,12 @@ class ModelEvaluator:
         for name, model in self.models.items():
             start_time = time.time()
             
-            # Tahmin ve Olasılık alma
             if name == 'MLP' or name == 'Autoencoder':
-                # Derin öğrenme tahminleri
                 preds_raw = model.predict(X_test, verbose=0)
                 if name == 'MLP':
                     prob = preds_raw.flatten()
                     pred = (prob >= 0.5).astype(int)
                 else:
-                    # Autoencoder Reconstruction Error
                     prob = np.mean(np.power(X_test - preds_raw, 2), axis=1)
                     thresh = self.unsup_thresholds.get('Autoencoder', np.mean(prob))
                     pred = (prob > thresh).astype(int)
@@ -110,20 +104,18 @@ class ModelEvaluator:
                 thresh = self.unsup_thresholds.get(name, np.mean(prob))
                 pred = (prob > thresh).astype(int)
             else:
-                # Geleneksel Sklearn Supervised Modeller
                 pred = model.predict(X_test)
                 if hasattr(model, 'predict_proba'):
                     prob = model.predict_proba(X_test)[:, 1]
                 else:
                     prob = pred
             
-            inf_time = (time.time() - start_time) * 1000 # milisaniye
+            inf_time = (time.time() - start_time) * 1000
             
             self.predictions[name] = pred
             self.probabilities[name] = prob
-            self.inference_times[name] = inf_time / len(X_test) # Örnek başına ms
+            self.inference_times[name] = inf_time / len(X_test)
             
-            # Metrikleri Hesapla
             acc = accuracy_score(y_test, pred)
             prec = precision_score(y_test, pred, zero_division=0)
             rec = recall_score(y_test, pred, zero_division=0)
@@ -194,7 +186,6 @@ class ModelEvaluator:
         plt.show()
 
     def plot_anomaly_timeline(self, df_raw: pd.DataFrame, y_true: np.ndarray, sample_size: int = 500):
-        # Operatör Perspektifi Plotly Dashboard
         df_sub = df_raw.head(sample_size).copy()
         y_sub = y_true[:sample_size]
         
@@ -202,23 +193,19 @@ class ModelEvaluator:
                             vertical_spacing=0.05, 
                             subplot_titles=('Telemetri Sinyali (Orijinal)', 'Modellerin Anomali Skorları'))
 
-        # Orijinal Sinyal
         if 'value' in df_sub.columns:
             fig.add_trace(go.Scatter(y=df_sub['value'], mode='lines', name='Ham Sinyal', line=dict(color='white')), row=1, col=1)
             
-        # Gerçek Anomalileri Kırmızı Çizgilerle İşaretle
         anomaly_indices = np.where(y_sub == 1)[0]
         for idx in anomaly_indices:
             fig.add_vline(x=idx, line_width=1, line_dash="dot", line_color="red", opacity=0.3, row=1, col=1)
 
-        # Alt Panel: Anomali Skorları (Sadece En İyi 3 Model)
         best_models = ['MLP', 'XGBoost', 'Autoencoder']
         colors = ['cyan', 'orange', 'lime']
         
         for idx, m in enumerate(best_models):
             if m in self.probabilities:
                 prob_sub = self.probabilities[m][:sample_size]
-                # Normalize edelim ekranda düzgün dursun
                 prob_sub = (prob_sub - np.min(prob_sub)) / (np.max(prob_sub) - np.min(prob_sub) + 1e-10)
                 fig.add_trace(go.Scatter(y=prob_sub, mode='lines', name=f'{m} Skoru', line=dict(color=colors[idx])), row=2, col=1)
 

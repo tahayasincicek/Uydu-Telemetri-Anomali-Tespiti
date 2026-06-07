@@ -66,12 +66,9 @@ except ImportError:
     Model = None
 
 
-# Girdi olarak (örnek, özellik, 1) boyutlu 3B tensör isteyen derin sıralı (sequence) modeller.
-# Bu modeller tablo (tabular) özelliklerini "özellik ekseni boyunca bir sinyal" olarak işler.
 SEQUENCE_MODELS = {"LSTM", "BiLSTM", "GRU", "BiGRU", "CNN1D", "CNN_LSTM", "CNN_BiLSTM",
                    "CNN_GRU", "Transformer", "TCN", "Attention_BiLSTM",
                    "FCN", "ResNet1D", "InceptionTime", "LSTM_FCN"}
-# Keras tabanlı tüm modeller (kaydederken .keras formatı, kalın MLP dahil).
 KERAS_MODELS = SEQUENCE_MODELS | {"MLP"}
 
 
@@ -139,7 +136,6 @@ class SupervisedAnomalyDetector:
             CalibratedClassifierCV: Olasılık çıktıları verebilen eğitilmiş SVM modeli.
         """
         print(f"SVM ({kernel} kernel) eğitiliyor...")
-        # SVC probability=True çok yavaştır, bu yüzden CalibratedClassifierCV kullanılır.
         base_svm = SVC(kernel=kernel, class_weight='balanced', random_state=self.random_state, max_iter=5000)
         model = CalibratedClassifierCV(base_svm, cv=3)
         model.fit(X_train, y_train)
@@ -165,7 +161,6 @@ class SupervisedAnomalyDetector:
             
         print("XGBoost eğitiliyor...")
         
-        # Dengesiz veri için scale_pos_weight
         neg_count = sum(y_train == 0)
         pos_count = sum(y_train == 1)
         scale_weight = neg_count / pos_count if pos_count > 0 else 1.0
@@ -184,7 +179,6 @@ class SupervisedAnomalyDetector:
         if X_val is not None and y_val is not None:
             model.fit(X_train, y_train, eval_set=[(X_val, y_val)], verbose=False)
         else:
-            # early_stopping_rounds cannot be used if eval_set is not provided
             model.set_params(early_stopping_rounds=None)
             model.fit(X_train, y_train)
 
@@ -239,9 +233,6 @@ class SupervisedAnomalyDetector:
         self.models['MLP'] = model
         return model, history
 
-    # ==================================================================
-    #  Klasik Makine Öğrenmesi Modelleri (sklearn tabanlı)
-    # ==================================================================
 
     def train_extra_trees(self, X_train, y_train) -> ExtraTreesClassifier:
         """Extremely Randomized Trees (Extra Trees) sınıflandırıcısını eğitir."""
@@ -268,7 +259,6 @@ class SupervisedAnomalyDetector:
     def train_adaboost(self, X_train, y_train) -> AdaBoostClassifier:
         """AdaBoost sınıflandırıcısını eğitir."""
         print("AdaBoost eğitiliyor...")
-        # Not: scikit-learn 1.6+ sürümünde 'algorithm' parametresi kaldırıldı (yalnızca SAMME).
         model = AdaBoostClassifier(
             n_estimators=300, learning_rate=0.5,
             random_state=self.random_state
@@ -288,7 +278,6 @@ class SupervisedAnomalyDetector:
     def train_logistic_regression(self, X_train, y_train) -> LogisticRegression:
         """Lojistik Regresyon (doğrusal) sınıflandırıcısını eğitir."""
         print("Logistic Regression eğitiliyor...")
-        # Not: scikit-learn 1.8+ sürümünde LogisticRegression'da n_jobs etkisizdir (kaldırıldı).
         model = LogisticRegression(
             max_iter=2000, class_weight='balanced', random_state=self.random_state
         )
@@ -391,9 +380,6 @@ class SupervisedAnomalyDetector:
         self.models['SGD'] = model
         return model
 
-    # ==================================================================
-    #  Derin Sıralı (Sequence) Modeller — CNN / RNN / Transformer
-    # ==================================================================
 
     @staticmethod
     def _reshape_seq(X: np.ndarray) -> np.ndarray:
@@ -535,10 +521,8 @@ class SupervisedAnomalyDetector:
         head_size, num_heads, ff_dim = 64, 4, 128
 
         inputs = Input(shape=(n_features, 1))
-        # Tek kanalı küçük bir gömme (embedding) boyutuna projekte et
         x = Conv1D(filters=head_size, kernel_size=1, padding='same')(inputs)
 
-        # Transformer encoder bloğu (residual + layer norm)
         attn = MultiHeadAttention(num_heads=num_heads, key_dim=head_size, dropout=0.1)(x, x)
         x = Add()([x, attn])
         x = LayerNormalization(epsilon=1e-6)(x)
@@ -565,14 +549,12 @@ class SupervisedAnomalyDetector:
 
         inputs = Input(shape=(n_features, 1))
         x = inputs
-        # Genişleyen (dilated) artımlı evrişim blokları
         for dilation in (1, 2, 4, 8):
             prev = x
             x = Conv1D(64, kernel_size=3, padding='causal', dilation_rate=dilation,
                        activation='relu')(x)
             x = BatchNormalization()(x)
             x = SpatialDropout1D(0.1)(x)
-            # Residual bağlantı (kanal sayısı eşleşmiyorsa 1x1 conv ile uyarla)
             if prev.shape[-1] != x.shape[-1]:
                 prev = Conv1D(64, kernel_size=1, padding='same')(prev)
             x = Add()([prev, x])
@@ -705,7 +687,6 @@ class SupervisedAnomalyDetector:
                 x = Conv1D(filters, kernel_size=k, padding='same')(x)
                 x = BatchNormalization()(x)
                 x = Activation('relu')(x)
-            # Boyut uyumu için 1x1 conv
             if shortcut.shape[-1] != filters:
                 shortcut = Conv1D(filters, kernel_size=1, padding='same')(shortcut)
             shortcut = BatchNormalization()(shortcut)
@@ -748,7 +729,7 @@ class SupervisedAnomalyDetector:
         residual = inputs
         for d in range(6):
             x = inception_module(x)
-            if d % 3 == 2:  # her 3 modülde bir residual bağlantı
+            if d % 3 == 2:
                 res = Conv1D(int(x.shape[-1]), kernel_size=1, padding='same', use_bias=False)(residual)
                 res = BatchNormalization()(res)
                 x = Activation('relu')(Add()([res, x]))
@@ -769,13 +750,11 @@ class SupervisedAnomalyDetector:
         n_features = X_train.shape[1]
         inputs = Input(shape=(n_features, 1))
 
-        # FCN dalı
         c = Conv1D(128, kernel_size=8, padding='same')(inputs); c = BatchNormalization()(c); c = Activation('relu')(c)
         c = Conv1D(256, kernel_size=5, padding='same')(c); c = BatchNormalization()(c); c = Activation('relu')(c)
         c = Conv1D(128, kernel_size=3, padding='same')(c); c = BatchNormalization()(c); c = Activation('relu')(c)
         c = GlobalAveragePooling1D()(c)
 
-        # LSTM dalı
         l = LSTM(64)(inputs)
         l = Dropout(0.3)(l)
 
@@ -792,16 +771,13 @@ class SupervisedAnomalyDetector:
             
         model = self.models[name]
 
-        # Keras model çıktıları (olasılık) farklı şekilde alınır
         if name in SEQUENCE_MODELS:
-            # Sıralı modeller 3B girdi bekler: (örnek, özellik, 1)
             y_pred_prob = model.predict(self._reshape_seq(X_test), verbose=0).flatten()
         elif name == 'MLP':
             y_pred_prob = model.predict(X_test, verbose=0).flatten()
         elif hasattr(model, "predict_proba"):
             y_pred_prob = model.predict_proba(X_test)[:, 1]
         elif hasattr(model, "decision_function"):
-            # Ridge gibi olasılık vermeyen doğrusal modeller için karar skoru
             y_pred_prob = model.decision_function(X_test)
         else:
             y_pred_prob = model.predict(X_test)
@@ -816,7 +792,7 @@ class SupervisedAnomalyDetector:
         try:
             auc = roc_auc_score(y_test, y_pred_prob)
         except ValueError:
-            auc = 0.5 # Sadece tek sınıf varsa
+            auc = 0.5
             
         tn, fp, fn, tp = confusion_matrix(y_test, y_pred, labels=[0,1]).ravel()
         far = fp / (fp + tn) if (fp + tn) > 0 else 0.0

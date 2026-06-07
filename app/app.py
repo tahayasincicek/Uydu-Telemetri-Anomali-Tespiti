@@ -1,6 +1,5 @@
 """Uydu Telemetri Anomali Tespit Arayüzü"""
 import os
-# ── TF environment fixes (MUST be before any TF/sklearn import) ──
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
@@ -41,7 +40,6 @@ except Exception:
     LIVE_DATA = pd.DataFrame()
 
 
-# ── SHAP data loading ──
 SHAP_PKL = os.path.join(ROOT, "models", "shap_values.pkl")
 try:
     if os.path.exists(SHAP_PKL):
@@ -76,7 +74,6 @@ FEATURE_NAMES_TR = {
 DROP_COLS = ['segment', 'anomaly', 'train', 'channel']
 FEATURE_COLS = TEST_DATA.get("feature_cols", None) if TEST_DATA else None
 
-# ── Kanonik 7 metrik (src/metrics.py ile aynı; AUC_PR birincil sıralama ölçütü) ──
 BENCHMARK_METRICS = ["Accuracy", "Precision", "Recall", "F1", "MCC", "AUC_ROC", "AUC_PR"]
 PRIMARY_METRIC = "AUC_PR"
 
@@ -110,12 +107,10 @@ def best_model(metric=PRIMARY_METRIC, among=None):
     name = max(pool, key=lambda n: pool[n].get(metric, 0))
     return name, pool[name]
 
-# ── Helpers ──  (PLT_LAYOUT, icon, metric_card için utils/ui.py'ye bakınız)
 def nav_item(ic, text, page_id):
     return html.Button(id={"type": "nav", "page": page_id}, n_clicks=0,
                        className="nav-item", children=[icon(ic, 18), html.Span(text)])
 
-# ── Layout ──
 topbar = html.Div(className="topbar", children=[
     html.Div(className="topbar-left", children=[
         html.Span("Uydu Telemetri Anomali Tespiti", className="topbar-title"),
@@ -206,14 +201,12 @@ app.layout = html.Div(id="app-root", children=[
     ]),
 ])
 
-# ── Page builders ──
 def page_dashboard():
-    best_name, m_best = best_model(PRIMARY_METRIC)   # AUC_PR'a göre en iyi model
+    best_name, m_best = best_model(PRIMARY_METRIC)
     df_seg = pd.read_parquet(DEMO_PATH) if os.path.exists(DEMO_PATH) else pd.DataFrame()
     n_seg = len(df_seg)
     anom_ratio = f"%{df_seg['anomaly'].mean()*100:.1f}" if 'anomaly' in df_seg.columns else "N/A"
 
-    # AUC_PR'a göre en iyi 15 modelle 7-metrik ısı haritası (okunabilirlik için)
     ordered = sorted(ALL_METRICS, key=lambda n: ALL_METRICS[n].get(PRIMARY_METRIC, 0), reverse=True)[:15]
     heatmap_data = {n: {k: ALL_METRICS[n].get(k, 0) for k in BENCHMARK_METRICS} for n in ordered}
     hdf = pd.DataFrame(heatmap_data).T
@@ -374,10 +367,8 @@ def page_performance():
 
     mdf = pd.DataFrame(ALL_METRICS).T
     cols = [c for c in BENCHMARK_METRICS + ["FAR"] if c in mdf.columns]
-    # Tabloyu birincil metriğe (AUC_PR) göre azalan sırala
     ranked = sorted(ALL_METRICS, key=lambda n: ALL_METRICS[n].get(PRIMARY_METRIC, 0), reverse=True)
 
-    # ROC
     fig_roc = go.Figure()
     if TEST_DATA:
         from sklearn.metrics import roc_curve, auc
@@ -385,7 +376,6 @@ def page_performance():
         clrs = ["#3B82F6","#10B981","#F59E0B","#EF4444","#8B5CF6","#06B6D4","#F778A1","#A78BFA","#FB923C"]
         for i, (name, model) in enumerate(MODELS.items()):
             try:
-                # predict() tüm model türlerini (sıralı, PyOD, gözetimsiz, Ridge vb.) ele alır
                 _, prob = predict(model, name, X_t, THRESHOLDS, 1.0)
                 fpr, tpr, _ = roc_curve(y_t, prob)
                 a = auc(fpr, tpr)
@@ -396,7 +386,6 @@ def page_performance():
     fig_roc.add_trace(go.Scatter(x=[0,1], y=[0,1], mode="lines", line=dict(dash="dash", color="#4A5568"), showlegend=False))
     fig_roc.update_layout(**PLT_LAYOUT, height=400, title="ROC Egrileri", xaxis_title="FPR", yaxis_title="TPR")
 
-    # Radar: AUC_PR'a göre en iyi 6 model
     top = ranked[:6]
     cats = ["Accuracy","Precision","Recall","F1","MCC","AUC_ROC","AUC_PR"]
     fig_radar = go.Figure()
@@ -485,7 +474,6 @@ def page_live():
     channels = LIVE_DATA['channel'].unique().tolist() if not LIVE_DATA.empty and 'channel' in LIVE_DATA.columns else []
     fast_models = [n for n in ["IsolationForest", "LOF", "OneClassSVM", "KMeans"] if n in MODELS]
     
-    # Initialize empty figures
     fig_sig = go.Figure()
     fig_sig.update_layout(**PLT_LAYOUT, height=300,
                           xaxis=dict(showgrid=True, gridcolor="#1C2A3A"), yaxis=dict(showgrid=True, gridcolor="#1C2A3A"))
@@ -499,7 +487,6 @@ def page_live():
             html.Div("Gerçek zamanlı telemetri akışı ve anında anomali tespiti", className="page-subtitle")
         ]),
         
-        # BÖLÜM 1: Kontrol Paneli
         html.Div(className="panel live-control-panel", children=[
             html.Div(className="live-controls-left", children=[
                 html.Div([
@@ -528,7 +515,6 @@ def page_live():
             ])
         ]),
         
-        # BÖLÜM 2: Durum Şeridi
         html.Div(className="live-status-bar", children=[
             html.Span(id="live-stat-read", children="OKUNAN: 0"), html.Span("|", className="stat-divider"),
             html.Span(id="live-stat-total", children=f"TOPLAM: {len(LIVE_DATA)}"), html.Span("|", className="stat-divider"),
@@ -538,9 +524,7 @@ def page_live():
             html.Span(id="live-stat-model", children="MODEL: -"),
         ]),
         
-        # BÖLÜM 3 ve 4 Container
         html.Div(className="live-main-area", children=[
-            # BÖLÜM 3: Grafikler
             html.Div(className="live-charts-area", children=[
                 html.Div(className="panel live-chart-panel", children=[
                     html.Div(className="panel-title", style={"display": "flex", "justifyContent": "space-between"}, children=[
@@ -555,7 +539,6 @@ def page_live():
                 ]),
             ]),
             
-            # BÖLÜM 4: Alarm Paneli
             html.Div(className="live-alarm-panel", children=[
                 html.Div("ALARM KAYITLARI", className="alarm-panel-title"),
                 html.Div(id="live-alarm-list", className="alarm-list-container", children=[
@@ -579,7 +562,6 @@ PAGES = {"dashboard": page_dashboard, "upload": page_upload, "analysis": page_an
          "power": lambda: get_power_layout(ALL_METRICS),
          "synthetic": get_synthetic_layout, "esa_pipeline": get_esa_pipeline_layout}
 
-# ── Callbacks ──
 @callback(Output("current-page", "data"),
           [Input({"type": "nav", "page": p}, "n_clicks") for p in PAGES],
           prevent_initial_call=True)
@@ -587,7 +569,6 @@ def navigate(*clicks):
     if not ctx.triggered_id: return "dashboard"
     return ctx.triggered_id["page"]
 
-# UTC Clock callback
 app.clientside_callback(
     """
     function(n_intervals) {
@@ -610,7 +591,6 @@ def render_page(page_id):
         return html.Div(), {"display": "none"}, {"display": "none"}, {"display": "block"}
     return PAGES.get(page_id, page_dashboard)(), {"display": "block"}, {"display": "none"}, {"display": "none"}
 
-# Upload callbacks
 @callback(Output("uploaded-data", "data"), Output("upload-preview", "children"),
           Input("file-upload", "contents"), Input("btn-demo", "n_clicks"),
           State("file-upload", "filename"), prevent_initial_call=True)
@@ -630,32 +610,22 @@ def handle_upload(contents, demo_clicks, filename):
             else:
                 df = pd.read_csv(io.StringIO(decoded.decode('utf-8')))
                 
-            # RAW vs ÖZELLİK-ÇIKARILMIŞ VERİ TESPİTİ (AUTO-ADAPTATION)
-            # Sentinel: 18 ESA özelliğinin çekirdeği zaten varsa veri "featurized"
-            # sayılır (eski 'custom_rms' sentinel'i hem üretilmiyordu hem de kanonik
-            # 18-özellik verisinde hiç bulunmuyordu -> yanlış yeniden çıkarım yapardı).
             ESA_CORE = {'mean', 'var', 'std', 'n_peaks', 'diff_var'}
             is_featurized = ESA_CORE.issubset(set(df.columns))
             if not is_featurized:
-                # 1. Value (Sensör Değeri) Sütununu Bul
                 if 'value' not in df.columns:
                     num_cols = df.select_dtypes(include=[np.number]).columns.tolist()
                     if num_cols:
-                        # İlk bulduğumuz sayısal sütunu 'value' olarak atıyoruz
                         df = df.rename(columns={num_cols[0]: 'value'})
 
-                # 2. Otomatik Segmentasyon (Eğer 'segment' yoksa)
                 if 'segment' not in df.columns:
-                    # Sonsuz veriyi 250'şer satırlık vagonlara böler
                     df['segment'] = np.repeat(np.arange(len(df) // 250 + 1), 250)[:len(df)]
 
-                # 3. Zorunlu Meta Verilerin Eksikliklerini Gider
                 if 'channel' not in df.columns: df['channel'] = 'AUTO_SENSOR'
                 if 'anomaly' not in df.columns: df['anomaly'] = 0
                 if 'train' not in df.columns: df['train'] = 0
                 if 'sampling' not in df.columns: df['sampling'] = 1
 
-                # Her segment için kanonik 18 ESA özelliğini hesapla
                 df = extract_features_from_raw(df)
 
             return df.to_json(date_format='iso', orient='split'), build_preview(df, filename)
@@ -669,7 +639,6 @@ def build_preview(df, filename):
     n_miss = df.isnull().sum().sum()
     anom = f"{df['anomaly'].mean()*100:.1f}%" if 'anomaly' in df.columns else "N/A"
 
-    # Column grid
     col_items = []
     for c in df.columns:
         dtype_str = str(df[c].dtype)
@@ -678,7 +647,6 @@ def build_preview(df, filename):
             html.Span(dtype_str, className="col-dtype"),
         ]))
 
-    # Time series chart for first numeric column
     ts_chart = None
     num_cols = df.select_dtypes(include=[np.number]).columns.tolist()
     plot_col = [c for c in num_cols if c not in ['segment','anomaly','train','sampling']]
@@ -727,7 +695,6 @@ def build_preview(df, filename):
     ]))
     return html.Div(children)
 
-# Analysis callback
 @callback(Output("analysis-output", "children"), Output("prediction-results", "data"),
           Input("btn-analyze", "n_clicks"),
           State("sup-models", "value"), State("unsup-models", "value"),
@@ -788,7 +755,6 @@ def run_analysis(n, sup_sel, unsup_sel, thresh_mult, data_json):
 
     return html.Div([summary, html.Div(className="panel-title", children=[icon("mdi:format-list-bulleted",16), "Model Sonuçları"]), *rows]), json.dumps(results)
 
-# Selection counter
 @callback(Output("selection-counter", "children"),
           Input("sup-models", "value"), Input("unsup-models", "value"))
 def update_counter(sup_sel, unsup_sel):
@@ -796,7 +762,6 @@ def update_counter(sup_sel, unsup_sel):
     nu = len(unsup_sel or [])
     return f"{ns} gözetimli + {nu} gözetimsiz seçildi"
 
-# Results page dynamic content
 @callback(Output("results-content", "children"),
           Input("prediction-results", "data"),
           State("uploaded-data", "data"), prevent_initial_call=True)
@@ -814,7 +779,6 @@ def update_results(pred_json, data_json):
     else:
         return html.Div("Veri yok.")
 
-    # Binary ensemble for anomaly detection (which segments are anomalous)
     ensemble_binary = np.zeros(len(df))
     for r in results.values():
         ensemble_binary += np.array(r["preds"])
@@ -823,7 +787,6 @@ def update_results(pred_json, data_json):
     n_anom = int(anom_mask.sum())
     agreement = sum(1 for r in results.values() for p in r["preds"] if p == 1) / max(len(results) * len(df), 1)
 
-    # Continuous ensemble for severity (how anomalous each segment is)
     score_ensemble = np.zeros(len(df))
     n_score_models = 0
     for name, r in results.items():
@@ -916,7 +879,6 @@ def update_results(pred_json, data_json):
         ]),
     ])
 
-# Table selection to detail store
 @callback(Output("selected-anomaly", "data"), Output("anomaly-list", "data"),
           Output("current-page", "data", allow_duplicate=True), Output("detail-info-msg", "children"),
           Input("results-table", "active_cell"), State("results-table", "data"), prevent_initial_call=True)
@@ -927,10 +889,8 @@ def select_anomaly(active_cell, data):
     if col_id != "Detay": return no_update, no_update, no_update, no_update
     
     selected = data[row_idx]
-    # Go to detail page
     return selected, data, "detail", no_update
 
-# CSV Download callback
 @callback(Output("download-csv", "data"),
           Input("btn-csv-download", "n_clicks"),
           State("csv-store", "data"),
@@ -940,7 +900,6 @@ def download_csv(n, data):
     df_out = pd.DataFrame(data)
     return dcc.send_data_frame(df_out.to_csv, "anomali_sonuclari.csv", index=False)
 
-# ── SHAP Callbacks ──
 @callback(Output("shap-tab-content", "children"),
           Input("shap-tabs", "value"),
           prevent_initial_call=False)
@@ -990,7 +949,6 @@ def render_shap_tab(tab):
         ])
 
     elif tab == "tab-compare":
-        # Static comparison chart - RF vs XGBoost
         rf_shap = SHAP_DATA['rf_shap_values']
         xgb_shap = SHAP_DATA['xgb_shap_values']
         rf_imp = np.abs(rf_shap).mean(axis=0)
@@ -1011,7 +969,6 @@ def render_shap_tab(tab):
                           legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
         fig.update_yaxes(autorange="reversed")
 
-        # Find features with biggest difference
         diff = np.abs(rf_imp - xgb_imp)
         diff_idx = np.argsort(diff)[-3:][::-1]
         diff_text_parts = []
@@ -1087,7 +1044,6 @@ def update_shap_importance(model):
 
     chart = dcc.Graph(figure=fig, config={"displayModeBar": False})
 
-    # Auto-generated text for top 3 features
     feature_explanations = {
         'Varyans': 'Sinyal varyansindaki ani degisimler, uydu alt sistemlerindeki beklenmeyen davranislari yansitir.',
         'Standart Sapma': 'Sinyal dagiliminin genisligi; yuksek sapma operasyonel anomaliye isaret eder.',
@@ -1144,7 +1100,6 @@ def update_shap_waterfall(selected_idx):
         return html.Div(), html.Div()
 
     feature_labels = SHAP_DATA.get('feature_labels', SHAP_DATA.get('feature_cols', []))
-    # Use RF for waterfall by default
     shap_vals = SHAP_DATA['rf_shap_values']
     expected = SHAP_DATA['rf_expected_value']
     X_test = SHAP_DATA['X_test']
@@ -1156,14 +1111,12 @@ def update_shap_waterfall(selected_idx):
     vals = shap_vals[idx]
     data_row = X_test[idx]
 
-    # Sort by absolute SHAP value, take top 15
     abs_vals = np.abs(vals)
     top_idx = np.argsort(abs_vals)[-15:][::-1]
     sorted_labels = [feature_labels[i] for i in top_idx]
     sorted_vals = vals[top_idx]
     sorted_data = data_row[top_idx]
 
-    # Waterfall-style bar chart
     colors = ['#EF4444' if v > 0 else '#10B981' for v in sorted_vals]
 
     fig = go.Figure(go.Bar(
@@ -1183,7 +1136,6 @@ def update_shap_waterfall(selected_idx):
 
     chart = dcc.Graph(figure=fig, config={"displayModeBar": False})
 
-    # Text explanation for top 3 contributing features
     top3_items = []
     for rank, i in enumerate(top_idx[:3], 1):
         lbl = feature_labels[i]
@@ -1208,7 +1160,6 @@ def update_shap_waterfall(selected_idx):
 
     return chart, text_block
 
-# ── Results page SHAP mini-waterfall ──
 @callback(Output("shap-mini-waterfall-container", "children"),
           Input("results-table", "selected_rows"),
           State("results-table", "data"),
@@ -1226,7 +1177,7 @@ def update_mini_waterfall(selected_rows, table_data):
     y_test = SHAP_DATA['y_test']
 
     anomaly_indices = np.where(y_test == 1)[0]
-    row_no = row.get("NO", 1) - 1  # 0-indexed
+    row_no = row.get("NO", 1) - 1
     if row_no >= len(anomaly_indices):
         return html.Div("Bu segment icin SHAP verisi bulunamadi.", style={"color": "#F59E0B", "padding": "12px"})
 
@@ -1262,7 +1213,6 @@ def update_mini_waterfall(selected_rows, table_data):
     ])
 
 
-# ── Live Page Callbacks ──
 @callback(
     Output("live-interval", "disabled"),
     Output("live-sim-state", "data"),
@@ -1296,7 +1246,6 @@ def control_live_sim(start_n, stop_n, reset_n, state):
         state["anomalies"] = []
         ind = [html.Span(className="status-dot"), " DURDURULDU"]
         
-        # Reset figures
         fig_sig = go.Figure()
         fig_sig.update_layout(**PLT_LAYOUT, height=300,
                               xaxis=dict(showgrid=True, gridcolor="#1C2A3A"), yaxis=dict(showgrid=True, gridcolor="#1C2A3A"))
@@ -1340,21 +1289,17 @@ def update_live_sim(n_int, state, channel, model_name, speed, current_alarms):
     df_slice = LIVE_DATA[LIVE_DATA['channel'] == channel]
     
     if idx >= len(df_slice):
-        state["is_running"] = False # Stop if we reach the end
+        state["is_running"] = False
         return no_update
         
     end_idx = min(idx + speed, len(df_slice))
     chunk = df_slice.iloc[idx:end_idx]
     
-    # Update index
     state["index"] = end_idx
     
-    # Get values
     times = chunk['timestamp'].tolist()
     vals = chunk['value'].tolist()
     
-    # ── Özellik çıkarımı: kayan pencereden kanonik 18 ESA özelliği ──
-    # (eskiden yalnız 4 özellik dolduruluyordu; modeller 18 özellik bekler)
     start_win = max(0, end_idx - 30)
     win_data = df_slice.iloc[start_win:end_idx]['value'].values
 
@@ -1365,7 +1310,7 @@ def update_live_sim(n_int, state, channel, model_name, speed, current_alarms):
         feats = extract_features_from_raw(win_df)
         X = feats.reindex(columns=FEATURE_COLS, fill_value=0).fillna(0).values
     elif FEATURE_COLS:
-        X = np.zeros((1, len(FEATURE_COLS)))            # pencere çok kısa
+        X = np.zeros((1, len(FEATURE_COLS)))
     else:
         X = np.array([[np.mean(win_data) if len(win_data) else 0,
                        np.std(win_data) if len(win_data) else 0, 0, 0]])
@@ -1374,14 +1319,12 @@ def update_live_sim(n_int, state, channel, model_name, speed, current_alarms):
         try: X = SCALER.transform(X)
         except Exception as e: print("Live scaler hatası:", e)
         
-    # Predict
     model = MODELS.get(model_name)
     if not model: return no_update
     
     try:
         pr, sc = predict(model, model_name, X, THRESHOLDS, 1.0)
         score = sc[0]
-        # Normalize score simply for visualization
         t = THRESHOLDS.get(model_name, 0)
         if t == 0: t = 0.5
         norm_score = max(0, min(1, 0.5 + (score - t)/ (abs(t) + 1e-6)))
@@ -1392,18 +1335,15 @@ def update_live_sim(n_int, state, channel, model_name, speed, current_alarms):
         norm_score = 0
         is_anom = False
         
-    # Extend Data formatting
     sig_x = [times]
     sig_y = [vals]
     
     anom_x = [[times[-1]]] if is_anom else [[]]
     anom_y = [[vals[-1]]] if is_anom else [[]]
     
-    # Max 200 points
     sig_update = (dict(x=sig_x + anom_x, y=sig_y + anom_y), [0, 1], 200)
     score_update = (dict(x=[[times[-1]]], y=[[norm_score]]), [0], 200)
     
-    # Alarms
     alarms = current_alarms if isinstance(current_alarms, list) and not getattr(current_alarms[0], 'props', {}).get('className', '') == 'no-alarm-msg' else []
     
     if is_anom:
@@ -1427,7 +1367,6 @@ def update_live_sim(n_int, state, channel, model_name, speed, current_alarms):
     if not alarms:
         alarms = [html.Div("Anomali Yok", className="no-alarm-msg")]
         
-    # Stats
     prog = (end_idx / len(df_slice)) * 100 if len(df_slice) > 0 else 0
     n_anom = len(state["anomalies"])
     last_anom = state["anomalies"][-1]["time"].split("T")[-1][:8] if n_anom > 0 else "Yok"
@@ -1458,7 +1397,6 @@ def render_anomaly_detail(selected, current_page, all_anomalies, data_json):
     idx = selected.get("_idx", 0)
     row_no = selected.get("NO", 0)
     
-    # ── BÖLÜM 1: Kimlik Şeridi ──
     badge_color = "#FF3B5C" if sev == "Kritik" else "#FFB300" if sev == "Uyarı" else "#86EFAC"
     
     header = html.Div(className="anomaly-detail-header", children=[
@@ -1473,7 +1411,6 @@ def render_anomaly_detail(selected, current_page, all_anomalies, data_json):
         ])
     ])
     
-    # ── BÖLÜM 2: Özet Metrik Kartları ──
     metrics = dbc.Row([
         dbc.Col(metric_card("mdi:numeric", seg, "Segment Numarası", "blue"), md=2),
         dbc.Col(metric_card("mdi:satellite-uplink", ch, "Kanal Adı", "blue"), md=3),
@@ -1482,7 +1419,6 @@ def render_anomaly_detail(selected, current_page, all_anomalies, data_json):
         dbc.Col(metric_card("mdi:brain", "1+", "Tespit Eden", "green"), md=2),
     ], className="mb-4 g-3", style={"marginTop": "20px"})
     
-    # ── BÖLÜM 3: Sinyal Analizi ──
     context_fig = go.Figure()
     context_fig.update_layout(**PLT_LAYOUT, height=350, title="Anomali Bağlamı (±100 Segment)", xaxis_title="Segment", yaxis_title="Sinyal")
     
@@ -1503,7 +1439,6 @@ def render_anomaly_detail(selected, current_page, all_anomalies, data_json):
                 context_fig.add_trace(go.Scatter(x=[seg], y=[val], mode='markers', marker=dict(color='#FF3B5C', size=10), name='Anomali'))
                 context_fig.add_vrect(x0=seg-1, x1=seg+1, fillcolor="rgba(239,68,68,0.08)", line_width=1, line_dash="dash", line_color="#FF3B5C")
     
-    # Generate Stats Table
     df = None
     if data_json:
         df = pd.read_json(io.StringIO(data_json), orient='split')
@@ -1517,7 +1452,6 @@ def render_anomaly_detail(selected, current_page, all_anomalies, data_json):
     if df is not None and idx < len(df):
         row_data = df.iloc[idx]
         if FEATURE_COLS:
-            # Stats Table
             table_rows = []
             for feat in FEATURE_COLS:
                 if feat in df.columns:
@@ -1544,7 +1478,6 @@ def render_anomaly_detail(selected, current_page, all_anomalies, data_json):
                 html.Tbody(table_rows)
             ])
             
-            # Dynamic SHAP calculation (explainer önbellekten)
             if "XGBoost" in MODELS:
                 try:
                     xgb_model = MODELS["XGBoost"]
@@ -1552,9 +1485,8 @@ def render_anomaly_detail(selected, current_page, all_anomalies, data_json):
                     explainer = get_tree_explainer(xgb_model)
                     sv = explainer.shap_values(X_row)[0]
                     
-                    # Ensure SHAP values are extracted correctly (might be 2D for multiclass, but typically 1D for binary)
                     if len(sv.shape) > 1:
-                        sv = sv[:, 1] # Take positive class if it's 2D
+                        sv = sv[:, 1]
                     
                     for f, s, v in zip(FEATURE_COLS, sv, X_row.values[0]):
                         shap_vals.append(float(s))
@@ -1573,11 +1505,9 @@ def render_anomaly_detail(selected, current_page, all_anomalies, data_json):
         ]), md=5)
     ], className="mb-4 g-3")
     
-    # ── BÖLÜM 4: SHAP Açıklaması ──
     shap_section = html.Div("Bu model için SHAP değerleri hesaplanamadı.", className="info-box")
     
     if shap_vals and len(shap_vals) > 0:
-        # Sort by absolute SHAP value
         sorted_idx = np.argsort(np.abs(shap_vals))[::-1][:10]
         top_feats = [shap_feats[i] for i in sorted_idx]
         top_shaps = [shap_vals[i] for i in sorted_idx]
@@ -1592,7 +1522,6 @@ def render_anomaly_detail(selected, current_page, all_anomalies, data_json):
         shap_fig.update_layout(**PLT_LAYOUT, height=350, title="Bu Anomaliye Katkıda Bulunan Özellikler", 
                                margin=dict(l=10, r=20, t=50, b=30), yaxis=dict(tickmode="linear"))
         
-        # Auto-generated text
         top_positive = [f for f, s in zip(top_feats, top_shaps) if s > 0]
         if len(top_positive) > 0:
             f1 = top_positive[0]
@@ -1616,7 +1545,6 @@ def render_anomaly_detail(selected, current_page, all_anomalies, data_json):
             ]), md=6)
         ], className="mb-4 g-3")
         
-    # ── BÖLÜM 5: Aksiyon ve Navigasyon ──
     action_panel = html.Div(className="panel anomaly-action-panel", children=[
         html.Div(className="nav-buttons", children=[
             html.Button([icon("mdi:chevron-left"), " Önceki Anomali"], id="btn-prev-anomaly", className="btn-nav"),
@@ -1630,14 +1558,12 @@ def render_anomaly_detail(selected, current_page, all_anomalies, data_json):
     ])
     
     return html.Div([header, metrics, signal_analysis, shap_section, action_panel])
-# -- pdf_callback.py --
 
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
 from reportlab.lib.colors import HexColor
 
-# Navigate Callbacks
 @callback(Output("selected-anomaly", "data", allow_duplicate=True),
           Input("btn-prev-anomaly", "n_clicks"),
           Input("btn-next-anomaly", "n_clicks"),
@@ -1683,7 +1609,6 @@ def generate_pdf_report(n, selected):
         c = canvas.Canvas(file_path, pagesize=A4)
         width, height = A4
         
-        # Header
         c.setFillColor(HexColor("#080C14"))
         c.rect(0, height-80, width, 80, stroke=0, fill=1)
         
@@ -1691,7 +1616,6 @@ def generate_pdf_report(n, selected):
         c.setFont("Helvetica-Bold", 20)
         c.drawString(40, height-45, f"Anomali Raporu - Segment #{seg}")
         
-        # Details
         c.setFillColor(HexColor("#000000"))
         c.setFont("Helvetica", 12)
         
@@ -1720,8 +1644,6 @@ register_synthetic_callbacks(app)
 register_esa_pipeline_callbacks(app)
 
 if __name__ == "__main__":
-    # Ortam değişkenleriyle yapılandırılabilir (varsayılanlar korunur).
-    # Yalnız yerel erişim için: DASH_HOST=127.0.0.1
     app.run(
         debug=os.environ.get("DASH_DEBUG", "0") == "1",
         host=os.environ.get("DASH_HOST", "0.0.0.0"),

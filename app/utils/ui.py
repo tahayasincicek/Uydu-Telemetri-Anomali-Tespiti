@@ -3,7 +3,6 @@ bileşenleri tek kaynakta toplanır (app.py, power/synthetic/esa/ablation sayfal
 from dash import html
 from dash_iconify import DashIconify
 
-# Tüm grafiklerde kullanılan koyu tema düzeni
 PLT_LAYOUT = dict(
     template="plotly_dark", paper_bgcolor="#080C14", plot_bgcolor="#080C14",
     font=dict(family="IBM Plex Sans", color="#94A3B8"),

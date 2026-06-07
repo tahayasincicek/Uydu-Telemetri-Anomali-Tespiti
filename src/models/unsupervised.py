@@ -36,7 +36,6 @@ try:
 except ImportError:
     Sequential, Model = None, None
 
-# PyOD anomali dedektörleri (opsiyonel bağımlılık)
 try:
     from pyod.models.ecod import ECOD
     from pyod.models.copod import COPOD
@@ -73,7 +72,6 @@ try:
 except ImportError:
     _PYOD_DIF_AVAILABLE = False
 
-# Tek tip API'ye (fit / decision_function / predict) sahip PyOD modelleri
 PYOD_MODELS = {"ECOD", "COPOD", "HBOS", "CBLOF", "ABOD", "COF", "SOD", "SOS",
                "LODA", "INNE", "LMDD", "SO_GAAL", "MO_GAAL", "DeepSVDD", "LUNAR", "DIF"}
 
@@ -108,9 +106,7 @@ class UnsupervisedAnomalyDetector:
         )
         model.fit(X_train)
         
-        # Skorlar (ne kadar küçükse o kadar anomali, ama biz pozitife çeviriyoruz)
         scores = -model.score_samples(X_train)
-        # Eşik değeri olarak ortalama + 3 standart sapma
         threshold = np.mean(scores) + 3 * np.std(scores)
         
         self.models['IsolationForest'] = model
@@ -128,7 +124,6 @@ class UnsupervisedAnomalyDetector:
         input_dim = X_train.shape[1]
         
         model = Sequential([
-            # Encoder
             Input(shape=(input_dim,)),
             Dense(128, activation='relu'),
             BatchNormalization(),
@@ -138,12 +133,11 @@ class UnsupervisedAnomalyDetector:
             Dropout(0.2),
             Dense(32, activation='relu', name='latent_space'),
             
-            # Decoder
             Dense(64, activation='relu'),
             BatchNormalization(),
             Dense(128, activation='relu'),
             BatchNormalization(),
-            Dense(input_dim, activation='sigmoid') # X_train 0-1 arası normalize edilmiş olmalı veya linear
+            Dense(input_dim, activation='sigmoid')
         ])
         
         model.compile(optimizer=Adam(learning_rate=0.001), loss='mse')
@@ -151,7 +145,7 @@ class UnsupervisedAnomalyDetector:
         early_stop = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
         
         history = model.fit(
-            X_train, X_train, # Autoencoder'da X ve y aynıdır
+            X_train, X_train,
             validation_data=(X_val, X_val),
             epochs=epochs,
             batch_size=batch_size,
@@ -159,7 +153,6 @@ class UnsupervisedAnomalyDetector:
             verbose=1
         )
         
-        # Train seti üzerinde reconstruction error (MSE) hesapla
         reconstructions = model.predict(X_train)
         mse = np.mean(np.power(X_train - reconstructions, 2), axis=1)
         threshold = np.mean(mse) + 3 * np.std(mse)
@@ -178,15 +171,12 @@ class UnsupervisedAnomalyDetector:
         print("LSTM Autoencoder eğitiliyor...")
         
         model = Sequential([
-            # Encoder
             Input(shape=(seq_len, features)),
             LSTM(64, return_sequences=True),
             LSTM(32, return_sequences=False),
             
-            # Reconstruct sequence
             RepeatVector(seq_len),
             
-            # Decoder
             LSTM(32, return_sequences=True),
             LSTM(64, return_sequences=True),
             TimeDistributed(Dense(features))
@@ -220,7 +210,6 @@ class UnsupervisedAnomalyDetector:
         model = OneClassSVM(kernel='rbf', gamma='scale', nu=nu)
         model.fit(X_train)
         
-        # Skorlar
         scores = -model.decision_function(X_train)
         threshold = np.percentile(scores, 100 * (1 - nu))
         
@@ -237,7 +226,6 @@ class UnsupervisedAnomalyDetector:
         model = KMeans(n_clusters=n_clusters, random_state=self.random_state, n_init='auto')
         model.fit(X_train)
         
-        # Uzaklık skorlarını hesapla
         distances = model.transform(X_train)
         min_distances = np.min(distances, axis=1)
         threshold = np.mean(min_distances) + 3 * np.std(min_distances)
@@ -261,9 +249,6 @@ class UnsupervisedAnomalyDetector:
         self.thresholds['LOF'] = threshold
         return model
 
-    # ==================================================================
-    #  Ek Gözetimsiz Modeller (sklearn tabanlı)
-    # ==================================================================
 
     def train_gmm(self, X_train: np.ndarray, n_components: int = 3) -> GaussianMixture:
         """Gaussian Mixture Model (GMM). Düşük olabilirlik = anomali."""
@@ -271,7 +256,7 @@ class UnsupervisedAnomalyDetector:
         model = GaussianMixture(n_components=n_components, covariance_type='full',
                                 random_state=self.random_state)
         model.fit(X_train)
-        scores = -model.score_samples(X_train)  # negatif log-olabilirlik
+        scores = -model.score_samples(X_train)
         threshold = np.mean(scores) + 3 * np.std(scores)
         self.models['GMM'] = model
         self.thresholds['GMM'] = float(threshold)
@@ -308,13 +293,10 @@ class UnsupervisedAnomalyDetector:
         print("DBSCAN (core-distance novelty) eğitiliyor...")
         db = DBSCAN(eps=eps, min_samples=min_samples, n_jobs=-1)
         labels = db.fit_predict(X_train)
-        # Çekirdek (gürültü olmayan) noktalar
         core = X_train[labels != -1]
         if len(core) == 0:
-            core = X_train  # tümü gürültüyse geri düş
+            core = X_train
         nbrs = NearestNeighbors(n_neighbors=1, n_jobs=-1).fit(core)
-        # Eşik kalibrasyonu: eğitim noktasının kendine 0 mesafesini saymamak için
-        # 2-en-yakın komşu sorgusu yapıp ikinci komşuyu (kendisi hariç) kullanırız.
         nbrs2 = NearestNeighbors(n_neighbors=2, n_jobs=-1).fit(core)
         dist2, _ = nbrs2.kneighbors(X_train)
         scores = dist2[:, 1]
@@ -331,8 +313,6 @@ class UnsupervisedAnomalyDetector:
         print("Variational Autoencoder (VAE) eğitiliyor...")
         input_dim = X_train.shape[1]
 
-        # Keras 3'te Functional model üzerinde add_loss() kaldırıldı;
-        # KL kaybı örnekleme katmanının call() içinde add_loss() ile eklenmeli.
         class SamplingLayer(keras.layers.Layer):
             def __init__(self, beta=1.0, **kwargs):
                 super().__init__(**kwargs)
@@ -376,9 +356,6 @@ class UnsupervisedAnomalyDetector:
         self.thresholds['VAE'] = float(threshold)
         return vae
 
-    # ==================================================================
-    #  PyOD Anomali Dedektörleri (ECOD, COPOD, HBOS, CBLOF)
-    # ==================================================================
 
     def train_pyod(self, X_train: np.ndarray, contamination: float = 0.05) -> Dict[str, Any]:
         """PyOD tabanlı dedektörleri (ECOD, COPOD, HBOS, CBLOF) eğitir.
@@ -404,9 +381,6 @@ class UnsupervisedAnomalyDetector:
             trained[name] = det
         return trained
 
-    # ==================================================================
-    #  Ek PyOD Modelleri (Temel)
-    # ==================================================================
 
     def train_abod(self, X_train: np.ndarray, contamination: float = 0.05):
         """Açı Tabanlı Aykırı Değer Dedektörü (ABOD)."""
@@ -507,9 +481,6 @@ class UnsupervisedAnomalyDetector:
         self.thresholds['MO_GAAL'] = float(model.threshold_)
         return model
 
-    # ==================================================================
-    #  Derin Öğrenme PyOD Modelleri (torch tabanlı)
-    # ==================================================================
 
     def train_deep_svdd(self, X_train: np.ndarray, contamination: float = 0.05, epochs: int = 50):
         """Derin Tek Sınıf Sınıflandırma (DeepSVDD)."""
@@ -545,9 +516,6 @@ class UnsupervisedAnomalyDetector:
         self.thresholds['DIF'] = float(model.threshold_)
         return model
 
-    # ==================================================================
-    #  GAN Tabanlı Anomali Tespiti (TensorFlow/Keras)
-    # ==================================================================
 
     def train_anogan(self, X_train: np.ndarray, X_val: np.ndarray, latent_dim: int = 32,
                      epochs: int = 100, batch_size: int = 64):
@@ -747,11 +715,9 @@ class UnsupervisedAnomalyDetector:
             else:
                 continue
                 
-            # Skaler olarak Normalize Et (Min-Max Scaling)
             scores_norm = (scores - np.min(scores)) / (np.max(scores) - np.min(scores) + 1e-10)
             scores_matrix.append(scores_norm)
             
-        # Modellerin ortalama skoru (Majority/Ağırlıklı)
         ensemble_score = np.mean(np.array(scores_matrix), axis=0)
         return ensemble_score
 
@@ -772,7 +738,6 @@ class UnsupervisedAnomalyDetector:
             else:
                 joblib.dump(model, filepath + ".joblib")
                 
-        # Thresholds JSON kaydı
         with open(os.path.join(path, "unsupervised_thresholds.json"), "w", encoding='utf-8') as f:
             json.dump(self.thresholds, f, indent=4)
         print("Gözetimsiz modeller başarıyla kaydedildi.")

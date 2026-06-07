@@ -36,9 +36,7 @@ def get_ablation_layout():
     except Exception as e:
         return html.Div(f"Hata: {e}")
         
-    # Hesaplamalar
     models = list(data['baseline'].keys())
-    # Sadece ilk modeli veya en iyisini secelim (ornegin XGBoost veya Random Forest)
     best_model = models[0] if models else "Unknown"
     
     baseline_auc = data['baseline'].get(best_model, {}).get('AUC-ROC', 0)
@@ -48,12 +46,10 @@ def get_ablation_layout():
     crit_feat_name = crit_feats[0] if crit_feats else "Bulunamadi"
     min_feat_count = best_set.get('optimal_count', 19)
     
-    # Kümülatif içindeki max ve baseline farki
     try:
         df_cum = pd.DataFrame(data['cumulative'])
         best_cum_auc = df_cum['AUC-ROC'].max()
         max_drop_pct = ((baseline_auc - best_cum_auc) / max(baseline_auc, 0.0001)) * 100
-        # Eger performans artmıssa eksi olur, drop = kayıp
     except:
         max_drop_pct = 0.0
 
@@ -126,7 +122,6 @@ def register_ablation_callbacks(app):
             fig = px.bar(df_grp, x='Group', y='AUC-ROC', color='Model', barmode='group')
             fig.update_layout(**PLT_LAYOUT, title="Zaman Penceresi Grubu Karşılaştırması", yaxis_range=[0.5, 1.0])
             
-            # En iyi grubu bul
             best_group = "N/A"
             if len(df_grp) > 0:
                 best_group = df_grp.groupby('Group')['AUC-ROC'].mean().idxmax()
@@ -155,7 +150,6 @@ def register_ablation_callbacks(app):
             crit_items = [html.Div([icon("mdi:check-circle", 16, "#10B981"), html.Span(f" {f} (Katkısı yüksek)", style={"marginLeft": "8px"})], style={"marginBottom": "5px"}) for f in crit]
             remov_items = [html.Div([icon("mdi:alert-circle", 16, "#F59E0B"), html.Span(f" {f} (Çıkarılabilir)", style={"marginLeft": "8px"})], style={"marginBottom": "5px"}) for f in remov]
             
-            # Pie chart
             labels = ['Kritik', 'Çıkarılabilir', 'Diğer']
             sizes = [len(crit), len(remov), max(19 - len(crit) - len(remov), 0)]
             fig_pie = go.Figure(data=[go.Pie(labels=labels, values=sizes, hole=.4, 
@@ -207,7 +201,6 @@ def register_ablation_callbacks(app):
             fig.add_vline(x=0, line_dash="dash", line_color="white")
             fig.update_layout(**PLT_LAYOUT)
             
-            # Tooltip
             fig.update_traces(hovertemplate="Bu özellik çıkarılınca AUC %{x:.4f} kadar değişti.")
             
             if len(df_model) > 0:

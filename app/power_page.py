@@ -15,13 +15,7 @@ import dash_bootstrap_components as dbc
 from utils.ui import PLT_LAYOUT, icon as _icon, metric_card as _metric_card
 
 
-# ── 10 000 orneklik referans veri seti icin guc profilleri ──────────────
-# cpu_watts : Egitim sirasinda ortalama CPU gucu (Watt)
-# train_sec : Egitim suresi (saniye, 10K ornek)
-# infer_ms  : Tek ornek icin cikarim suresi (milisaniye)
-# memory_mb : Zirve bellek kullanimi (MB)
 POWER_PROFILES = {
-    # ── Supervised  Basit ML ──
     "LogisticRegression": {"cpu_watts": 8,  "train_sec": 0.5,  "infer_ms": 0.02, "memory_mb": 15,  "category": "Gozetimli", "complexity": "Dusuk"},
     "Ridge":              {"cpu_watts": 6,  "train_sec": 0.3,  "infer_ms": 0.01, "memory_mb": 10,  "category": "Gozetimli", "complexity": "Dusuk"},
     "SGD":                {"cpu_watts": 7,  "train_sec": 0.4,  "infer_ms": 0.01, "memory_mb": 12,  "category": "Gozetimli", "complexity": "Dusuk"},
@@ -31,7 +25,6 @@ POWER_PROFILES = {
     "DecisionTree":       {"cpu_watts": 8,  "train_sec": 0.8,  "infer_ms": 0.01, "memory_mb": 20,  "category": "Gozetimli", "complexity": "Dusuk"},
     "KNN":                {"cpu_watts": 10, "train_sec": 0.1,  "infer_ms": 2.5,  "memory_mb": 150, "category": "Gozetimli", "complexity": "Orta"},
     "LSVC":               {"cpu_watts": 12, "train_sec": 1.5,  "infer_ms": 0.02, "memory_mb": 25,  "category": "Gozetimli", "complexity": "Orta"},
-    # ── Supervised  Topluluk ──
     "RandomForest":        {"cpu_watts": 25, "train_sec": 8,   "infer_ms": 0.5,  "memory_mb": 200, "category": "Gozetimli", "complexity": "Orta"},
     "ExtraTrees":          {"cpu_watts": 22, "train_sec": 6,   "infer_ms": 0.4,  "memory_mb": 180, "category": "Gozetimli", "complexity": "Orta"},
     "GradientBoosting":    {"cpu_watts": 30, "train_sec": 25,  "infer_ms": 0.3,  "memory_mb": 120, "category": "Gozetimli", "complexity": "Orta"},
@@ -42,7 +35,6 @@ POWER_PROFILES = {
     "XGBoost":             {"cpu_watts": 35, "train_sec": 12,  "infer_ms": 0.15, "memory_mb": 150, "category": "Gozetimli", "complexity": "Orta"},
     "XGBOD":               {"cpu_watts": 40, "train_sec": 30,  "infer_ms": 0.5,  "memory_mb": 300, "category": "Gozetimli", "complexity": "Yuksek"},
     "SVM":                 {"cpu_watts": 30, "train_sec": 20,  "infer_ms": 1.0,  "memory_mb": 200, "category": "Gozetimli", "complexity": "Yuksek"},
-    # ── Supervised  Derin Ogrenme ──
     "MLP":              {"cpu_watts": 45, "train_sec": 60,  "infer_ms": 0.5,  "memory_mb": 300, "category": "Gozetimli", "complexity": "Yuksek"},
     "LSTM":             {"cpu_watts": 65, "train_sec": 180, "infer_ms": 2.0,  "memory_mb": 500, "category": "Gozetimli", "complexity": "Cok Yuksek"},
     "BiLSTM":           {"cpu_watts": 75, "train_sec": 250, "infer_ms": 3.5,  "memory_mb": 650, "category": "Gozetimli", "complexity": "Cok Yuksek"},
@@ -59,7 +51,6 @@ POWER_PROFILES = {
     "ResNet1D":         {"cpu_watts": 70, "train_sec": 200, "infer_ms": 2.5,  "memory_mb": 600, "category": "Gozetimli", "complexity": "Cok Yuksek"},
     "InceptionTime":    {"cpu_watts": 75, "train_sec": 250, "infer_ms": 3.0,  "memory_mb": 700, "category": "Gozetimli", "complexity": "Cok Yuksek"},
     "LSTM_FCN":         {"cpu_watts": 70, "train_sec": 210, "infer_ms": 2.8,  "memory_mb": 580, "category": "Gozetimli", "complexity": "Cok Yuksek"},
-    # ── Unsupervised  sklearn ──
     "IsolationForest":  {"cpu_watts": 15, "train_sec": 3,   "infer_ms": 0.3,  "memory_mb": 80,  "category": "Gozetimsiz", "complexity": "Dusuk"},
     "LOF":              {"cpu_watts": 12, "train_sec": 2,   "infer_ms": 1.5,  "memory_mb": 100, "category": "Gozetimsiz", "complexity": "Dusuk"},
     "OneClassSVM":      {"cpu_watts": 25, "train_sec": 15,  "infer_ms": 0.8,  "memory_mb": 150, "category": "Gozetimsiz", "complexity": "Orta"},
@@ -68,13 +59,11 @@ POWER_PROFILES = {
     "EllipticEnvelope": {"cpu_watts": 18, "train_sec": 8,   "infer_ms": 0.2,  "memory_mb": 90,  "category": "Gozetimsiz", "complexity": "Orta"},
     "PCA":              {"cpu_watts": 8,  "train_sec": 1,   "infer_ms": 0.05, "memory_mb": 30,  "category": "Gozetimsiz", "complexity": "Dusuk"},
     "DBSCAN":           {"cpu_watts": 20, "train_sec": 10,  "infer_ms": 0.5,  "memory_mb": 200, "category": "Gozetimsiz", "complexity": "Orta"},
-    # ── Unsupervised  Derin ──
     "Autoencoder":      {"cpu_watts": 40, "train_sec": 80,  "infer_ms": 0.4,  "memory_mb": 250, "category": "Gozetimsiz", "complexity": "Yuksek"},
     "LSTM_Autoencoder": {"cpu_watts": 60, "train_sec": 150, "infer_ms": 2.0,  "memory_mb": 400, "category": "Gozetimsiz", "complexity": "Cok Yuksek"},
     "VAE":              {"cpu_watts": 45, "train_sec": 90,  "infer_ms": 0.5,  "memory_mb": 280, "category": "Gozetimsiz", "complexity": "Yuksek"},
     "AnoGAN":           {"cpu_watts": 70, "train_sec": 400, "infer_ms": 1.5,  "memory_mb": 500, "category": "Gozetimsiz", "complexity": "Cok Yuksek"},
     "ALAD":             {"cpu_watts": 75, "train_sec": 350, "infer_ms": 1.2,  "memory_mb": 480, "category": "Gozetimsiz", "complexity": "Cok Yuksek"},
-    # ── Unsupervised  PyOD Basit ──
     "ECOD":  {"cpu_watts": 5,  "train_sec": 1,   "infer_ms": 0.05, "memory_mb": 20,  "category": "Gozetimsiz", "complexity": "Dusuk"},
     "COPOD": {"cpu_watts": 6,  "train_sec": 1.5, "infer_ms": 0.08, "memory_mb": 25,  "category": "Gozetimsiz", "complexity": "Dusuk"},
     "HBOS":  {"cpu_watts": 4,  "train_sec": 0.5, "infer_ms": 0.03, "memory_mb": 15,  "category": "Gozetimsiz", "complexity": "Dusuk"},
@@ -101,7 +90,6 @@ COMPLEXITY_COLORS = {
 }
 CATEGORY_COLORS = {"Gozetimli": "#3B82F6", "Gozetimsiz": "#8B5CF6"}
 
-# CO2 emission factor (g CO2 per kWh, world average)
 CO2_FACTOR = 400
 
 
@@ -111,8 +99,7 @@ def _build_df(dataset_size: int = 10000):
     rows = []
     for name, p in POWER_PROFILES.items():
         t = p["train_sec"] * scale
-        energy_wh = p["cpu_watts"] * t / 3600          # Wh
-        # CO2 (g) = enerji(kWh) * faktor(g/kWh) = (energy_wh/1000) * CO2_FACTOR
+        energy_wh = p["cpu_watts"] * t / 3600
         rows.append({
             "Model": name,
             "Kategori": p["category"],
@@ -127,9 +114,6 @@ def _build_df(dataset_size: int = 10000):
     return pd.DataFrame(rows)
 
 
-# ═══════════════════════════════════════════════════════════════
-#  Layout
-# ═══════════════════════════════════════════════════════════════
 def get_power_layout(ALL_METRICS=None):
     if ALL_METRICS is None:
         ALL_METRICS = {}
@@ -140,7 +124,6 @@ def get_power_layout(ALL_METRICS=None):
             html.Div("Algoritmalarin hesaplama maliyeti ve enerji analizi", className="page-subtitle"),
         ]),
 
-        # ── Veri seti boyutu slider ──
         html.Div(className="panel mb-4", children=[
             html.Div(className="panel-title", children=[
                 _icon("mdi:database-cog-outline", 16), " Veri Seti Boyutu (ornek sayisi)"]),
@@ -152,20 +135,14 @@ def get_power_layout(ALL_METRICS=None):
             ),
         ]),
 
-        # ── Ozet kartlar ──
         html.Div(id="power-summary-cards"),
 
-        # ── Grafikler ──
         html.Div(id="power-charts"),
 
-        # ── Tablo ──
         html.Div(id="power-table"),
     ])
 
 
-# ═══════════════════════════════════════════════════════════════
-#  Callbacks
-# ═══════════════════════════════════════════════════════════════
 def register_power_callbacks(app, ALL_METRICS=None):
     if ALL_METRICS is None:
         ALL_METRICS = {}
@@ -188,7 +165,6 @@ def register_power_callbacks(app, ALL_METRICS=None):
         eff_val = df["Enerji (Wh)"].min()
         cost_val = df["Enerji (Wh)"].max()
 
-        # ── 1) Ozet kartlar ──
         cards = dbc.Row([
             dbc.Col(_metric_card("mdi:lightning-bolt", f"{total_energy:.2f} Wh",
                                  "Toplam Enerji", "cyan",
@@ -204,7 +180,6 @@ def register_power_callbacks(app, ALL_METRICS=None):
                                  f"{cost_val:.4f} Wh"), md=3),
         ], className="mb-4 g-3")
 
-        # ── 2) Enerji bar chart (yatay, sirali) ──
         df_sorted = df.sort_values("Enerji (Wh)", ascending=True)
         bar_colors = [COMPLEXITY_COLORS.get(c, "#64748B") for c in df_sorted["Karmasiklik"]]
 
@@ -220,7 +195,6 @@ def register_power_callbacks(app, ALL_METRICS=None):
             xaxis_title="Enerji (Wh)",
         )
 
-        # ── 3) Guc vs F1 scatter (sadece metrik varsa) ──
         fig_scatter = go.Figure()
         if ALL_METRICS:
             scatter_rows = []
@@ -252,7 +226,6 @@ def register_power_callbacks(app, ALL_METRICS=None):
             xaxis_type="log",
         )
 
-        # ── 4) Kategori bazli pasta grafik ──
         cat_energy = df.groupby("Kategori")["Enerji (Wh)"].sum().reset_index()
         fig_pie = go.Figure(go.Pie(
             labels=cat_energy["Kategori"], values=cat_energy["Enerji (Wh)"],
@@ -263,7 +236,6 @@ def register_power_callbacks(app, ALL_METRICS=None):
         fig_pie.update_layout(**PLT_LAYOUT, height=350, title="Kategori Bazli Enerji Dagilimi",
                               showlegend=False)
 
-        # ── 5) Karmasiklik bazli bar chart ──
         comp_energy = df.groupby("Karmasiklik")["Enerji (Wh)"].mean().reset_index()
         comp_order = ["Dusuk", "Orta", "Yuksek", "Cok Yuksek"]
         comp_energy["_order"] = comp_energy["Karmasiklik"].map({v: i for i, v in enumerate(comp_order)})
@@ -277,7 +249,6 @@ def register_power_callbacks(app, ALL_METRICS=None):
         fig_comp.update_layout(**PLT_LAYOUT, height=350, title="Karmasiklik Seviyesine Gore Ort. Enerji",
                                yaxis_title="Ort. Enerji (Wh)")
 
-        # ── 6) Bellek kullanimi ──
         df_mem = df.sort_values("Bellek (MB)", ascending=True)
         fig_mem = go.Figure(go.Bar(
             y=df_mem["Model"], x=df_mem["Bellek (MB)"],
@@ -289,7 +260,6 @@ def register_power_callbacks(app, ALL_METRICS=None):
         fig_mem.update_layout(**PLT_LAYOUT, height=1200, title="Bellek Kullanimi (MB)",
                               xaxis_title="Bellek (MB)")
 
-        # ── 7) Egitim suresi top-15 ──
         df_time = df.nlargest(15, "Egitim (s)")
         fig_time = go.Figure(go.Bar(
             x=df_time["Model"], y=df_time["Egitim (s)"],
@@ -301,7 +271,6 @@ def register_power_callbacks(app, ALL_METRICS=None):
                                title=f"En Yavas 15 Model - Egitim Suresi ({dataset_size:,} ornek)",
                                yaxis_title="Sure (saniye)")
 
-        # ── Legend ──
         legend_items = [
             html.Span([html.Span(style={"display": "inline-block", "width": "12px", "height": "12px",
                                          "borderRadius": "2px", "backgroundColor": c, "marginRight": "6px"}),
@@ -337,7 +306,6 @@ def register_power_callbacks(app, ALL_METRICS=None):
                 dcc.Graph(figure=fig_time, config={"displayModeBar": False})]),
         ])
 
-        # ── 8) Tablo ──
         from dash import dash_table
         table = html.Div(className="panel", children=[
             html.Div(className="panel-title", children=[

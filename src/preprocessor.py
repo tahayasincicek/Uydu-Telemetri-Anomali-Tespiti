@@ -94,7 +94,6 @@ class TelemetriPreprocessor:
         """
         if numeric_columns is None:
             numeric_columns = data.select_dtypes(include=[np.number]).columns.tolist()
-            # Hedef değişkenleri (label, anomaly) ve kategorik verileri çıkar
             exclude_cols = ['anomaly', 'label', 'segment', 'train']
             self.numeric_columns = [col for col in numeric_columns if col not in exclude_cols]
         else:
@@ -117,17 +116,13 @@ class TelemetriPreprocessor:
         """
         df = data.copy()
 
-        # 1. Eksik Veri Doldurma
         df = self._impute_missing(df)
 
-        # 2. Gürültü Temizleme
         if self.filter_method is not None:
             df = self._apply_filter(df)
 
-        # 3. Aykırı Değer İşleme (Kırpma - Clipping)
         df = self._handle_outliers(df)
 
-        # 4. Ölçeklendirme
         if not self.is_fitted:
             raise RuntimeError("Ölçeklendirme için önce fit() çağrılmalı!")
         
@@ -139,7 +134,6 @@ class TelemetriPreprocessor:
         """Fit ve transform adımlarını sırasıyla uygular."""
         df = data.copy()
         
-        # Sayısal sütunları belirle
         if numeric_columns is None:
             numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
             exclude_cols = ['anomaly', 'label', 'segment', 'train']
@@ -147,16 +141,13 @@ class TelemetriPreprocessor:
         else:
             self.numeric_columns = numeric_columns
 
-        # Önce veri hazırlığı (Fit'in sağlıklı olması için)
         df = self._impute_missing(df)
         if self.filter_method is not None:
             df = self._apply_filter(df)
         df = self._handle_outliers(df)
 
-        # Scaler fit
         self.fit(df, self.numeric_columns)
         
-        # Scaler transform
         df[self.numeric_columns] = self.scaler.transform(df[self.numeric_columns])
         
         return df
@@ -191,7 +182,6 @@ class TelemetriPreprocessor:
             elif self.filter_method == 'median':
                 df[col] = signal.medfilt(df[col], kernel_size=self.window_length)
             elif self.filter_method == 'butterworth':
-                # Basit bir low-pass filter
                 b, a = signal.butter(4, 0.2, 'lowpass')
                 df[col] = signal.filtfilt(b, a, df[col])
         return df
@@ -216,17 +206,13 @@ class TelemetriPreprocessor:
                 median = df[col].median()
                 mad = np.median(np.abs(df[col] - median))
                 if mad == 0: mad = 1e-6
-                # modified_z = 0.6745 * (x - median) / mad
-                # x = (modified_z * mad / 0.6745) + median
                 margin = (self.outlier_threshold * mad) / 0.6745
                 lower_bound = median - margin
                 upper_bound = median + margin
 
-            # Outlier sayısını kaydet
             outliers_count = ((df[col] < lower_bound) | (df[col] > upper_bound)).sum()
             self.metadata["outliers_detected"][col] = int(outliers_count)
             
-            # Değerleri kırp (clipping)
             df[col] = df[col].clip(lower=lower_bound, upper=upper_bound)
             
         return df

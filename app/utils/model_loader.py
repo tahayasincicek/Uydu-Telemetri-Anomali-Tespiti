@@ -5,14 +5,12 @@ import pandas as pd
 
 log = logging.getLogger("dashboard.model_loader")
 
-# ── TensorFlow environment fixes (must be set BEFORE importing tf) ──
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"           # suppress TF info/warning logs
-os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"           # disable oneDNN to avoid numerical noise
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"            # force CPU-only (avoids CUDA init crash)
-os.environ["TF_NUM_INTEROP_THREADS"] = "1"           # limit inter-op parallelism
-os.environ["TF_NUM_INTRAOP_THREADS"] = "1"           # limit intra-op parallelism
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+os.environ["TF_NUM_INTEROP_THREADS"] = "1"
+os.environ["TF_NUM_INTRAOP_THREADS"] = "1"
 
-# Suppress sklearn version mismatch warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", message=".*InconsistentVersionWarning.*")
@@ -21,11 +19,9 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 MODEL_DIR = os.path.join(ROOT, "models")
 UNSUP_DIR = os.path.join(MODEL_DIR, "unsupervised")
 
-# Sıralı (sequence) Keras modelleri 3B girdi bekler: (örnek, özellik, 1)
 SEQUENCE_MODELS = {"LSTM", "BiLSTM", "GRU", "BiGRU", "CNN1D", "CNN_LSTM", "CNN_BiLSTM",
                    "CNN_GRU", "Transformer", "TCN", "Attention_BiLSTM",
                    "FCN", "ResNet1D", "InceptionTime", "LSTM_FCN"}
-# Tek tip API'li (decision_function + predict) PyOD dedektörleri
 PYOD_MODELS = {"ECOD", "COPOD", "HBOS", "CBLOF",
                "ABOD", "COF", "SOD", "SOS", "LODA", "INNE", "LMDD",
                "SO_GAAL", "MO_GAAL", "DeepSVDD", "LUNAR", "DIF", "XGBOD"}
@@ -105,9 +101,6 @@ def load_all():
 
     scaler = _safe_load(os.path.join(MODEL_DIR, "scaler.joblib"))
     test_data = _safe_load(os.path.join(MODEL_DIR, "test_data.joblib"))
-    # Kanonik özellik sayısı (18 ESA). Bununla uyumsuz Keras modelleri atlanır
-    # (ör. eski 24-özellik mlp_model.keras / autoencoder_model.keras), aksi halde
-    # doğru sklearn modelini ezip çıkarımı bozarlar.
     n_features = len(test_data["feature_cols"]) if test_data and test_data.get("feature_cols") else None
 
     def _load_keras_checked(name, path):
@@ -123,9 +116,8 @@ def load_all():
             log.warning("'%s' atlandı: %s özellik bekliyor, kanonik %s (uyumsuz, muhtemelen eski model)",
                         name, fdim, n_features)
             return
-        models[name] = m   # uyumlu -> (varsa sklearn karşılığını yalnız uyumluysa ezer)
+        models[name] = m
 
-    # MLP + derin sıralı/hibrit ağlar
     for name, fname in [("MLP", "mlp_model.keras"), ("LSTM", "lstm_model.keras"),
                         ("BiLSTM", "bilstm_model.keras"), ("GRU", "gru_model.keras"),
                         ("BiGRU", "bigru_model.keras"), ("CNN1D", "cnn1d_model.keras"),
@@ -152,17 +144,14 @@ def load_all():
 def predict(model, name, X, thresholds, threshold_mult=1.0):
     """Return (predictions, scores) for a single model."""
     if name in SEQUENCE_MODELS:
-        # Sıralı modeller 3B girdi bekler: (örnek, özellik, 1)
         X_seq = np.asarray(X, dtype="float32").reshape((X.shape[0], X.shape[1], 1))
         sc = model.predict(X_seq, verbose=0).flatten()
         pr = (sc >= 0.5).astype(int)
     elif name == "MLP":
         if hasattr(model, "predict_proba"):
-            # sklearn MLPClassifier
             pr = model.predict(X)
             sc = model.predict_proba(X)[:, 1]
         else:
-            # Keras MLP
             sc = model.predict(X, verbose=0).flatten()
             pr = (sc >= 0.5).astype(int)
     elif name in PYOD_MODELS:
@@ -191,14 +180,14 @@ def predict(model, name, X, thresholds, threshold_mult=1.0):
         t = thresholds.get(name, np.percentile(sc, 90)) * threshold_mult
         pr = (sc > t).astype(int)
     elif name == "DBSCAN":
-        sc = model.kneighbors(X)[0].min(axis=1)  # en yakın çekirdek noktaya uzaklık (örnek başına)
+        sc = model.kneighbors(X)[0].min(axis=1)
         t = thresholds.get(name, np.percentile(sc, 90)) * threshold_mult
         pr = (sc > t).astype(int)
     elif hasattr(model, "predict_proba"):
         pr = model.predict(X)
         sc = model.predict_proba(X)[:, 1]
     elif hasattr(model, "decision_function"):
-        pr = model.predict(X)            # Ridge gibi olasılık vermeyen modeller
+        pr = model.predict(X)
         sc = model.decision_function(X)
     else:
         pr = model.predict(X)

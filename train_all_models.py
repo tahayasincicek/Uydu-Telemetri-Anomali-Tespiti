@@ -18,7 +18,6 @@ warnings.filterwarnings("ignore")
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(ROOT, "src"))
-# OPS-SAT benchmark'in 7 zorunlu metrigi (MCC + AUC_PR dahil), AUC_PR sirali
 from metrics import compute_metrics, metrics_table, PRIMARY_SORT_METRIC
 MODEL_DIR = os.path.join(ROOT, "models")
 UNSUP_DIR = os.path.join(MODEL_DIR, "unsupervised")
@@ -30,7 +29,6 @@ os.makedirs(UNSUP_DIR, exist_ok=True)
 os.makedirs(METRICS_DIR, exist_ok=True)
 os.makedirs(FEATURES_DIR, exist_ok=True)
 
-# ── Veri Yukleme ──
 print("=" * 60)
 print("  UYDU TELEMETRI - MODEL EGITIM PIPELINE")
 print("=" * 60)
@@ -38,11 +36,6 @@ print("=" * 60)
 df = pd.read_csv(os.path.join(ROOT, "data", "raw", "dataset.csv"))
 print(f"\nDataset: {df.shape[0]} segment, {df.shape[1]} sutun")
 
-# Kanonik ozellik seti: SADECE 18 resmi ESA handcrafted feature.
-# Benchmark ile birebir kiyaslanabilirlik icin meta sutunlar (channel, sampling)
-# ve channel_id ozellik OLARAK kullanilmaz. Custom ozellikler (RMS/P2P/...) ve
-# channel bilgisi ayri bir "ozellik genisletme" ablasyonunda degerlendirilir.
-# Referans: Ruszczak et al. (2024), 18 handcrafted feature (Figure 2).
 ESA_18_FEATURES = [
     "mean", "var", "std", "kurtosis", "skew", "n_peaks",
     "duration", "len", "gaps_squared", "len_weighted",
@@ -55,7 +48,6 @@ assert len(FEATURE_COLS) == 18, f"18 ESA ozelligi beklenirken {len(FEATURE_COLS)
 print(f"Kanonik ozellik sayisi: {len(FEATURE_COLS)} (resmi ESA 18)")
 print(f"Features: {FEATURE_COLS}")
 
-# Train / Test split
 train_df = df[df["train"] == 1].copy()
 test_df = df[df["train"] == 0].copy()
 print(f"Train: {len(train_df)} ({train_df['anomaly'].sum()} anomali)")
@@ -66,12 +58,10 @@ y_train = train_df["anomaly"].values
 X_test = test_df[FEATURE_COLS].fillna(0).values
 y_test = test_df["anomaly"].values
 
-# Scaling
 scaler = StandardScaler()
 X_train_s = scaler.fit_transform(X_train)
 X_test_s = scaler.transform(X_test)
 
-# Save scaler + test data + segment_features.parquet
 joblib.dump(scaler, os.path.join(MODEL_DIR, "scaler.joblib"))
 joblib.dump({
     "X_test": X_test_s,
@@ -79,12 +69,10 @@ joblib.dump({
     "feature_cols": FEATURE_COLS,
 }, os.path.join(MODEL_DIR, "test_data.joblib"))
 
-# segment_features.parquet for Dashboard demo
 df[FEATURE_COLS + ["segment", "anomaly", "train", "channel"]].to_parquet(
     os.path.join(FEATURES_DIR, "segment_features.parquet"), index=False)
 print("Scaler, test_data, segment_features.parquet kaydedildi.\n")
 
-# ── Metrik Hesaplama ──
 ALL_METRICS = {}
 
 def calc_metrics(name, y_true, y_pred, y_score=None, inf_time_ms=None):
@@ -99,9 +87,6 @@ def print_metrics(name, m):
           f"MCC={m['MCC']:.3f}  AUC_ROC={m['AUC_ROC']:.3f}")
 
 
-# ══════════════════════════════════════════════════════════════
-#  GOZETIMLI MODELLER
-# ══════════════════════════════════════════════════════════════
 print("-" * 60)
 print("  GOZETIMLI MODELLER")
 print("-" * 60)
@@ -139,7 +124,6 @@ def train_sup(name, model, fname):
     except Exception as e:
         print(f"  {name:30s}  HATA: {e}")
 
-# Basit modeller
 train_sup("LogisticRegression", LogisticRegression(max_iter=1000, random_state=42), "logisticregression_model.joblib")
 train_sup("Ridge", CalibratedClassifierCV(RidgeClassifier(random_state=42), cv=3), "ridge_model.joblib")
 train_sup("SGD", CalibratedClassifierCV(SGDClassifier(random_state=42, max_iter=1000), cv=3), "sgd_model.joblib")
@@ -150,7 +134,6 @@ train_sup("DecisionTree", DecisionTreeClassifier(random_state=42, max_depth=10),
 train_sup("KNN", KNeighborsClassifier(n_neighbors=5), "knn_model.joblib")
 train_sup("LSVC", CalibratedClassifierCV(LinearSVC(max_iter=2000, random_state=42), cv=3), "lsvc_model.joblib")
 
-# Topluluk modelleri
 train_sup("RandomForest", RandomForestClassifier(n_estimators=200, random_state=42, n_jobs=-1), "rf_model.joblib")
 train_sup("ExtraTrees", ExtraTreesClassifier(n_estimators=200, random_state=42, n_jobs=-1), "extratrees_model.joblib")
 train_sup("GradientBoosting", GradientBoostingClassifier(n_estimators=200, random_state=42), "gradientboosting_model.joblib")
@@ -158,31 +141,26 @@ train_sup("HistGradientBoosting", HistGradientBoostingClassifier(max_iter=200, r
 train_sup("AdaBoost", AdaBoostClassifier(n_estimators=100, random_state=42), "adaboost_model.joblib")
 train_sup("Bagging", BaggingClassifier(n_estimators=100, random_state=42, n_jobs=-1), "bagging_model.joblib")
 
-# SVM
 train_sup("SVM", SVC(probability=True, random_state=42), "svm_model.joblib")
 
-# XGBoost
 try:
     import xgboost as xgb
     train_sup("XGBoost", xgb.XGBClassifier(n_estimators=200, random_state=42, eval_metric="logloss", verbosity=0), "xgb_model.joblib")
 except ImportError:
     print("  XGBoost                        ATLANACAK (paket yok)")
 
-# LightGBM
 try:
     import lightgbm as lgb
     train_sup("LightGBM", lgb.LGBMClassifier(n_estimators=200, random_state=42, verbose=-1), "lightgbm_model.joblib")
 except ImportError:
     print("  LightGBM                       ATLANACAK (paket yok)")
 
-# CatBoost
 try:
     from catboost import CatBoostClassifier
     train_sup("CatBoost", CatBoostClassifier(iterations=200, random_state=42, verbose=0), "catboost_model.joblib")
 except ImportError:
     print("  CatBoost                       ATLANACAK (paket yok)")
 
-# XGBOD (PyOD hybrid)
 try:
     from pyod.models.xgbod import XGBOD
     t0 = time.time()
@@ -196,10 +174,8 @@ try:
 except Exception as e:
     print(f"  XGBOD                          HATA: {e}")
 
-# MLP (sklearn — TF calismadigi icin)
 train_sup("MLP", MLPClassifier(hidden_layer_sizes=(128, 64, 32), max_iter=500, random_state=42, early_stopping=True), "mlp_sklearn_model.joblib")
 
-# Voting Ensemble
 try:
     base_models = []
     for n in ["RandomForest", "ExtraTrees", "LogisticRegression"]:
@@ -211,7 +187,6 @@ try:
 except Exception as e:
     print(f"  Voting Ensemble                HATA: {e}")
 
-# Stacking Ensemble
 try:
     stack_estimators = []
     for n in ["RandomForest", "LogisticRegression", "KNN"]:
@@ -226,9 +201,6 @@ except Exception as e:
     print(f"  Stacking Ensemble              HATA: {e}")
 
 
-# ══════════════════════════════════════════════════════════════
-#  GOVETIMSIZ MODELLER
-# ══════════════════════════════════════════════════════════════
 print("\n" + "─" * 60)
 print("  GOVETIMSIZ MODELLER")
 print("-" * 60)
@@ -258,7 +230,6 @@ def train_unsup_sklearn(name, model, fname, score_fn):
     except Exception as e:
         print(f"  {name:30s}  HATA: {e}")
 
-# sklearn unsupervised
 train_unsup_sklearn("IsolationForest",
     IsolationForest(n_estimators=200, contamination=0.2, random_state=42),
     "isolationforest_model.joblib",
@@ -274,7 +245,6 @@ train_unsup_sklearn("KMeans",
     "kmeans_model.joblib",
     lambda m, X: np.min(m.transform(X), axis=1))
 
-# LOF - novelty=True icin
 lof = LocalOutlierFactor(n_neighbors=20, contamination=0.2, novelty=True)
 train_unsup_sklearn("LOF", lof, "lof_model.joblib",
     lambda m, X: -m.score_samples(X))
@@ -288,12 +258,10 @@ train_unsup_sklearn("EllipticEnvelope",
     "ellipticenvelope_model.joblib",
     lambda m, X: -m.score_samples(X))
 
-# PCA reconstruction error
 pca_model = PCA_Model(n_components=min(10, X_train_s.shape[1]))
 train_unsup_sklearn("PCA", pca_model, "pca_model.joblib",
     lambda m, X: np.mean(np.power(X - m.inverse_transform(m.transform(X)), 2), axis=1))
 
-# DBSCAN (kneighbors icin NearestNeighbors wrapper)
 try:
     from sklearn.neighbors import NearestNeighbors
     nn = NearestNeighbors(n_neighbors=5)
@@ -309,7 +277,6 @@ except Exception as e:
     print(f"  DBSCAN                         HATA: {e}")
 
 
-# ── PyOD Modelleri ──
 print("\n  -- PyOD Modelleri --")
 
 def train_pyod(name, model_class, fname, **kwargs):
@@ -423,25 +390,10 @@ except ImportError:
     print("  DIF                            ATLANACAK")
 
 
-# ══════════════════════════════════════════════════════════════
-#  MLP (sklearn MLPClassifier ile kaydet, Keras yerine)
-# ══════════════════════════════════════════════════════════════
-# MLP zaten train_sup icinde egitildi, simdi Keras formati yerine
-# model_loader'in anlayacagi sekilde kaydedelim
 if "MLP" in SUP_MODELS:
-    # Keras MLP dosyasini sklearn MLP ile degistir
-    # model_loader'da MLP icin ozel predict branch var (Keras),
-    # ama sklearn MLP predict_proba destekler yani fallback chain'de calisir
     joblib.dump(SUP_MODELS["MLP"], os.path.join(MODEL_DIR, "mlp_sklearn_model.joblib"))
 
 
-# ══════════════════════════════════════════════════════════════
-#  DERIN SIRALI / HIBRIT AGLAR (15 model) — KANONIK (resmi split, 18 ozellik)
-# ══════════════════════════════════════════════════════════════
-# Bu modeller daha once NB04 tarafindan random split + 24 ozellik ile egitiliyordu;
-# benchmark kiyaslanabilirligi icin burada resmi T uzerinde, 18 ozellikle, val
-# ayrimiyla egitilir ve resmi Psi'de 7 metrikle degerlendirilir. 18 tablo ozelligi
-# (orneklem, ozellik, 1) tensoruyle dizi olarak islenir (SupervisedAnomalyDetector).
 print("\n" + "-" * 60)
 print("  DERIN SIRALI MODELLER (resmi split, 18 ozellik)")
 print("-" * 60)
@@ -449,7 +401,6 @@ try:
     from sklearn.model_selection import train_test_split as _tts
     from models.supervised import SupervisedAnomalyDetector
 
-    # Resmi T'den validation ayir (erken durdurma); Psi (X_test_s) DOKUNULMAZ
     Xtr_d, Xval_d, ytr_d, yval_d = _tts(
         X_train_s, y_train, test_size=0.15, random_state=42, stratify=y_train)
 
@@ -478,29 +429,22 @@ except Exception as e:
     print(f"  Derin sirali modeller atlandi: {e}")
 
 
-# ══════════════════════════════════════════════════════════════
-#  THRESHOLD VE METRIK KAYDI
-# ══════════════════════════════════════════════════════════════
 print("\n" + "─" * 60)
 print("  KAYIT")
 print("-" * 60)
 
-# Unsupervised thresholds
 with open(os.path.join(UNSUP_DIR, "unsupervised_thresholds.json"), "w") as f:
     json.dump(THRESHOLDS, f, indent=2)
 print(f"Thresholds kaydedildi: {len(THRESHOLDS)} model")
 
-# Metrics JSON
 with open(os.path.join(METRICS_DIR, "final_comparison.json"), "w") as f:
     json.dump(ALL_METRICS, f, indent=2)
 print(f"Metrikler kaydedildi: {len(ALL_METRICS)} model")
 
-# Summary
 print("\n" + "=" * 60)
 print("  OZET")
 print("=" * 60)
 
-# AUC_PR'a gore sirala (makaleyle ayni birincil olcut)
 df_sorted = metrics_table(ALL_METRICS, sort_by=PRIMARY_SORT_METRIC)
 print(f"\n{'Model':30s}  {'AUC_PR':>7s}  {'F1':>7s}  {'MCC':>7s}  {'AUC_ROC':>7s}  {'Acc':>7s}")
 print("-" * 80)

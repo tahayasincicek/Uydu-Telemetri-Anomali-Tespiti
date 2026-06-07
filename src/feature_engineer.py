@@ -58,7 +58,6 @@ class ReactionWheelFeatureEngineer:
         result = df.copy()
         
         for col in columns:
-            # İstatistiksel özellikler (Rolling bazında hesaplanır, çünkü her an için bir state lazım)
             for w in self.rolling_windows:
                 rolled = result[col].rolling(window=w, min_periods=1)
                 
@@ -71,16 +70,13 @@ class ReactionWheelFeatureEngineer:
                 result[f'{col}_roll_kurt_{w}'] = rolled.kurt()
                 result[f'{col}_roll_iqr_{w}'] = rolled.quantile(0.75) - rolled.quantile(0.25)
                 
-                # Enerji tabanlı özellikler
                 result[f'{col}_rms_{w}'] = np.sqrt((result[col]**2).rolling(window=w, min_periods=1).mean())
                 result[f'{col}_p2p_{w}'] = result[f'{col}_roll_max_{w}'] - result[f'{col}_roll_min_{w}']
                 result[f'{col}_crest_{w}'] = result[f'{col}_roll_max_{w}'] / (result[f'{col}_rms_{w}'] + 1e-6)
                 
-            # Değişim tabanlı özellikler (Türev ve İkinci Türev)
-            result[f'{col}_roc'] = result[col].diff()  # Rate of change (1st derivative)
-            result[f'{col}_jerk'] = result[f'{col}_roc'].diff()  # 2nd derivative
+            result[f'{col}_roc'] = result[col].diff()
+            result[f'{col}_jerk'] = result[f'{col}_roc'].diff()
             
-        # NaN değerleri temizle (rolling ve diff kaynaklı)
         result.bfill(inplace=True)
         return result
 
@@ -97,11 +93,8 @@ class ReactionWheelFeatureEngineer:
         """
         result = df.copy()
         
-        # Basitleştirilmiş frekans alanı özellikleri (Segment bazlı çalışıldığı varsayımıyla)
-        # Gerçek bir FFT pencere bazında yapılmalıdır, burada rolling varyans PSD varyasyonu olarak kullanılır
         for col in columns:
             for w in self.rolling_windows:
-                # Hızlı vektörel Zero-crossing rate (ZCR)
                 mean_roll = result[col].rolling(window=w, min_periods=1).mean()
                 centered = result[col] - mean_roll
                 crossings = (np.sign(centered).diff().fillna(0) != 0).astype(float)
@@ -125,22 +118,15 @@ class ReactionWheelFeatureEngineer:
         result = df.copy()
         cols = result.columns.tolist()
         
-        # Eğer RPM, Akım (Current) ve Tork (Torque) sütunları tespit edilebilirse özel metrikler:
         rpm_cols = [c for c in cols if 'RPM' in c.upper()]
         current_cols = [c for c in cols if 'CURRENT' in c.upper()]
         
-        # Mock Physical Features (Eğer ilgili spesifik sütunlar yoksa temsili ilişkiler kurulur)
-        # Veri setimizde CADC... sensörleri var (Manyetometre ve Fotodiyot).
-        # Manyetometrelerin (CADC0872, CADC0873, CADC0874) açısal dengesi (Angular momentum benzeri):
         mag_cols = ['CADC0872', 'CADC0873', 'CADC0874']
         if all(c in cols for c in mag_cols):
-            # Manyetik alan büyüklüğü (Vector magnitude)
             result['MAG_Magnitude'] = np.sqrt(result['CADC0872']**2 + result['CADC0873']**2 + result['CADC0874']**2)
             
-            # Senkronizasyon (Üç eksen arasındaki korelasyon/sapma)
             result['MAG_Sync_Diff'] = result['CADC0872'].abs() - result['CADC0873'].abs()
             
-        # Fotodiyotlar (I_PD_THETA)
         pd_cols = [c for c in cols if c in ['CADC0884', 'CADC0886', 'CADC0888', 'CADC0890', 'CADC0892', 'CADC0894']]
         if len(pd_cols) > 0:
             result['PD_Total_Sum'] = result[pd_cols].sum(axis=1)
@@ -165,7 +151,6 @@ class ReactionWheelFeatureEngineer:
         if len(columns) < 2:
             return result
             
-        # PCA Özellikleri
         if fit_pca:
             self.pca = PCA(n_components=min(self.n_pca_components, len(columns)))
             pca_features = self.pca.fit_transform(result[columns].fillna(0))
@@ -177,7 +162,6 @@ class ReactionWheelFeatureEngineer:
         for i in range(pca_features.shape[1]):
             result[f'PCA_Component_{i+1}'] = pca_features[:, i]
             
-        # Mahalanobis Distance proxy (Basitleştirilmiş centroid uzaklığı)
         centroid = result[columns].mean().values
         cov_inv = np.linalg.pinv(result[columns].cov().values)
         
@@ -185,7 +169,6 @@ class ReactionWheelFeatureEngineer:
             diff = row.values - centroid
             return np.sqrt(np.dot(np.dot(diff, cov_inv), diff.T))
             
-        # Hızlı hesaplama
         result['Mahalanobis_Dist'] = result[columns].apply(mahalanobis, axis=1)
         
         return result
@@ -226,18 +209,14 @@ class ReactionWheelFeatureEngineer:
         work_df = df.copy()
         if protected_cols is None: protected_cols = []
         
-        # Notebook 3'te çizilecek olan spesifik sütunları otomatik korumaya alalım (Hata vermemesi için)
         plot_cols = ['value', 'value_roll_mean_60', 'value_roll_mean_30', 'value_rms_60', 'value_rms_30', 
                      'value_roc', 'value_jerk', 'value_lag_1', 'value_lag_5', 'value_lag_10', 'value_lag_30', 'value_lag_60']
         protected_cols.extend(plot_cols)
         
-        # Meta sütunları geçici olarak çıkar (timestamp, label, vb.)
         meta_cols = [c for c in ['timestamp', 'segment', 'label', 'train', 'channel', target_col] + protected_cols if c in work_df.columns]
-        # Remove duplicates while preserving order
         meta_cols = list(dict.fromkeys(meta_cols))
         feature_cols = [c for c in work_df.columns if c not in meta_cols]
         
-        # 1. Variance Threshold (Sabit değerleri at)
         if fit:
             self.variance_selector = VarianceThreshold(threshold=1e-5)
             self.variance_selector.fit(work_df[feature_cols])
@@ -246,7 +225,6 @@ class ReactionWheelFeatureEngineer:
             mask = self.variance_selector.get_support()
             feature_cols = [c for c, m in zip(feature_cols, mask) if m]
             
-        # 2. Korelasyon Elemesi (Sadece fit aşamasında saptarız)
         if fit:
             corr_matrix = work_df[feature_cols].corr().abs()
             upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool))
@@ -257,10 +235,8 @@ class ReactionWheelFeatureEngineer:
         else:
             feature_cols = self.selected_features
             
-        # Meta sütunları ve seçilen feature sütunlarını birleştir
         final_cols = meta_cols + feature_cols
         
-        # Veri setimizde olmayan kolonları yoksay (güvenlik için)
         final_cols = [c for c in final_cols if c in work_df.columns]
         
         return work_df[final_cols], feature_cols
@@ -279,7 +255,6 @@ class ReactionWheelFeatureEngineer:
             p2p = np.ptp(val) if len(val) > 0 else 0
             crest_factor = (np.max(np.abs(val)) / rms) if rms > 0 else 0
 
-            # Zero crossing rate
             zcr = np.sum(np.diff(np.sign(val)) != 0) / len(val) if len(val) > 1 else 0
 
             return pd.Series({
@@ -295,25 +270,11 @@ class ReactionWheelFeatureEngineer:
         return segment_features
 
 
-# ═══════════════════════════════════════════════════════════════════════
-#  ESA OPSSAT-AD Feature Extraction Pipeline
-#  ─────────────────────────────────────────
-#  Referans: Ruszczak et al. (2024) "The OPS-SAT benchmark for
-#  detecting anomalies in satellite telemetry"
-#
-#  Tam yasam dongusu:
-#    raw_telemetry  ──►  segments.csv  ──►  dataset.csv
-#    (surekli akis)      (segment_raw      (extract_esa_features
-#                         _telemetry)        18 handcrafted feature)
-# ═══════════════════════════════════════════════════════════════════════
 from scipy.signal import find_peaks
 from scipy.ndimage import uniform_filter1d
 from scipy import stats as sp_stats
 
 
-# Segmentleyici icin varsayilan uzunluk profilleri (gercek OPSSAT-AD'den).
-# synthetic_generator.CHANNEL_PROFILES ile ayni degerler; bagimsizlik icin
-# burada da bulunur. Bilinmeyen kanallar icin _DEFAULT_LEN_PROFILE kullanilir.
 _DEFAULT_LEN_PROFILE = {"len_mean": 120, "len_std": 90, "len_min": 14, "len_max": 700}
 
 
@@ -375,11 +336,9 @@ def segment_raw_telemetry(raw_df: pd.DataFrame,
         lm, ls = prof["len_mean"], prof["len_std"]
         lmin, lmax = prof["len_min"], prof["len_max"]
 
-        # 1) Bosluk-bolme: kosu sinirlari (artefakt bosluklarinin uzerinde bir taban ile)
         gap_threshold = max(gap_factor * samp, min_gap_seconds)
         run_id = (dt > gap_threshold).cumsum()
 
-        # 2) Her kosu icinde uzunluk-penceresi
         for _rid, run in g.groupby(run_id, sort=False):
             run = run.reset_index(drop=True)
             n = len(run)
@@ -387,14 +346,10 @@ def segment_raw_telemetry(raw_df: pd.DataFrame,
             while pos < n:
                 wlen = int(np.clip(round(rng.normal(lm, ls)), lmin, lmax))
                 end = min(pos + wlen, n)
-                # Son artik parca cok kisaysa mevcut pencereye birlestir
                 if 0 < n - end < lmin:
                     end = n
                 seg_id += 1
                 sl = run.iloc[pos:end]
-                # Etiket TURETME: segment, anomaliyi anlamli oranda iceriyorsa
-                # anomalidir. Tek bir sizan ornek komsu segmenti etiketlemez
-                # (esik = max(3 ornek, min_anomaly_overlap * segment_uzunlugu)).
                 if "_anomaly_truth" in sl.columns:
                     n_anom = int(sl["_anomaly_truth"].sum())
                     thresh = max(3, int(np.ceil(min_anomaly_overlap * len(sl))))
@@ -418,7 +373,6 @@ def segment_raw_telemetry(raw_df: pd.DataFrame,
     if len(df) == 0:
         return df
 
-    # Train/test bayragi (segment bazinda)
     seg_ids = df["segment"].unique()
     n_train = int(len(seg_ids) * train_ratio)
     train_ids = set(rng.choice(seg_ids, size=n_train, replace=False))
@@ -478,12 +432,12 @@ def augment_segments_iccs(segments_df: pd.DataFrame,
             n = len(v)
             if n < 3:
                 continue
-            if mode == "omega1":                         # OX ekseni: dikey ayna
+            if mode == "omega1":
                 med = np.median(v)
                 vv = 2.0 * med - v
-            elif mode == "omega2":                       # zaman tersine cevirme
+            elif mode == "omega2":
                 vv = v[::-1].copy()
-            elif mode == "omega3":                        # dairesel kaydirma %15-25
+            elif mode == "omega3":
                 shift = int(n * rng.uniform(0.15, 0.25))
                 vv = np.roll(v, shift if shift > 0 else 1)
             else:
@@ -554,13 +508,11 @@ def extract_esa_features(segments_df: pd.DataFrame,
         if n == 0:
             continue
 
-        # ── Meta ──
         channel = grp['channel'].iloc[0] if 'channel' in grp.columns else 'UNKNOWN'
         anomaly = int(grp['anomaly'].iloc[0]) if 'anomaly' in grp.columns else 0
         train = int(grp['train'].iloc[0]) if 'train' in grp.columns else 0
         sampling = int(grp['sampling'].iloc[0]) if 'sampling' in grp.columns else 1
 
-        # ── Zaman damgasi farklari (saniye) ──
         ts = pd.to_datetime(grp['timestamp'])
         if n > 1:
             td = ts.diff().dt.total_seconds().dropna().values
@@ -569,34 +521,24 @@ def extract_esa_features(segments_df: pd.DataFrame,
             td = np.array([1.0])
             duration = 1
 
-        # ═══ GRUP 1: Ham segmentten 12 ozellik ═══
 
-        # Temel istatistikler
         mean_val = np.mean(val)
-        var_val = np.var(val)                     # populasyon varyansi
-        std_val = np.std(val)                     # populasyon std
-        kurt_val = sp_stats.kurtosis(val) if n > 3 else 0.0   # excess kurtosis
+        var_val = np.var(val)
+        std_val = np.std(val)
+        kurt_val = sp_stats.kurtosis(val) if n > 3 else 0.0
         skew_val = sp_stats.skew(val) if n > 2 else 0.0
 
-        # Tepe sayisi (%10 belirginlik)
         p2p = np.ptp(val)
         prom = prominence_ratio * p2p if p2p > 0 else None
         peaks, _ = find_peaks(val, prominence=prom)
         n_peaks = len(peaks)
 
-        # Uzunluk / sure
         seg_len = n
-        # gaps_squared = sum(dt_i^2)  — zaman damgasi farklarinin kareler toplami
         gaps_squared = int(np.sum(td ** 2))
-        # len_weighted = len * sampling
         len_weighted = seg_len * sampling
-        # Oran ozellikleri
         var_div_duration = var_val / duration if duration > 0 else 0.0
         var_div_len = var_val / seg_len if seg_len > 0 else 0.0
 
-        # ═══ GRUP 2: Yumusatilmis segmentten 2 ozellik ═══
-        # ESA makalesi "uniform interpolation" kullanir
-        # np.convolve ile sabit cekirdekli yumusatma
         s10 = np.convolve(val, np.ones(10) / 10, mode='same')
         s20 = np.convolve(val, np.ones(20) / 20, mode='same')
         prom10 = prominence_ratio * np.ptp(s10) if np.ptp(s10) > 0 else None
@@ -604,7 +546,6 @@ def extract_esa_features(segments_df: pd.DataFrame,
         pk10, _ = find_peaks(s10, prominence=prom10)
         pk20, _ = find_peaks(s20, prominence=prom20)
 
-        # ═══ GRUP 3: Turevlerden 4 ozellik ═══
         diff1 = np.diff(val)
         diff2 = np.diff(diff1)
 
@@ -616,7 +557,6 @@ def extract_esa_features(segments_df: pd.DataFrame,
         diff_var = np.var(diff1) if len(diff1) > 0 else 0.0
         diff2_var = np.var(diff2) if len(diff2) > 0 else 0.0
 
-        # ── Kayit ──
         records.append({
             'segment': seg_id,
             'anomaly': anomaly,

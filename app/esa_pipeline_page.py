@@ -65,7 +65,6 @@ def get_esa_pipeline_layout():
                      className="page-subtitle"),
         ]),
 
-        # Info banner
         html.Div(className="panel mb-4",
                  style={"borderLeft": "4px solid #06B6D4", "padding": "16px"}, children=[
             html.Div(style={"display": "flex", "alignItems": "center", "gap": "12px"}, children=[
@@ -82,7 +81,6 @@ def get_esa_pipeline_layout():
         ]),
 
         dbc.Row([
-            # Sol panel: veri kaynagi secimi
             dbc.Col([html.Div(className="panel", children=[
                 html.Div(className="panel-title", children=[
                     _icon("mdi:database-import-outline", 16), " Veri Kaynagi"]),
@@ -113,7 +111,6 @@ def get_esa_pipeline_layout():
                 html.Div(id="esa-status", style={"marginTop": "12px", "fontSize": "12px",
                                                     "color": "#64748B", "textAlign": "center"}),
 
-                # Feature catalog
                 html.Div(style={"marginTop": "24px"}, children=[
                     html.Div("18 OZELLIK KATALOGU", className="section-label"),
                     html.Div(style={"maxHeight": "400px", "overflowY": "auto"}, children=[
@@ -133,7 +130,6 @@ def get_esa_pipeline_layout():
                 ]),
             ])], md=3),
 
-            # Sag panel: sonuclar
             dbc.Col([
                 dcc.Loading(
                     id="loading-esa",
@@ -192,7 +188,6 @@ def _build_extraction_results(features_df, source_label):
     n_channels = features_df["channel"].nunique() if "channel" in features_df.columns else 0
     feat_cols = [c for c in features_df.columns if c not in ["segment", "anomaly", "train", "channel"]]
 
-    # Feature correlation heatmap
     corr_cols = [c for c in ["mean", "var", "std", "kurtosis", "skew", "n_peaks",
                               "diff_var", "diff2_var", "gaps_squared"] if c in features_df.columns]
     if corr_cols:
@@ -207,7 +202,6 @@ def _build_extraction_results(features_df, source_label):
         fig_corr = go.Figure()
         fig_corr.update_layout(**PLT_LAYOUT, height=200)
 
-    # Feature importance proxy: variance ratio (anomaly vs normal)
     var_ratios = {}
     if "anomaly" in features_df.columns and n_anom > 0:
         normal = features_df[features_df["anomaly"] == 0]
@@ -235,7 +229,6 @@ def _build_extraction_results(features_df, source_label):
         fig_ratio = go.Figure()
         fig_ratio.update_layout(**PLT_LAYOUT, height=200)
 
-    # Data table
     show_cols = [c for c in ["segment", "channel", "anomaly", "sampling", "duration", "len",
                               "mean", "var", "std", "n_peaks", "kurtosis", "skew",
                               "diff_var", "gaps_squared"] if c in features_df.columns]

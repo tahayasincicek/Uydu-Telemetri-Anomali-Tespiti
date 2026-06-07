@@ -23,19 +23,15 @@ import pandas as pd
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 
-# ═══════════════════════════════════════════════════════════
-#  Gercek veriden cikarilmis kanal profilleri
-# ═══════════════════════════════════════════════════════════
 
 CHANNEL_PROFILES = {
-    # ── Manyetometre kanallari (cok kucuk genlikli sinyal) ──
     "CADC0872": {
         "type": "magnetometer",
         "signal_mean": 9.84e-07, "signal_std": 2.15e-05,
         "signal_min": -8.80e-05, "signal_max": 6.52e-05,
         "sampling_options": [1, 5], "sampling_weights": [0.78, 0.22],
         "len_mean": 122, "len_std": 115, "len_min": 14, "len_max": 687,
-        "weight": 0.26,  # gercek veri orani
+        "weight": 0.26,
     },
     "CADC0873": {
         "type": "magnetometer",
@@ -53,7 +49,6 @@ CHANNEL_PROFILES = {
         "len_mean": 303, "len_std": 256, "len_min": 37, "len_max": 1040,
         "weight": 0.09,
     },
-    # ── Fotodiyot kanallari (0 − pi/2 araligi) ──
     "CADC0884": {
         "type": "photodiode",
         "signal_mean": 4.71e-01, "signal_std": 3.91e-01,
@@ -88,8 +83,6 @@ CHANNEL_PROFILES = {
     },
 }
 
-# Dusuk ornekli kanallar (gercek veride az segment) dahil edilebilir
-# CADC0886 (11 seg), CADC0890 (14 seg) — cok az, weight ~0.01
 
 ANOMALY_TYPES = ["spike", "shift", "noise", "gap", "flat", "deformation"]
 
@@ -116,9 +109,6 @@ class SyntheticTelemetryGenerator:
         self.rng = np.random.default_rng(seed)
         self.base_time = datetime(2023, 1, 1, 0, 0, 0)
 
-    # ───────────────────────────────────────────────
-    #  Normal sinyal ureticileri
-    # ───────────────────────────────────────────────
 
     def _gen_magnetometer(self, n: int, profile: dict) -> np.ndarray:
         """Manyetometre kanalı icin gercekci sinyal uret.
@@ -127,14 +117,12 @@ class SyntheticTelemetryGenerator:
         yavas monoton trend + cok kucuk olcum gurultusu.
         Cogu segmentte sadece 1 peak bulunur (10% prominence ile).
         """
-        # Gercek sinyal neredeyse monoton bir egridir (lineer/kuadratik)
         t = np.linspace(0, 1, n)
         slope = self.rng.normal(0, profile["signal_std"] * 2)
         curve = self.rng.normal(0, profile["signal_std"] * 1)
         start = self.rng.normal(profile["signal_mean"], profile["signal_std"] * 0.5)
         trend = start + slope * t + curve * t ** 2
 
-        # Cok kucuk olcum gurultusu (gercek veride diff_std ~ 1e-6)
         noise_std = profile["signal_std"] * 0.02
         noise = self.rng.normal(0, noise_std, size=n)
         signal = trend + noise
@@ -160,26 +148,20 @@ class SyntheticTelemetryGenerator:
 
         t = np.linspace(0, 1, n)
         max_val = profile["signal_max"]
-        # Gercek PD sinyali cok duzgun, gurultu cok dusuk
         noise_std = max_val * 0.005
 
-        # Dusuk-deger egilimi: profil ort/maks oranindan us (gamma) turet.
-        # Profil ortalamasi sifir bloklarini da icerdiginden, sifir-disi desenin
-        # gercek sifir-disi oranina (~0.15-0.35) oturmasi icin orani ~1.2x olceriz.
-        # (rise_fall = sin**gamma deseni ortalamayi bir miktar yukari ceker.)
         ratio = profile.get("signal_mean", max_val * 0.3) / max_val if max_val > 0 else 0.3
         ratio = float(np.clip(ratio * 1.2, 0.08, 0.45))
-        gamma = 1.0 / ratio - 1.0   # ratio kucukse gamma buyur (daha cok sifira yakin)
+        gamma = 1.0 / ratio - 1.0
 
         if pattern == "rise":
             base = max_val * t ** gamma
         elif pattern == "fall":
             base = max_val * (1 - t) ** gamma
         elif pattern == "plateau":
-            # Dusuk-deger agirlikli sabit seviye (mean = ratio * max)
             level = max_val * self.rng.beta(1.0, gamma)
             base = np.full(n, level)
-        else:  # rise_fall
+        else:
             base = max_val * np.sin(np.pi * t) ** gamma
 
         signal = base + self.rng.normal(0, noise_std, size=n)
@@ -193,9 +175,6 @@ class SyntheticTelemetryGenerator:
         else:
             return self._gen_photodiode(n, profile)
 
-    # ───────────────────────────────────────────────
-    #  Anomali enjeksiyonu
-    # ───────────────────────────────────────────────
 
     def _inject_spike(self, signal: np.ndarray, profile: dict) -> np.ndarray:
         """Ani sivri tepe enjekte et."""
@@ -206,7 +185,6 @@ class SyntheticTelemetryGenerator:
             amplitude = profile["signal_std"] * self.rng.uniform(5, 15)
             direction = self.rng.choice([-1, 1])
             s[pos] += direction * amplitude
-            # Yakin noktalari da hafifce etkilendir
             for offset in [-1, 1]:
                 if 0 <= pos + offset < len(s):
                     s[pos + offset] += direction * amplitude * 0.3
@@ -258,14 +236,10 @@ class SyntheticTelemetryGenerator:
             "flat": self._inject_flat,
             "deformation": self._inject_deformation,
         }
-        # gap anomalisi timestamps'te yapilir, sinyal degismez
         if anomaly_type == "gap":
             return signal, "gap"
         return injectors[anomaly_type](signal, profile), anomaly_type
 
-    # ───────────────────────────────────────────────
-    #  Onboard artefakt enjeksiyonu
-    # ───────────────────────────────────────────────
 
     def _apply_onboard_artifacts(self, signal: np.ndarray, timestamps: List[str],
                                  sampling: int, profile: dict,
@@ -287,10 +261,6 @@ class SyntheticTelemetryGenerator:
         expected_sec = float(sampling)
         fmt = "%Y-%m-%dT%H:%M:%S.000Z"
 
-        # ── Zaman damgasi artefaktlari: satirdan yeniden insa ──
-        # Gercek OPS-SAT oranlari:
-        #   Normal:  %22 bosluklu, %21 sifir-td
-        #   Anomali: %51 bosluklu, %42 sifir-td
         apply_micro_gaps = False
         apply_zero_td = False
 
@@ -301,11 +271,9 @@ class SyntheticTelemetryGenerator:
             apply_micro_gaps = self.rng.random() < 0.22
             apply_zero_td = self.rng.random() < 0.21
 
-        # Mikro-bosluk ve sifir-td oranlari (segment ici)
         micro_gap_rate = self.rng.uniform(0.05, 0.25) if apply_micro_gaps else 0.0
         zero_td_rate = self.rng.uniform(0.01, 0.08) if apply_zero_td else 0.0
 
-        # Buyuk bosluk pozisyonu (sadece anomali, %6 olasilik)
         big_gap_pos = -1
         big_gap_sec = 0.0
         if is_anomaly and self.rng.random() < 0.06:
@@ -314,46 +282,36 @@ class SyntheticTelemetryGenerator:
                 [self.rng.uniform(10, 30), self.rng.uniform(30, 130)],
                 p=[0.7, 0.3]))
 
-        # Timestamp dizisini yeniden olustur
         new_ts = [timestamps[0]]
         for i in range(1, n):
             prev_t = datetime.strptime(new_ts[-1], fmt)
             r = self.rng.random()
 
             if i == big_gap_pos:
-                # Buyuk bosluk
                 step = expected_sec + big_gap_sec
             elif r < zero_td_rate:
-                # Duplike timestamp (td = 0)
                 step = 0.0
             elif r < zero_td_rate + micro_gap_rate:
-                # Mikro-bosluk (td = 2x beklenen, tek okuma kaybi)
                 step = expected_sec * 2.0
             else:
-                # Normal aralik
                 step = expected_sec
 
             new_ts.append((prev_t + timedelta(seconds=step)).strftime(fmt))
 
-        # ── Sinyal degeri artefaktlari ──
 
-        # 3. Sifir-deger noktasi
         if profile["type"] == "magnetometer":
-            # Manyetometre: arada sifir okumalar (%15 olasilik, anomalide %22)
             zero_prob = 0.22 if is_anomaly else 0.15
             if self.rng.random() < zero_prob:
                 n_zeros = self.rng.integers(1, max(2, n // 8))
                 zero_pos = self.rng.choice(n, size=min(n_zeros, n), replace=False)
                 s[zero_pos] = 0.0
         else:
-            # Fotodiyot: sifir bloklari cok yaygin (sensor golgede)
             if self.rng.random() < 0.40:
                 block_start = self.rng.integers(0, max(1, n // 2))
                 block_len = self.rng.integers(n // 5, max(n // 5 + 1, n // 2))
                 block_end = min(block_start + block_len, n)
                 s[block_start:block_end] = 0.0
 
-        # 4. Sabit-deger tekrari (last-value-hold, sensor donmasi)
         stuck_prob = 0.18 if is_anomaly else 0.10
         if self.rng.random() < stuck_prob:
             run_start = self.rng.integers(0, max(1, n - 5))
@@ -362,9 +320,6 @@ class SyntheticTelemetryGenerator:
 
         return s, new_ts
 
-    # ───────────────────────────────────────────────
-    #  Zaman damgasi ureticisi
-    # ───────────────────────────────────────────────
 
     def _generate_timestamps(self, n: int, sampling: int,
                              inject_gap: bool = False) -> List[str]:
@@ -372,7 +327,6 @@ class SyntheticTelemetryGenerator:
 
         inject_gap=True ise rastgele anomali bosluklari eklenir.
         """
-        # sampling = zaman araligi (saniye), orn: 1 = 1Hz, 5 = her 5 saniyede bir
         interval = float(sampling)
         times = []
         current = self.base_time + timedelta(seconds=int(self.rng.integers(0, 86400)))
@@ -381,15 +335,11 @@ class SyntheticTelemetryGenerator:
             times.append(current.strftime("%Y-%m-%dT%H:%M:%S.000Z"))
             step = interval
             if inject_gap and self.rng.random() < 0.08:
-                # Anomali kaynaklı bosluk (5-200 saniye)
                 step = self.rng.uniform(5, 200)
             current += timedelta(seconds=step)
 
         return times
 
-    # ───────────────────────────────────────────────
-    #  Ana uretici
-    # ───────────────────────────────────────────────
 
     def generate(self,
                  n_segments: int = 500,
@@ -409,7 +359,6 @@ class SyntheticTelemetryGenerator:
         if channels is None:
             channels = list(CHANNEL_PROFILES.keys())
 
-        # Kanal basina segment sayisi (agirlikli)
         weights = np.array([CHANNEL_PROFILES[c]["weight"] for c in channels])
         weights /= weights.sum()
         n_per_channel = self.rng.multinomial(n_segments, weights)
@@ -419,7 +368,6 @@ class SyntheticTelemetryGenerator:
         anomaly_idx = self.rng.choice(n_segments, size=n_anomaly_total, replace=False)
         anomaly_flags[anomaly_idx] = 1
 
-        # Train/test split (%70 train)
         train_flags = np.zeros(n_segments, dtype=int)
         train_idx = self.rng.choice(n_segments, size=int(n_segments * 0.70), replace=False)
         train_flags[train_idx] = 1
@@ -436,7 +384,6 @@ class SyntheticTelemetryGenerator:
                 is_anomaly = anomaly_flags[seg_counter]
                 is_train = train_flags[seg_counter]
 
-                # Segment uzunlugu
                 seg_len = max(
                     profile["len_min"],
                     min(
@@ -445,16 +392,13 @@ class SyntheticTelemetryGenerator:
                     )
                 )
 
-                # Sampling
                 sampling = int(self.rng.choice(
                     profile["sampling_options"],
                     p=profile["sampling_weights"]
                 ))
 
-                # Sinyal uret
                 signal = self._generate_signal(seg_len, profile)
 
-                # Anomali enjekte et
                 anomaly_type = None
                 inject_gap = False
                 if is_anomaly:
@@ -462,18 +406,14 @@ class SyntheticTelemetryGenerator:
                     if anomaly_type == "gap":
                         inject_gap = True
 
-                # Zaman damgalari
                 timestamps = self._generate_timestamps(seg_len, sampling,
                                                        inject_gap=inject_gap)
 
-                # Onboard artefaktlar (anomali olmayan operasyonel bozulmalar)
                 signal, timestamps = self._apply_onboard_artifacts(
                     signal, timestamps, sampling, profile, bool(is_anomaly))
 
-                # Label
                 label = "anomaly" if is_anomaly else "nominal"
 
-                # Satirlari olustur
                 for t_idx in range(seg_len):
                     all_rows.append({
                         "channel": ch_name,
@@ -512,9 +452,6 @@ class SyntheticTelemetryGenerator:
         dataset_df = extract_esa_features(segments_df)
         return segments_df, dataset_df
 
-    # ───────────────────────────────────────────────
-    #  Surekli (segmentasyon oncesi) ham akis ureticileri
-    # ───────────────────────────────────────────────
 
     def _gen_magnetometer_continuous(self, n: int, profile: dict) -> np.ndarray:
         """Uzun, kesintisiz manyetometre akisi (Ornstein-Uhlenbeck sureci).
@@ -526,13 +463,12 @@ class SyntheticTelemetryGenerator:
         """
         mu = profile["signal_mean"]
         target_std = profile["signal_std"]
-        theta = 0.01                                   # ortalamaya donus hizi
-        sigma = target_std * np.sqrt(2 * theta)        # duragan std ~ target_std
+        theta = 0.01
+        sigma = target_std * np.sqrt(2 * theta)
         x = np.empty(n)
         x[0] = mu
         for i in range(1, n):
             x[i] = x[i - 1] + theta * (mu - x[i - 1]) + sigma * self.rng.standard_normal()
-        # cok kucuk olcum gurultusu
         x = x + self.rng.normal(0, target_std * 0.02, size=n)
         return np.clip(x, profile["signal_min"] * 1.2, profile["signal_max"] * 1.2)
 
@@ -544,15 +480,14 @@ class SyntheticTelemetryGenerator:
         modellenir; periyot yorunge suresini temsil eder.
         """
         max_val = profile["signal_max"]
-        # Dusuk-deger egilimi (segment ureticisiyle ayni mantik)
         ratio = profile.get("signal_mean", max_val * 0.3) / max_val if max_val > 0 else 0.3
         ratio = float(np.clip(ratio * 1.2, 0.08, 0.45))
         gamma = 1.0 / ratio - 1.0
 
-        period = int(self.rng.integers(150, 600))      # yorunge periyodu (ornek)
+        period = int(self.rng.integers(150, 600))
         phase = self.rng.uniform(0, 2 * np.pi)
         t = np.arange(n)
-        cycle = 0.5 * (1 + np.sin(2 * np.pi * t / period + phase))   # [0, 1]
+        cycle = 0.5 * (1 + np.sin(2 * np.pi * t / period + phase))
         base = max_val * cycle ** gamma
         base = base + self.rng.normal(0, max_val * 0.005, size=n)
         return np.clip(base, 0, max_val * 1.05)
@@ -602,7 +537,6 @@ class SyntheticTelemetryGenerator:
             cur = self.base_time + timedelta(seconds=int(self.rng.integers(0, 86400)))
 
             while produced < target_segs:
-                # Kampanya = k adet segment-uzunlugu kadar kesintisiz akis
                 k = int(min(target_segs - produced, self.rng.integers(2, 9)))
                 seg_lens = [
                     int(np.clip(self.rng.normal(profile["len_mean"], profile["len_std"]),
@@ -613,29 +547,24 @@ class SyntheticTelemetryGenerator:
                 sampling = int(self.rng.choice(profile["sampling_options"],
                                                p=profile["sampling_weights"]))
 
-                # Surekli sinyal (tum kampanya boyunca tek parca)
                 if profile["type"] == "magnetometer":
                     signal = self._gen_magnetometer_continuous(L, profile)
                 else:
                     signal = self._gen_photodiode_continuous(L, profile)
 
-                # Anomalileri alt-pencerelerin MERKEZINE enjekte et (~anomaly_ratio).
-                # Merkeze lokalize etmek, segmentleyici bagimsiz kestiginde anomalinin
-                # komsu segmente tasmasini (etiket yayilmasi) azaltir.
                 anom_mask = np.zeros(L, dtype=int)
                 offsets = np.cumsum([0] + seg_lens)
                 for j in range(k):
                     if self.rng.random() < anomaly_ratio:
                         a, b = int(offsets[j]), int(offsets[j + 1])
-                        margin = int((b - a) * 0.20)        # merkez %60'a lokalize et
+                        margin = int((b - a) * 0.20)
                         ca, cb = a + margin, b - margin
-                        if cb - ca < 3:                     # cok kisa pencere: tamamini kullan
+                        if cb - ca < 3:
                             ca, cb = a, b
                         sub, _atype = self._inject_anomaly(signal[ca:cb].copy(), profile)
                         signal[ca:cb] = sub
                         anom_mask[ca:cb] = 1
 
-                # Surekli zaman damgalari + onboard artefaktlar
                 timestamps = [
                     (cur + timedelta(seconds=int(i * sampling))).strftime(fmt)
                     for i in range(L)
@@ -653,7 +582,6 @@ class SyntheticTelemetryGenerator:
                     })
 
                 produced += k
-                # Kampanyalar arasi zaman boslugu
                 last_t = datetime.strptime(timestamps[-1], fmt)
                 gap = float(self.rng.uniform(*inter_campaign_gap))
                 cur = last_t + timedelta(seconds=gap)
@@ -665,9 +593,6 @@ class SyntheticTelemetryGenerator:
         return df
 
 
-# ═══════════════════════════════════════════════════════════
-#  CLI Kullanim
-# ═══════════════════════════════════════════════════════════
 if __name__ == "__main__":
     import argparse, os, sys
     sys.path.insert(0, os.path.dirname(__file__))

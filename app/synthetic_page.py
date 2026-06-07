@@ -48,7 +48,6 @@ def get_synthetic_layout():
         ]),
 
         dbc.Row([
-            # Sol panel: kontroller
             dbc.Col([html.Div(className="panel", children=[
                 html.Div(className="panel-title", children=[
                     _icon("mdi:tune-vertical", 16), " Uretim Parametreleri"]),
@@ -88,7 +87,6 @@ def get_synthetic_layout():
                                                      "color": "#64748B", "textAlign": "center"}),
             ])], md=3),
 
-            # Sag panel: sonuclar
             dbc.Col([
                 dcc.Loading(
                     id="loading-synth",
@@ -148,7 +146,6 @@ def register_synthetic_callbacks(app):
         n_rows = len(segments_df)
         n_channels_used = segments_df["channel"].nunique()
 
-        # Signal preview: one sample per channel
         fig_signals = make_subplots(
             rows=min(len(channels), 4), cols=1,
             shared_xaxes=False,
@@ -172,7 +169,6 @@ def register_synthetic_callbacks(app):
             title="Ornek Segment Sinyalleri (ilk segment / kanal)",
         )
 
-        # Anomaly type distribution (from features)
         anomaly_segs = segments_df[segments_df["anomaly"] == 1]
         ch_dist = features_df["channel"].value_counts()
         fig_dist = make_subplots(rows=1, cols=2,
@@ -192,7 +188,6 @@ def register_synthetic_callbacks(app):
         )
         fig_dist.update_layout(**PLT_LAYOUT, height=300, showlegend=False)
 
-        # Feature summary: box plots for key features
         key_feats = ["mean", "var", "std", "n_peaks", "diff_var", "kurtosis"]
         available_feats = [f for f in key_feats if f in features_df.columns]
         fig_box = go.Figure()
@@ -205,7 +200,6 @@ def register_synthetic_callbacks(app):
                                      boxmean=True, showlegend=False))
         fig_box.update_layout(**PLT_LAYOUT, height=350, title="Ozellik Dagilimi: Normal (N) vs Anomali (A)")
 
-        # Feature table preview
         from dash import dash_table
         preview_cols = ["segment", "channel", "anomaly", "sampling", "duration", "len",
                         "mean", "var", "std", "n_peaks", "kurtosis", "skew"]
@@ -215,7 +209,6 @@ def register_synthetic_callbacks(app):
             table_data[c] = table_data[c].round(6)
 
         output = html.Div([
-            # Metric cards
             dbc.Row([
                 dbc.Col(_metric_card("mdi:database-outline", len(features_df), "Segment", "blue",
                                       f"{n_rows:,} satir ham veri"), md=3),
@@ -227,12 +220,10 @@ def register_synthetic_callbacks(app):
                                       "ESA handcrafted features"), md=3),
             ], className="mb-4 g-3"),
 
-            # Signal preview
             html.Div(className="panel mb-4", children=[
                 dcc.Graph(figure=fig_signals, config={"displayModeBar": False})
             ]),
 
-            # Distributions
             dbc.Row([
                 dbc.Col(html.Div(className="panel", children=[
                     dcc.Graph(figure=fig_dist, config={"displayModeBar": False})
@@ -242,7 +233,6 @@ def register_synthetic_callbacks(app):
                 ]), md=7),
             ], className="mb-4 g-3"),
 
-            # Feature table
             html.Div(className="panel mb-4", children=[
                 html.Div(className="panel-title", children=[
                     _icon("mdi:table-large", 16),
@@ -264,7 +254,6 @@ def register_synthetic_callbacks(app):
                 ),
             ]),
 
-            # Action buttons
             html.Div(className="panel", style={"display": "flex", "gap": "12px",
                                                  "justifyContent": "flex-end", "padding": "16px"}, children=[
                 html.Button([_icon("mdi:download", 16), " Segments CSV"],

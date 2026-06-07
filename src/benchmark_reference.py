@@ -16,7 +16,6 @@ Sütunlar: AUC_PR, AUC_ROC, Accuracy, F1, Precision, Recall, MCC
 
 _COLS = ["AUC_PR", "AUC_ROC", "Accuracy", "F1", "Precision", "Recall", "MCC"]
 
-# ── Tablo 3 — Gözetimli algoritmalar (7) ──
 _SUPERVISED = {
     "FCNN":      [0.979, 0.989, 0.977, 0.946, 0.963, 0.929, 0.932],
     "XGBOD":     [0.975, 0.992, 0.966, 0.918, 0.944, 0.894, 0.897],
@@ -27,7 +26,6 @@ _SUPERVISED = {
     "Linear+L2": [0.901, 0.958, 0.905, 0.722, 0.970, 0.575, 0.703],
 }
 
-# ── Tablo 3 — Gözetimsiz algoritmalar (23) ──
 _UNSUPERVISED = {
     "MO-GAAL":  [0.779, 0.865, 0.907, 0.726, 0.985, 0.575, 0.710],
     "AnoGAN":   [0.668, 0.756, 0.868, 0.588, 0.877, 0.442, 0.563],
@@ -59,30 +57,19 @@ def _to_dict(rows):
     return {name: dict(zip(_COLS, vals)) for name, vals in rows.items()}
 
 
-# Makale baseline'i {algoritma: {metrik: değer}} formatında
 PAPER_BASELINE = {**_to_dict(_SUPERVISED), **_to_dict(_UNSUPERVISED)}
 
-# Kategori bilgisi
 PAPER_CATEGORY = {**{k: "Gozetimli" for k in _SUPERVISED},
                   **{k: "Gozetimsiz" for k in _UNSUPERVISED}}
 
-# ── Makale algoritma adı  →  bizim final_comparison.json model adımız ──
-# Not: Eşleşmeyen / yaklaşık eşleşmeler açıkça işaretlenmiştir.
-#  - "FCNN" (fully-connected NN) ≈ bizim "MLP"
-#  - "LR" ≈ "LogisticRegression", "Linear+L2" ≈ "Ridge" (L2-regularize lineer)
-#  - "RF+ICCS" makalenin augmentasyonlu RF'i; bizdeki "RandomForest" augmentasyonsuz
-#    (birebir karşılık DEĞİL — Faz 3 augmentasyon ablasyonunda ele alınacak)
-#  - "IForest" ≈ "IsolationForest", "OCSVM" ≈ "OneClassSVM"
 NAME_MAP = {
-    # gözetimli
     "FCNN": "MLP",
     "XGBOD": "XGBOD",
-    "RF+ICCS": "RandomForest",   # yaklaşık (augmentasyonsuz RF)
+    "RF+ICCS": "RandomForest",
     "LSVC": "LSVC",
     "LR": "LogisticRegression",
     "AdaBoost": "AdaBoost",
-    "Linear+L2": "Ridge",        # yaklaşık (L2 lineer)
-    # gözetimsiz
+    "Linear+L2": "Ridge",
     "OCSVM": "OneClassSVM",
     "KNN": "KNN",
     "ABOD": "ABOD",
@@ -101,7 +88,6 @@ NAME_MAP = {
     "ECOD": "ECOD",
     "COPOD": "COPOD",
     "SOS": "SOS",
-    # GAN tabanlı (torch gerektirir; bizim pipeline'da genelde atlanır)
     "MO-GAAL": "MO_GAAL",
     "SO-GAAL": "SO_GAAL",
     "AnoGAN": "AnoGAN",
@@ -109,5 +95,4 @@ NAME_MAP = {
     "LUNAR": "LUNAR",
 }
 
-# Birebir olmayan (yaklaşık) eşleşmeler — raporda dipnotla belirtilmeli
 APPROXIMATE_MATCHES = {"RF+ICCS", "Linear+L2", "FCNN"}

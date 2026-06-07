@@ -33,10 +33,8 @@ from sklearn.metrics import (
     confusion_matrix,
 )
 
-# Makalenin 7 zorunlu metrigi (siralama: AUC_PR oncelikli)
 BENCHMARK_METRICS = ["Accuracy", "Precision", "Recall", "F1", "MCC", "AUC_ROC", "AUC_PR"]
 
-# Siralama icin birincil olcut (makaleyle ayni)
 PRIMARY_SORT_METRIC = "AUC_PR"
 
 
@@ -57,12 +55,11 @@ def compute_metrics(y_true, y_pred, y_score=None, inf_time_ms=None):
     y_true = np.asarray(y_true).astype(int)
     y_pred = np.asarray(y_pred).astype(int)
 
-    # Karisiklik matrisi (her iki sinif da garanti)
     cm = confusion_matrix(y_true, y_pred, labels=[0, 1])
     tn, fp, fn, tp = cm.ravel()
 
-    far = fp / (fp + tn) if (fp + tn) > 0 else 0.0   # yanlis alarm orani
-    fnr = fn / (fn + tp) if (fn + tp) > 0 else 0.0   # kacirma orani
+    far = fp / (fp + tn) if (fp + tn) > 0 else 0.0
+    fnr = fn / (fn + tp) if (fn + tp) > 0 else 0.0
 
     m = {
         "Accuracy":  round(accuracy_score(y_true, y_pred), 4),
@@ -72,7 +69,6 @@ def compute_metrics(y_true, y_pred, y_score=None, inf_time_ms=None):
         "MCC":       round(matthews_corrcoef(y_true, y_pred), 4),
     }
 
-    # AUC metrikleri skor gerektirir; tek sinif varsa tanimsizdir
     if y_score is not None and len(np.unique(y_true)) > 1:
         y_score = np.asarray(y_score, dtype=float)
         try:
@@ -87,7 +83,6 @@ def compute_metrics(y_true, y_pred, y_score=None, inf_time_ms=None):
         m["AUC_ROC"] = float("nan")
         m["AUC_PR"] = float("nan")
 
-    # Ek operasyonel metrikler (benchmark'in 7'sine dahil degil)
     m["FAR"] = round(far, 4)
     m["FNR"] = round(fnr, 4)
     if inf_time_ms is not None:
@@ -109,7 +104,6 @@ def metrics_table(all_metrics, sort_by=PRIMARY_SORT_METRIC, ascending=False):
     """
     import pandas as pd
     df = pd.DataFrame(all_metrics).T
-    # Zorunlu 7 metrik once, ek metrikler sonra
     extra = [c for c in df.columns if c not in BENCHMARK_METRICS]
     ordered = [c for c in BENCHMARK_METRICS if c in df.columns] + extra
     df = df[ordered]
