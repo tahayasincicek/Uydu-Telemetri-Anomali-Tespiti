@@ -58,7 +58,7 @@ def _build_ks_panel(synth_feats):
     clr = ["#EF4444" if d >= 0.45 else "#F59E0B" if d >= 0.30 else "#10B981" for d in ks]
     fig = go.Figure(go.Bar(y=feats, x=ks, orientation="h", marker_color=clr,
                            text=[f"{d:.2f}" for d in ks], textposition="outside",
-                           textfont=dict(size=9, color="#94A3B8")))
+                           textfont=dict(size=9, color="#475569")))
     fig.update_layout(**PLT_LAYOUT, height=460,
                       title=f"Dogrulama: Sentetik vs Gercek KS (ortalama {mean_ks:.2f})",
                       xaxis_title="KS mesafesi (0 = birebir, 1 = tamamen farkli)")
@@ -119,8 +119,8 @@ def get_synthetic_layout():
 
                 html.Div("RASTGELELIK TOHUMU", className="section-label", style={"marginTop": "16px"}),
                 dcc.Input(id="synth-seed", type="number", value=42,
-                          style={"backgroundColor": "#151C28", "border": "1px solid #1E2A3A",
-                                 "color": "#F1F5F9", "borderRadius": "6px", "padding": "8px",
+                          style={"backgroundColor": "#FFFFFF", "border": "1px solid #E2E8F0",
+                                 "color": "#1E293B", "borderRadius": "6px", "padding": "8px",
                                  "width": "100%", "fontFamily": "IBM Plex Mono"}),
 
                 html.Div(style={"marginTop": "20px"}, children=[
@@ -292,13 +292,13 @@ def register_synthetic_callbacks(app):
                     columns=[{"name": c, "id": c} for c in show_cols],
                     data=table_data.to_dict("records"),
                     page_size=10, sort_action="native", filter_action="native",
-                    style_header={"backgroundColor": "#0D1117", "color": "#64748B",
-                                   "fontWeight": "600", "border": "1px solid #1E2A3A", "fontSize": "11px"},
-                    style_cell={"backgroundColor": "#151C28", "color": "#F1F5F9",
-                                 "border": "1px solid #1E2A3A", "fontFamily": "IBM Plex Sans",
+                    style_header={"backgroundColor": "#EEF2F8", "color": "#64748B",
+                                   "fontWeight": "600", "border": "1px solid #E2E8F0", "fontSize": "11px"},
+                    style_cell={"backgroundColor": "#FFFFFF", "color": "#1E293B",
+                                 "border": "1px solid #E2E8F0", "fontFamily": "IBM Plex Sans",
                                  "fontSize": "12px", "padding": "8px"},
                     style_data_conditional=[
-                        {"if": {"row_index": "odd"}, "backgroundColor": "#111827"},
+                        {"if": {"row_index": "odd"}, "backgroundColor": "#F4F6FB"},
                         {"if": {"filter_query": '{anomaly} = 1'}, "backgroundColor": "rgba(239,68,68,0.06)"},
                     ],
                 ),

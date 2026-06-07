@@ -125,7 +125,7 @@ def nav_item(ic, text, page_id):
                        className="nav-item", children=[icon(ic, 18), html.Span(text)])
 
 def nav_subgroup(text):
-    return html.Div(text, style={"fontSize": "9px", "letterSpacing": "1.5px", "color": "#2A3A4E",
+    return html.Div(text, style={"fontSize": "9px", "letterSpacing": "1.5px", "color": "#94A3B8",
                                  "fontWeight": "600", "padding": "10px 16px 2px"})
 
 topbar = html.Div(className="topbar", children=[
@@ -151,7 +151,7 @@ sidebar = html.Div(className="sidebar", children=[
     ]),
     html.Div(className="sidebar-nav", children=[
         html.Div("OPERASYON", className="nav-section-label",
-                 style={"fontSize": "10px", "letterSpacing": "2px", "color": "#3A5068",
+                 style={"fontSize": "10px", "letterSpacing": "2px", "color": "#94A3B8",
                         "fontWeight": "600", "padding": "8px 16px 4px"}),
         nav_item("mdi:view-dashboard", "Operasyon Paneli", "dashboard"),
         nav_item("mdi:satellite-variant", "Canlı İzleme", "live"),
@@ -161,7 +161,7 @@ sidebar = html.Div(className="sidebar", children=[
         nav_item("mdi:magnify-expand", "Anomali Detay", "detail"),
         html.Details(open=False, className="nav-group", children=[
             html.Summary("GELİŞTİRİCİ / ARAŞTIRMA", className="nav-group-header",
-                         style={"fontSize": "10px", "letterSpacing": "2px", "color": "#3A5068",
+                         style={"fontSize": "10px", "letterSpacing": "2px", "color": "#94A3B8",
                                 "fontWeight": "600", "padding": "12px 16px 4px", "cursor": "pointer",
                                 "userSelect": "none", "outline": "none"}),
             nav_subgroup("MODELLER"),
@@ -255,7 +255,7 @@ def page_dashboard():
         fig_health = go.Figure(go.Bar(
             y=ch.index.tolist(), x=ch['rate'].tolist(), orientation='h', marker_color=bar_clr,
             text=[f"{r:.0f}%  ({int(s)}/{int(c)})" for r, s, c in zip(ch['rate'], ch['sum'], ch['count'])],
-            textposition='outside', textfont=dict(size=10, color="#94A3B8")))
+            textposition='outside', textfont=dict(size=10, color="#475569")))
         fig_health.update_layout(**PLT_LAYOUT, height=360, title="Kanal Sağlığı — Anomali Oranı (%)",
                                  xaxis_title="Anomali oranı (%)", xaxis_range=[0, max(ch['rate']) * 1.25 + 5])
 
@@ -386,7 +386,7 @@ def page_analysis():
 
                 html.Details(open=False, style={"marginTop": "16px"}, children=[
                     html.Summary("Gelişmiş — model seçimi", style={
-                        "fontSize": "11px", "letterSpacing": "1px", "color": "#3A5068",
+                        "fontSize": "11px", "letterSpacing": "1px", "color": "#94A3B8",
                         "fontWeight": "600", "cursor": "pointer", "userSelect": "none",
                         "outline": "none", "padding": "4px 0"}),
                     html.Div("GÖZETİMLİ", className="section-label"),
@@ -479,10 +479,10 @@ def build_performance_figures(top_n=10):
 
     fig_roc = go.Figure()
     fig_roc.add_trace(go.Scatter(x=[0,1], y=[0,1], mode="lines",
-                                 line=dict(dash="dash", color="#4A5568"), showlegend=False))
+                                 line=dict(dash="dash", color="#CBD5E1"), showlegend=False))
     fig_pr = go.Figure()
     base = float(y_t.mean()) if len(y_t) else 0
-    fig_pr.add_hline(y=base, line_dash="dash", line_color="#4A5568",
+    fig_pr.add_hline(y=base, line_dash="dash", line_color="#CBD5E1",
                      annotation_text=f"taban {base:.2f}", annotation_font_color="#64748B")
     for i, name in enumerate(top):
         if name not in preds:
@@ -541,7 +541,7 @@ def page_performance():
     for n in top:
         vals = [ALL_METRICS[n].get(c, 0) for c in cats]
         fig_radar.add_trace(go.Scatterpolar(r=vals + [vals[0]], theta=cats + [cats[0]], name=n, fill="toself", opacity=0.5))
-    fig_radar.update_layout(**PLT_LAYOUT, height=400, polar=dict(bgcolor="#080C14", radialaxis=dict(range=[0,1], showticklabels=True, tickfont=dict(size=10))))
+    fig_radar.update_layout(**PLT_LAYOUT, height=400, polar=dict(bgcolor="#F4F6FB", radialaxis=dict(range=[0,1], showticklabels=True, tickfont=dict(size=10))))
 
     return html.Div([
         html.Div(className="page-header", children=[
@@ -552,18 +552,18 @@ def page_performance():
             dash_table.DataTable(
                 columns=[{"name": "Model", "id": "Model"}] + [{"name": c, "id": c} for c in cols],
                 data=[{"Model": n, **{c: f"{ALL_METRICS[n].get(c,0):.4f}" for c in cols}} for n in ranked],
-                style_header={"backgroundColor": "#0D1117", "color": "#64748B", "fontWeight": "600",
-                               "border": "1px solid #1E2A3A", "textTransform": "uppercase", "fontSize": "11px"},
-                style_cell={"backgroundColor": "#151C28", "color": "#F1F5F9", "border": "1px solid #1E2A3A",
+                style_header={"backgroundColor": "#EEF2F8", "color": "#64748B", "fontWeight": "600",
+                               "border": "1px solid #E2E8F0", "textTransform": "uppercase", "fontSize": "11px"},
+                style_cell={"backgroundColor": "#FFFFFF", "color": "#1E293B", "border": "1px solid #E2E8F0",
                              "fontFamily": "IBM Plex Sans", "fontSize": "12.5px", "padding": "10px"},
                 style_data_conditional=[
-                    {"if": {"row_index": "odd"}, "backgroundColor": "#111827"},
+                    {"if": {"row_index": "odd"}, "backgroundColor": "#F4F6FB"},
                 ] + [
                     cond
                     for col in ["AUC_PR", "AUC_ROC", "F1", "MCC"] if col in cols
                     for cond in [
-                        {"if": {"filter_query": f'{{{col}}} > 0.95', "column_id": col}, "color": "#00FF9C", "fontWeight": "600"},
-                        {"if": {"filter_query": f'{{{col}}} > 0.80 && {{{col}}} <= 0.95', "column_id": col}, "color": "#FFB300"},
+                        {"if": {"filter_query": f'{{{col}}} > 0.95', "column_id": col}, "color": "#059669", "fontWeight": "600"},
+                        {"if": {"filter_query": f'{{{col}}} > 0.80 && {{{col}}} <= 0.95', "column_id": col}, "color": "#D97706"},
                         {"if": {"filter_query": f'{{{col}}} <= 0.80', "column_id": col}, "color": "#FF3B5C"},
                     ]
                 ],
@@ -631,13 +631,13 @@ def page_live():
     # iz'leri uzatabilir; aksi halde "Başlat"ta (Sıfırla'ya basılmadan) hiçbir şey çizilmez.
     fig_sig = go.Figure()
     fig_sig.update_layout(**PLT_LAYOUT, height=300,
-                          xaxis=dict(showgrid=True, gridcolor="#1C2A3A"), yaxis=dict(showgrid=True, gridcolor="#1C2A3A"))
-    fig_sig.add_trace(go.Scatter(x=[], y=[], mode="lines", line=dict(color="#6A8099", width=1.5), name="Sinyal"))
+                          xaxis=dict(showgrid=True, gridcolor="#E2E8F0"), yaxis=dict(showgrid=True, gridcolor="#E2E8F0"))
+    fig_sig.add_trace(go.Scatter(x=[], y=[], mode="lines", line=dict(color="#64748B", width=1.5), name="Sinyal"))
     fig_sig.add_trace(go.Scatter(x=[], y=[], mode="markers", marker=dict(color="#FF3B5C", size=8), name="Anomali"))
     fig_score = go.Figure()
     fig_score.update_layout(**PLT_LAYOUT, height=150,
-                            xaxis=dict(showgrid=True, gridcolor="#1C2A3A"), yaxis=dict(range=[0, 1.05]))
-    fig_score.add_trace(go.Scatter(x=[], y=[], mode="lines", line=dict(color="#00C8FF", width=2),
+                            xaxis=dict(showgrid=True, gridcolor="#E2E8F0"), yaxis=dict(range=[0, 1.05]))
+    fig_score.add_trace(go.Scatter(x=[], y=[], mode="lines", line=dict(color="#0284C7", width=2),
                                    fill='tozeroy', fillcolor='rgba(0,200,255,0.1)', name="Skor"))
     fig_score.add_hline(y=0.5, line_dash="dash", line_color="#FF3B5C")
 
@@ -857,12 +857,12 @@ def build_preview(df, filename):
         dash_table.DataTable(
             columns=[{"name": c, "id": c} for c in df.columns],
             data=df.head(50).to_dict('records'), page_size=15,
-            style_header={"backgroundColor": "#0D1117", "color": "#64748B", "fontWeight": "600",
-                           "border": "1px solid #1E2A3A", "fontSize": "11px"},
-            style_cell={"backgroundColor": "#151C28", "color": "#F1F5F9", "border": "1px solid #1E2A3A",
+            style_header={"backgroundColor": "#EEF2F8", "color": "#64748B", "fontWeight": "600",
+                           "border": "1px solid #E2E8F0", "fontSize": "11px"},
+            style_cell={"backgroundColor": "#FFFFFF", "color": "#1E293B", "border": "1px solid #E2E8F0",
                          "fontFamily": "IBM Plex Sans", "fontSize": "12px", "padding": "8px", "maxWidth": "150px",
                          "overflow": "hidden", "textOverflow": "ellipsis"},
-            style_data_conditional=[{"if": {"row_index": "odd"}, "backgroundColor": "#111827"}],
+            style_data_conditional=[{"if": {"row_index": "odd"}, "backgroundColor": "#F4F6FB"}],
             sort_action="native", filter_action="native",
         )
     ]))
@@ -1029,13 +1029,13 @@ def update_results(pred_json, data_json):
         dbc.Row([
             dbc.Col(html.Div(className="metric-card red", style={"padding":"12px"}, children=[
                 html.Span(f"{n_crit}", style={"fontSize":"20px","fontWeight":"700","fontFamily":"IBM Plex Mono"}),
-                html.Span(" Kritik", style={"color":"#FCA5A5","fontSize":"12px","marginLeft":"6px"})]), md=4),
+                html.Span(" Kritik", style={"color":"#DC2626","fontSize":"12px","marginLeft":"6px"})]), md=4),
             dbc.Col(html.Div(className="metric-card yellow", style={"padding":"12px"}, children=[
                 html.Span(f"{n_warn}", style={"fontSize":"20px","fontWeight":"700","fontFamily":"IBM Plex Mono"}),
-                html.Span(" Uyarı", style={"color":"#FCD34D","fontSize":"12px","marginLeft":"6px"})]), md=4),
+                html.Span(" Uyarı", style={"color":"#D97706","fontSize":"12px","marginLeft":"6px"})]), md=4),
             dbc.Col(html.Div(className="metric-card green", style={"padding":"12px"}, children=[
                 html.Span(f"{n_low}", style={"fontSize":"20px","fontWeight":"700","fontFamily":"IBM Plex Mono"}),
-                html.Span(" Düşük", style={"color":"#86EFAC","fontSize":"12px","marginLeft":"6px"})]), md=4),
+                html.Span(" Düşük", style={"color":"#16A34A","fontSize":"12px","marginLeft":"6px"})]), md=4),
         ], className="mb-3 g-3"),
         html.Div(className="panel", children=[
             html.Div(className="panel-title", children=[icon("mdi:format-list-bulleted", 16), f"Anomali Listesi ({len(table_data)} kayıt)"]),
@@ -1043,14 +1043,14 @@ def update_results(pred_json, data_json):
                 id="results-table",
                 columns=[{"name": c, "id": c} for c in ["NO","Segment","Kanal","Skor","Şiddet", "Detay"]],
                 data=table_data, page_size=12, row_selectable="single",
-                style_header={"backgroundColor":"#0D1117","color":"#64748B","fontWeight":"600","border":"1px solid #1E2A3A","fontSize":"11px"},
-                style_cell={"backgroundColor":"#151C28","color":"#F1F5F9","border":"1px solid #1E2A3A","fontFamily":"IBM Plex Sans","fontSize":"12px","padding":"8px"},
+                style_header={"backgroundColor":"#EEF2F8","color":"#64748B","fontWeight":"600","border":"1px solid #E2E8F0","fontSize":"11px"},
+                style_cell={"backgroundColor":"#FFFFFF","color":"#1E293B","border":"1px solid #E2E8F0","fontFamily":"IBM Plex Sans","fontSize":"12px","padding":"8px"},
                 style_data_conditional=[
-                    {"if":{"filter_query":'{Şiddet} = "Kritik"'},"backgroundColor":"rgba(239,68,68,0.08)","color":"#FCA5A5"},
-                    {"if":{"filter_query":'{Şiddet} = "Uyarı"'},"backgroundColor":"rgba(245,158,11,0.08)","color":"#FCD34D"},
-                    {"if":{"filter_query":'{Şiddet} = "Düşük"'},"backgroundColor":"rgba(16,185,129,0.08)","color":"#86EFAC"},
-                    {"if":{"column_id":"Detay"}, "color":"#00C8FF", "cursor":"pointer", "textDecoration":"underline", "fontWeight":"bold"},
-                    {"if":{"row_index":"odd"},"backgroundColor":"#111827"},
+                    {"if":{"filter_query":'{Şiddet} = "Kritik"'},"backgroundColor":"rgba(239,68,68,0.08)","color":"#DC2626"},
+                    {"if":{"filter_query":'{Şiddet} = "Uyarı"'},"backgroundColor":"rgba(245,158,11,0.08)","color":"#D97706"},
+                    {"if":{"filter_query":'{Şiddet} = "Düşük"'},"backgroundColor":"rgba(16,185,129,0.08)","color":"#16A34A"},
+                    {"if":{"column_id":"Detay"}, "color":"#0284C7", "cursor":"pointer", "textDecoration":"underline", "fontWeight":"bold"},
+                    {"if":{"row_index":"odd"},"backgroundColor":"#F4F6FB"},
                 ],
                 sort_action="native", filter_action="native",
             ),
@@ -1171,10 +1171,10 @@ def render_shap_tab(tab):
             html.Div(className="panel", style={"marginTop": "16px"}, children=[
                 html.Div(className="panel-title", children=[icon("mdi:compare-horizontal", 16), "Karsilastirma Notlari"]),
                 html.Div([
-                    html.P("Iki model arasinda en buyuk fark gosteren ozellikler:", style={"color": "#94A3B8", "marginBottom": "12px"}),
+                    html.P("Iki model arasinda en buyuk fark gosteren ozellikler:", style={"color": "#475569", "marginBottom": "12px"}),
                     *[html.Div(className="shap-note-item", children=[
                         icon("mdi:circle-small", 16, "#F59E0B"),
-                        html.Span(t, style={"color": "#CBD5E1", "fontSize": "13px"})
+                        html.Span(t, style={"color": "#334155", "fontSize": "13px"})
                     ]) for t in diff_text_parts]
                 ])
             ])
@@ -1220,7 +1220,7 @@ def update_shap_importance(model):
     fig = go.Figure(go.Bar(
         y=top_labels, x=top_values, orientation='h',
         marker_color=colors, text=[f"{v:.4f}" for v in top_values],
-        textposition='outside', textfont=dict(size=11, color='#94A3B8')
+        textposition='outside', textfont=dict(size=11, color='#475569')
     ))
     fig.update_layout(**PLT_LAYOUT, height=450,
                       title=f"{model_name} - En Onemli 10 Ozellik (SHAP)",
@@ -1308,7 +1308,7 @@ def update_shap_waterfall(selected_idx):
         y=sorted_labels, x=sorted_vals, orientation='h',
         marker_color=colors,
         text=[f"{v:+.4f}" for v in sorted_vals],
-        textposition='outside', textfont=dict(size=10, color='#94A3B8')
+        textposition='outside', textfont=dict(size=10, color='#475569')
     ))
     fig.update_layout(**PLT_LAYOUT, height=500,
                       title=f"Anomali Aciklamasi - Segment Index: {idx} (Random Forest)",
@@ -1317,7 +1317,7 @@ def update_shap_waterfall(selected_idx):
                                         xref="paper", yref="paper", x=0.5, y=-0.08,
                                         showarrow=False, font=dict(size=11, color="#64748B"))])
     fig.update_yaxes(autorange="reversed")
-    fig.add_vline(x=0, line_dash="dash", line_color="#4A5568", line_width=1)
+    fig.add_vline(x=0, line_dash="dash", line_color="#CBD5E1", line_width=1)
 
     chart = dcc.Graph(figure=fig, config={"displayModeBar": False})
 
@@ -1326,13 +1326,13 @@ def update_shap_waterfall(selected_idx):
         lbl = feature_labels[i]
         val = vals[i]
         direction = "anomaliye dogru itiyor" if val > 0 else "normale dogru itiyor"
-        color = "#FCA5A5" if val > 0 else "#86EFAC"
+        color = "#DC2626" if val > 0 else "#16A34A"
         top3_items.append(
             html.Div(className="shap-explanation-item", children=[
                 html.Div(f"{rank}. {lbl}", className="shap-exp-title"),
                 html.Div([
                     html.Span(f"SHAP: {val:+.4f}", style={"color": color, "fontFamily": "IBM Plex Mono, monospace", "fontSize": "13px", "fontWeight": "600"}),
-                    html.Span(f" - {direction}", style={"color": "#94A3B8", "fontSize": "13px"}),
+                    html.Span(f" - {direction}", style={"color": "#475569", "fontSize": "13px"}),
                 ], className="shap-exp-value"),
                 html.Div(f"Ozellik degeri: {data_row[i]:.4f}", className="shap-exp-desc")
             ])
@@ -1382,13 +1382,13 @@ def update_mini_waterfall(selected_rows, table_data):
         y=sorted_labels, x=sorted_vals, orientation='h',
         marker_color=colors,
         text=[f"{v:+.4f}" for v in sorted_vals],
-        textposition='outside', textfont=dict(size=10, color='#94A3B8')
+        textposition='outside', textfont=dict(size=10, color='#475569')
     ))
     fig.update_layout(**PLT_LAYOUT, height=350,
                       title=f"SHAP Aciklamasi - Segment {segment_no}",
                       xaxis_title="SHAP Degeri")
     fig.update_yaxes(autorange="reversed")
-    fig.add_vline(x=0, line_dash="dash", line_color="#4A5568", line_width=1)
+    fig.add_vline(x=0, line_dash="dash", line_color="#CBD5E1", line_width=1)
 
     return html.Div(className="panel", children=[
         html.Div(className="panel-title", children=[icon("mdi:brain", 16), f"SHAP Anomali Aciklamasi - Segment {segment_no}"]),
@@ -1433,14 +1433,14 @@ def control_live_sim(start_n, stop_n, reset_n, state):
         
         fig_sig = go.Figure()
         fig_sig.update_layout(**PLT_LAYOUT, height=300,
-                              xaxis=dict(showgrid=True, gridcolor="#1C2A3A"), yaxis=dict(showgrid=True, gridcolor="#1C2A3A"))
-        fig_sig.add_trace(go.Scatter(x=[], y=[], mode="lines", line=dict(color="#6A8099", width=1.5), name="Sinyal"))
+                              xaxis=dict(showgrid=True, gridcolor="#E2E8F0"), yaxis=dict(showgrid=True, gridcolor="#E2E8F0"))
+        fig_sig.add_trace(go.Scatter(x=[], y=[], mode="lines", line=dict(color="#64748B", width=1.5), name="Sinyal"))
         fig_sig.add_trace(go.Scatter(x=[], y=[], mode="markers", marker=dict(color="#FF3B5C", size=8), name="Anomali"))
         
         fig_score = go.Figure()
         fig_score.update_layout(**PLT_LAYOUT, height=150,
-                                xaxis=dict(showgrid=True, gridcolor="#1C2A3A"), yaxis=dict(range=[0, 1.05]))
-        fig_score.add_trace(go.Scatter(x=[], y=[], mode="lines", line=dict(color="#00C8FF", width=2), fill='tozeroy', fillcolor='rgba(0,200,255,0.1)', name="Skor"))
+                                xaxis=dict(showgrid=True, gridcolor="#E2E8F0"), yaxis=dict(range=[0, 1.05]))
+        fig_score.add_trace(go.Scatter(x=[], y=[], mode="lines", line=dict(color="#0284C7", width=2), fill='tozeroy', fillcolor='rgba(0,200,255,0.1)', name="Skor"))
         fig_score.add_hline(y=0.5, line_dash="dash", line_color="#FF3B5C")
         
         alarm_msg = html.Div("Anomali Yok", className="no-alarm-msg")
@@ -1582,7 +1582,7 @@ def render_anomaly_detail(selected, current_page, all_anomalies, data_json):
     idx = selected.get("_idx", 0)
     row_no = selected.get("NO", 0)
     
-    badge_color = "#FF3B5C" if sev == "Kritik" else "#FFB300" if sev == "Uyarı" else "#86EFAC"
+    badge_color = "#FF3B5C" if sev == "Kritik" else "#D97706" if sev == "Uyarı" else "#16A34A"
     
     header = html.Div(className="anomaly-detail-header", children=[
         html.Div(children=[
@@ -1616,7 +1616,7 @@ def render_anomaly_detail(selected, current_page, all_anomalies, data_json):
             end_idx = min(len(ch_data) - 1, seg + 100)
             ctx_df = ch_data.iloc[start_idx:end_idx+1]
             
-            context_fig.add_trace(go.Scatter(x=ctx_df['segment'], y=ctx_df['value'], mode='lines', line=dict(color='#6A8099', width=1.5), name='Sinyal'))
+            context_fig.add_trace(go.Scatter(x=ctx_df['segment'], y=ctx_df['value'], mode='lines', line=dict(color='#64748B', width=1.5), name='Sinyal'))
             
             anom_df = ch_data[ch_data['segment'] == seg]
             if not anom_df.empty:
@@ -1647,11 +1647,11 @@ def render_anomaly_detail(selected, current_page, all_anomalies, data_json):
                     z_score = diff / (std_val + 1e-9)
                     
                     if abs(z_score) > 2:
-                        color = "#FF3B5C" if z_score > 0 else "#86EFAC"
+                        color = "#FF3B5C" if z_score > 0 else "#16A34A"
                         sign = "+" if z_score > 0 else ""
                         diff_str = f"{sign}{z_score:.1f}σ"
                     else:
-                        color = "#6A8099"
+                        color = "#64748B"
                         diff_str = "Normal"
                         
                     table_rows.append(html.Tr([
@@ -1697,7 +1697,7 @@ def render_anomaly_detail(selected, current_page, all_anomalies, data_json):
         top_feats = [shap_feats[i] for i in sorted_idx]
         top_shaps = [shap_vals[i] for i in sorted_idx]
         
-        colors = ["#FF3B5C" if s > 0 else "#86EFAC" for s in top_shaps]
+        colors = ["#FF3B5C" if s > 0 else "#16A34A" for s in top_shaps]
         
         shap_fig = go.Figure()
         shap_fig.add_trace(go.Bar(
@@ -1719,12 +1719,12 @@ def render_anomaly_detail(selected, current_page, all_anomalies, data_json):
         shap_section = dbc.Row([
             dbc.Col(html.Div(className="panel", children=[dcc.Graph(figure=shap_fig, config={"displayModeBar": False})]), md=6),
             dbc.Col(html.Div(className="panel", style={"height": "100%"}, children=[
-                html.Div("NEDEN ANOMALİ?", style={"fontSize": "11px", "letterSpacing": "2px", "color": "#3A5068", "fontWeight": "bold", "marginBottom": "15px"}),
-                html.P(desc_text, style={"fontSize": "14px", "lineHeight": "1.6", "color": "#E8F0F8"}),
+                html.Div("NEDEN ANOMALİ?", style={"fontSize": "11px", "letterSpacing": "2px", "color": "#94A3B8", "fontWeight": "bold", "marginBottom": "15px"}),
+                html.P(desc_text, style={"fontSize": "14px", "lineHeight": "1.6", "color": "#1E293B"}),
                 html.Div(style={"marginTop": "20px"}, children=[
-                    html.Div(className="shap-feat-card", style={"borderLeft": "4px solid #FF3B5C" if top_shaps[0]>0 else "4px solid #86EFAC"}, children=[
+                    html.Div(className="shap-feat-card", style={"borderLeft": "4px solid #FF3B5C" if top_shaps[0]>0 else "4px solid #16A34A"}, children=[
                         html.Div(top_feats[0], style={"fontWeight": "bold"}),
-                        html.Div(f"SHAP: {top_shaps[0]:.3f}", style={"fontFamily": "IBM Plex Mono", "color": "#FF3B5C" if top_shaps[0]>0 else "#86EFAC"})
+                        html.Div(f"SHAP: {top_shaps[0]:.3f}", style={"fontFamily": "IBM Plex Mono", "color": "#FF3B5C" if top_shaps[0]>0 else "#16A34A"})
                     ])
                 ])
             ]), md=6)
@@ -1794,7 +1794,7 @@ def generate_pdf_report(n, selected):
         c = canvas.Canvas(file_path, pagesize=A4)
         width, height = A4
         
-        c.setFillColor(HexColor("#080C14"))
+        c.setFillColor(HexColor("#F4F6FB"))
         c.rect(0, height-80, width, 80, stroke=0, fill=1)
         
         c.setFillColor(HexColor("#FFFFFF"))
@@ -1808,7 +1808,7 @@ def generate_pdf_report(n, selected):
         c.drawString(40, y, f"Kanal: {ch}")
         c.drawString(40, y-25, f"Anomali Skoru: {score}")
         
-        sev_color = "#FF3B5C" if sev == "Kritik" else "#FFB300" if sev == "Uyarı" else "#86EFAC"
+        sev_color = "#FF3B5C" if sev == "Kritik" else "#D97706" if sev == "Uyarı" else "#16A34A"
         c.setFillColor(HexColor(sev_color))
         c.drawString(40, y-50, f"Siddet: {sev.upper()}")
         

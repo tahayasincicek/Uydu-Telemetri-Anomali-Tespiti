@@ -52,14 +52,14 @@ def get_benchmark_layout():
     fig_sc = go.Figure()
     lo = min(df["Paper_AUC_PR"].min(), df["Bizim_AUC_PR"].min()) - 0.05
     fig_sc.add_trace(go.Scatter(x=[lo, 1], y=[lo, 1], mode="lines",
-                                line=dict(dash="dash", color="#4A5568"), showlegend=False))
+                                line=dict(dash="dash", color="#CBD5E1"), showlegend=False))
     for cat, color in CAT_COLOR.items():
         sub = df[df["Kategori"] == cat]
         if sub.empty:
             continue
         fig_sc.add_trace(go.Scatter(
             x=sub["Paper_AUC_PR"], y=sub["Bizim_AUC_PR"], mode="markers+text",
-            text=sub["Algoritma"], textposition="top center", textfont=dict(size=9, color="#94A3B8"),
+            text=sub["Algoritma"], textposition="top center", textfont=dict(size=9, color="#475569"),
             marker=dict(size=10, color=color, opacity=0.85),
             name=cat))
     fig_sc.update_layout(**PLT_LAYOUT, height=460,
@@ -72,8 +72,8 @@ def get_benchmark_layout():
     fig_d = go.Figure(go.Bar(
         y=dff["Algoritma"], x=dff["ΔAUC_PR"], orientation="h", marker_color=bar_clr,
         text=[f"{v:+.3f}" for v in dff["ΔAUC_PR"]], textposition="outside",
-        textfont=dict(size=9, color="#94A3B8")))
-    fig_d.add_vline(x=0, line_dash="dash", line_color="#4A5568")
+        textfont=dict(size=9, color="#475569")))
+    fig_d.add_vline(x=0, line_dash="dash", line_color="#CBD5E1")
     fig_d.update_layout(**PLT_LAYOUT, height=520, title="ΔAUC-PR (Bizim − Makale)",
                         xaxis_title="ΔAUC-PR")
 
@@ -110,7 +110,7 @@ def get_benchmark_layout():
                                "bu, kurulan metodolojik temelin (resmi bölme + sızıntısızlık + 7 metrik) "
                                "doğruluğunu kanıtlar. İşaretler: ~ yaklaşık/paradigma eşleşmesi, "
                                "! yöntem farkı nedeniyle büyük sapma.",
-                               style={"color": "#CBD5E1", "fontSize": "13px", "marginLeft": "6px"})])]),
+                               style={"color": "#334155", "fontSize": "13px", "marginLeft": "6px"})])]),
 
         dbc.Row([
             dbc.Col(html.Div(className="panel", children=[
@@ -125,14 +125,14 @@ def get_benchmark_layout():
             dash_table.DataTable(
                 columns=[{"name": c, "id": c} for c in show],
                 data=tdf.to_dict("records"), page_size=25, sort_action="native", filter_action="native",
-                style_header={"backgroundColor": "#0D1117", "color": "#64748B", "fontWeight": "600",
-                              "border": "1px solid #1E2A3A", "fontSize": "11px"},
-                style_cell={"backgroundColor": "#151C28", "color": "#F1F5F9", "border": "1px solid #1E2A3A",
+                style_header={"backgroundColor": "#EEF2F8", "color": "#64748B", "fontWeight": "600",
+                              "border": "1px solid #E2E8F0", "fontSize": "11px"},
+                style_cell={"backgroundColor": "#FFFFFF", "color": "#1E293B", "border": "1px solid #E2E8F0",
                             "fontFamily": "IBM Plex Sans", "fontSize": "12px", "padding": "8px"},
                 style_data_conditional=[
-                    {"if": {"row_index": "odd"}, "backgroundColor": "#111827"},
-                    {"if": {"filter_query": "{ΔAUC_PR} > 0.02", "column_id": "ΔAUC_PR"}, "color": "#86EFAC"},
-                    {"if": {"filter_query": "{ΔAUC_PR} < -0.02", "column_id": "ΔAUC_PR"}, "color": "#FCA5A5"},
+                    {"if": {"row_index": "odd"}, "backgroundColor": "#F4F6FB"},
+                    {"if": {"filter_query": "{ΔAUC_PR} > 0.02", "column_id": "ΔAUC_PR"}, "color": "#16A34A"},
+                    {"if": {"filter_query": "{ΔAUC_PR} < -0.02", "column_id": "ΔAUC_PR"}, "color": "#DC2626"},
                 ],
             ),
         ]),

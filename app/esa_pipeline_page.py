@@ -71,9 +71,9 @@ def get_esa_pipeline_layout():
                 _icon("mdi:information-outline", 24, "#06B6D4"),
                 html.Div([
                     html.Div("Ruszczak et al. (2024)",
-                             style={"fontWeight": "600", "color": "#E8F0F8", "fontSize": "14px"}),
+                             style={"fontWeight": "600", "color": "#1E293B", "fontSize": "14px"}),
                     html.Div("\"The OPS-SAT benchmark for detecting anomalies in satellite telemetry\" (arXiv:2407.04730)",
-                             style={"color": "#94A3B8", "fontSize": "12px"}),
+                             style={"color": "#475569", "fontSize": "12px"}),
                     html.Div("Bu pipeline, makalede tanimlanan 18 handcrafted feature'i segments.csv formatindan cikarir.",
                              style={"color": "#64748B", "fontSize": "11px", "marginTop": "4px"}),
                 ]),
@@ -98,7 +98,7 @@ def get_esa_pipeline_layout():
                     dcc.Upload(id="esa-file-upload", children=html.Div(className="upload-area",
                                style={"padding": "20px"}, children=[
                         _icon("mdi:cloud-upload-outline", 36, "#3B82F6"),
-                        html.Div("CSV dosyasi yukleyin", style={"color": "#94A3B8", "fontSize": "12px"}),
+                        html.Div("CSV dosyasi yukleyin", style={"color": "#475569", "fontSize": "12px"}),
                     ]), multiple=False),
                 ]),
 
@@ -116,7 +116,7 @@ def get_esa_pipeline_layout():
                     html.Div(style={"maxHeight": "400px", "overflowY": "auto"}, children=[
                         html.Div([
                             html.Div(style={"display": "flex", "justifyContent": "space-between",
-                                             "padding": "6px 0", "borderBottom": "1px solid #1E2A3A"}, children=[
+                                             "padding": "6px 0", "borderBottom": "1px solid #E2E8F0"}, children=[
                                 html.Div([
                                     html.Span(f_name, style={"fontFamily": "IBM Plex Mono", "fontSize": "11px",
                                                                "color": "#06B6D4"}),
@@ -219,7 +219,7 @@ def _build_extraction_results(features_df, source_label):
             marker_color=["#EF4444" if v > 2 else "#F59E0B" if v > 1 else "#10B981"
                           for v in sorted_ratios.values()],
             text=[f"{v:.2f}x" for v in sorted_ratios.values()],
-            textposition="outside", textfont=dict(size=10, color="#94A3B8"),
+            textposition="outside", textfont=dict(size=10, color="#475569"),
         ))
         fig_ratio.update_layout(**PLT_LAYOUT, height=400,
                                  title="Varyans Orani (Anomali / Normal)",
@@ -265,13 +265,13 @@ def _build_extraction_results(features_df, source_label):
                 columns=[{"name": c, "id": c} for c in show_cols],
                 data=table_data.to_dict("records"),
                 page_size=10, sort_action="native", filter_action="native",
-                style_header={"backgroundColor": "#0D1117", "color": "#64748B",
-                               "fontWeight": "600", "border": "1px solid #1E2A3A", "fontSize": "11px"},
-                style_cell={"backgroundColor": "#151C28", "color": "#F1F5F9",
-                             "border": "1px solid #1E2A3A", "fontFamily": "IBM Plex Sans",
+                style_header={"backgroundColor": "#EEF2F8", "color": "#64748B",
+                               "fontWeight": "600", "border": "1px solid #E2E8F0", "fontSize": "11px"},
+                style_cell={"backgroundColor": "#FFFFFF", "color": "#1E293B",
+                             "border": "1px solid #E2E8F0", "fontFamily": "IBM Plex Sans",
                              "fontSize": "12px", "padding": "8px"},
                 style_data_conditional=[
-                    {"if": {"row_index": "odd"}, "backgroundColor": "#111827"},
+                    {"if": {"row_index": "odd"}, "backgroundColor": "#F4F6FB"},
                     {"if": {"filter_query": '{anomaly} = 1'}, "backgroundColor": "rgba(239,68,68,0.06)"},
                 ],
             ),

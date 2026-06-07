@@ -78,7 +78,7 @@ def get_augmentation_layout():
             continue
         fig_pr.add_trace(go.Scatter(
             x=sub["Recall"], y=sub["Precision"], mode="markers+text",
-            text=sub["Model"], textposition="top center", textfont=dict(size=8, color="#94A3B8"),
+            text=sub["Model"], textposition="top center", textfont=dict(size=8, color="#475569"),
             marker=dict(size=12, color=color, opacity=0.85), name=strat))
     fig_pr.update_layout(**PLT_LAYOUT, height=380,
                          title="Kesinlik–Duyarlılık Dengesi (asıl etki burada)",
@@ -96,7 +96,7 @@ def get_augmentation_layout():
         fig_ks = go.Figure(go.Bar(
             y=ks["Özellik"], x=ks["KS_mesafe"], orientation="h", marker_color=ks_clr,
             text=[f"{v:.2f}" for v in ks["KS_mesafe"]], textposition="outside",
-            textfont=dict(size=9, color="#94A3B8")))
+            textfont=dict(size=9, color="#475569")))
         fig_ks.update_layout(**PLT_LAYOUT, height=520,
                              title="Sentetik–Gerçek Dağılım Açığı (KS mesafesi, özellik başına)",
                              xaxis_title="KS mesafesi (0 = birebir, 1 = tamamen farklı)")
@@ -109,7 +109,7 @@ def get_augmentation_layout():
                                    f"özelliktir (KS = {worst['KS_mesafe']:.2f}). Üreteç, modelin en çok güvendiği "
                                    "özelliğin dağılımını en zayıf yeniden ürettiği için augmentasyon kazanç "
                                    "sağlamamaktadır — dürüst bir negatif bulgu.",
-                                   style={"color": "#CBD5E1", "fontSize": "13px", "marginLeft": "6px"})])]),
+                                   style={"color": "#334155", "fontSize": "13px", "marginLeft": "6px"})])]),
             html.Div(className="panel mb-4", children=[
                 dcc.Graph(figure=fig_ks, config={"displayModeBar": False})]),
         ]
@@ -171,11 +171,11 @@ def get_augmentation_layout():
             dash_table.DataTable(
                 columns=[{"name": c, "id": c} for c in aug.columns],
                 data=aug.round(3).to_dict("records"), page_size=16, sort_action="native",
-                style_header={"backgroundColor": "#0D1117", "color": "#64748B", "fontWeight": "600",
-                              "border": "1px solid #1E2A3A", "fontSize": "11px"},
-                style_cell={"backgroundColor": "#151C28", "color": "#F1F5F9", "border": "1px solid #1E2A3A",
+                style_header={"backgroundColor": "#EEF2F8", "color": "#64748B", "fontWeight": "600",
+                              "border": "1px solid #E2E8F0", "fontSize": "11px"},
+                style_cell={"backgroundColor": "#FFFFFF", "color": "#1E293B", "border": "1px solid #E2E8F0",
                             "fontFamily": "IBM Plex Sans", "fontSize": "12px", "padding": "8px"},
-                style_data_conditional=[{"if": {"row_index": "odd"}, "backgroundColor": "#111827"}],
+                style_data_conditional=[{"if": {"row_index": "odd"}, "backgroundColor": "#F4F6FB"}],
             ),
         ]),
     ])

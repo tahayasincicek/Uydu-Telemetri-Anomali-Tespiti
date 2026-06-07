@@ -1,19 +1,19 @@
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 :root {
-  --bg-primary: #080C14;
-  --bg-secondary: #0D1117;
-  --bg-card: #151C28;
-  --bg-card-hover: #1A2436;
-  --border: #1E2A3A;
+  --bg-primary: #F4F6FB;
+  --bg-secondary: #EEF2F8;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #E8EEF6;
+  --border: #E2E8F0;
   --accent-blue: #3B82F6;
   --accent-cyan: #06B6D4;
   --accent-green: #10B981;
   --accent-red: #EF4444;
   --accent-yellow: #F59E0B;
   --accent-purple: #8B5CF6;
-  --text-primary: #F1F5F9;
-  --text-secondary: #94A3B8;
+  --text-primary: #1E293B;
+  --text-secondary: #475569;
   --text-muted: #64748B;
   --sidebar-width: 240px;
   --topbar-height: 48px;
@@ -31,7 +31,7 @@ body {
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg-primary); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #4A5568; }
+::-webkit-scrollbar-thumb:hover { background: #CBD5E1; }
 
 /* ── Topbar ── */
 .topbar {
@@ -162,7 +162,7 @@ body {
   transition: all 0.2s ease; position: relative; overflow: hidden;
 }
 .metric-card:hover {
-  background: var(--bg-card-hover); border-color: #3B4A63;
+  background: var(--bg-card-hover); border-color: #CBD5E1;
   transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 .metric-card::before {
@@ -213,7 +213,7 @@ body {
 .badge-error    { background: rgba(239,68,68,0.15); color: var(--accent-red); border: 1px solid rgba(239,68,68,0.3); padding: 2px 10px; border-radius: 20px; font-size: 11px; }
 
 .model-f1-badge {
-  background: #1E2A42; color: var(--text-muted);
+  background: #EEF2F8; color: var(--text-muted);
   border: 1px solid var(--border);
   padding: 1px 8px; border-radius: 4px;
   font-size: 10px; font-family: 'IBM Plex Mono', 'JetBrains Mono', monospace;
@@ -225,9 +225,9 @@ body {
 .col-type-badge-bool { background: rgba(16,185,129,0.15); color: #10B981; border: 1px solid rgba(16,185,129,0.2); padding: 1px 8px; border-radius: 4px; font-size: 10px; }
 
 /* ── Severity ── */
-.severity-critical { color: #FCA5A5; background: rgba(239,68,68,0.1); padding: 2px 8px; border-radius: 4px; font-size: 11px; }
-.severity-warning { color: #FCD34D; background: rgba(245,158,11,0.1); padding: 2px 8px; border-radius: 4px; font-size: 11px; }
-.severity-low { color: #86EFAC; background: rgba(16,185,129,0.1); padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+.severity-critical { color: #DC2626; background: rgba(239,68,68,0.1); padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+.severity-warning { color: #D97706; background: rgba(245,158,11,0.1); padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+.severity-low { color: #16A34A; background: rgba(16,185,129,0.1); padding: 2px 8px; border-radius: 4px; font-size: 11px; }
 
 /* ── Column Grid ── */
 .col-grid {
@@ -340,12 +340,12 @@ body {
 .rc-slider-track,
 .dash-slider-track { background-color: #3B82F6 !important; }
 .rc-slider-rail,
-.dash-slider-rail { background-color: #2D3748 !important; }
+.dash-slider-rail { background-color: #E2E8F0 !important; }
 .rc-slider-handle,
 .dash-slider-handle,
 [class*="slider-thumb"] {
   border-color: #3B82F6 !important;
-  background-color: #151C28 !important;
+  background-color: #FFFFFF !important;
   opacity: 1 !important;
 }
 .rc-slider-handle:hover,
@@ -358,8 +358,8 @@ body {
 }
 .rc-slider-dot,
 .dash-slider-dot {
-  background-color: #2D3748 !important;
-  border-color: #2D3748 !important;
+  background-color: #E2E8F0 !important;
+  border-color: #E2E8F0 !important;
 }
 .rc-slider-mark-text,
 .dash-slider-mark-text,
@@ -375,9 +375,9 @@ body {
 div[class*="slider-tooltip"],
 [class*="slider-tooltip"] > div,
 [class*="slider-tooltip"] {
-  background-color: #0D1117 !important;
-  color: #F1F5F9 !important;
-  border: 1px solid #2D3748 !important;
+  background-color: #EEF2F8 !important;
+  color: #1E293B !important;
+  border: 1px solid #E2E8F0 !important;
   box-shadow: 0 2px 8px rgba(0,0,0,0.5) !important;
   font-size: 12px !important;
   font-family: 'IBM Plex Mono', 'JetBrains Mono', monospace !important;
@@ -573,7 +573,7 @@ div[class*="slider"] input[type="number"] {
 }
 
 .alarm-card {
-    background: #0C1220;
+    background: #F4F6FB;
     border-left: 4px solid var(--border);
     border-radius: 6px;
     padding: 12px;
@@ -581,7 +581,7 @@ div[class*="slider"] input[type="number"] {
 }
 .alarm-card:hover {
     transform: translateX(-2px);
-    background: #111827;
+    background: #F4F6FB;
 }
 .alarm-card.critical {
     border-left-color: var(--accent-red);
@@ -672,9 +672,9 @@ div[class*="slider"] input[type="number"] {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid #1E2A3A;
+    border-bottom: 1px solid #E2E8F0;
     padding: 20px;
-    background-color: #0D1117;
+    background-color: #EEF2F8;
     border-radius: 8px 8px 0 0;
 }
 .detail-header-title {
@@ -685,7 +685,7 @@ div[class*="slider"] input[type="number"] {
 }
 .detail-header-segment {
     font-size: 26px;
-    color: #E8F0F8;
+    color: #1E293B;
     font-family: 'IBM Plex Mono', monospace;
     font-weight: 700;
     margin-top: 4px;
@@ -705,7 +705,7 @@ div[class*="slider"] input[type="number"] {
 }
 .score-display {
     font-size: 22px;
-    color: #00C8FF;
+    color: #0284C7;
     font-family: 'IBM Plex Mono', monospace;
     font-weight: bold;
 }
@@ -719,19 +719,19 @@ div[class*="slider"] input[type="number"] {
     font-size: 12px;
 }
 .custom-table th {
-    background-color: #0D1117;
+    background-color: #EEF2F8;
     color: #64748B;
     padding: 10px;
     text-align: left;
-    border-bottom: 1px solid #1E2A3A;
+    border-bottom: 1px solid #E2E8F0;
 }
 .custom-table td {
     padding: 10px;
-    border-bottom: 1px solid #1E2A3A;
-    color: #E8F0F8;
+    border-bottom: 1px solid #E2E8F0;
+    color: #1E293B;
 }
 .shap-feat-card {
-    background-color: #0D1117;
+    background-color: #EEF2F8;
     padding: 15px;
     border-radius: 6px;
     display: flex;
@@ -742,7 +742,7 @@ div[class*="slider"] input[type="number"] {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-top: 1px solid #1E2A3A;
+    border-top: 1px solid #E2E8F0;
     padding: 15px 20px;
     margin-top: 20px;
 }
@@ -751,8 +751,8 @@ div[class*="slider"] input[type="number"] {
     gap: 12px;
 }
 .btn-nav {
-    background-color: #1E2A3A;
-    color: #E8F0F8;
+    background-color: #E2E8F0;
+    color: #1E293B;
     border: 1px solid #334155;
     padding: 8px 16px;
     border-radius: 4px;
@@ -763,8 +763,8 @@ div[class*="slider"] input[type="number"] {
     background-color: #334155;
 }
 .btn-action-primary {
-    background-color: #00C8FF;
-    color: #080C14;
+    background-color: #0284C7;
+    color: #F4F6FB;
     border: none;
     padding: 8px 16px;
     border-radius: 4px;
@@ -773,7 +773,7 @@ div[class*="slider"] input[type="number"] {
     transition: all 0.2s ease;
 }
 .btn-action-primary:hover {
-    background-color: #00A3CC;
+    background-color: #0284C7;
 }
 .nav-counter {
     font-family: 'IBM Plex Mono', monospace;

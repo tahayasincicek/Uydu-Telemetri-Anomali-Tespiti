@@ -16,8 +16,8 @@ def get_ablation_layout():
     if not os.path.exists(ABLATION_PKL):
         return html.Div([
             html.Div(className="page-header", children=[
-                html.Div("ABLASYON ANALİZİ", style={"fontSize": "9px", "letterSpacing": "3px", "color": "#3A5068"}),
-                html.Div("UYDU TELEMETRİ ANOMALİ TESPİTİ > ABLASYON ANALİZİ", style={"fontSize": "11px", "color": "#3A5068"})
+                html.Div("ABLASYON ANALİZİ", style={"fontSize": "9px", "letterSpacing": "3px", "color": "#94A3B8"}),
+                html.Div("UYDU TELEMETRİ ANOMALİ TESPİTİ > ABLASYON ANALİZİ", style={"fontSize": "11px", "color": "#94A3B8"})
             ]),
             html.Div(className="warning-box", children=[
                 icon("mdi:alert-outline", 40, "#F59E0B"),
@@ -56,8 +56,8 @@ def get_ablation_layout():
     return html.Div([
         html.Div(className="page-header", children=[
             html.Div(style={"display": "flex", "justifyContent": "space-between"}, children=[
-                html.Div("ABLATION STUDY", style={"fontSize": "16px", "letterSpacing": "3px", "color": "#3A5068", "fontWeight": "bold"}),
-                html.Div("UYDU TELEMETRİ ANOMALİ TESPİTİ > ABLATION STUDY", style={"fontSize": "11px", "color": "#3A5068"})
+                html.Div("ABLATION STUDY", style={"fontSize": "16px", "letterSpacing": "3px", "color": "#94A3B8", "fontWeight": "bold"}),
+                html.Div("UYDU TELEMETRİ ANOMALİ TESPİTİ > ABLATION STUDY", style={"fontSize": "11px", "color": "#94A3B8"})
             ])
         ]),
         
@@ -99,7 +99,7 @@ def register_ablation_callbacks(app):
                 dcc.Dropdown(id="abl-model-dropdown", options=[{"label": m, "value": m} for m in models],
                              value=models[0] if models else None, className="custom-dropdown", clearable=False),
                 dcc.Graph(id="abl-single-graph", config={"displayModeBar": False}),
-                html.Div(id="abl-single-text", style={"marginTop": "10px", "color": "#94A3B8"})
+                html.Div(id="abl-single-text", style={"marginTop": "10px", "color": "#475569"})
             ])
             
         elif tab == "tab-cum":
@@ -110,7 +110,7 @@ def register_ablation_callbacks(app):
             fig.update_layout(**PLT_LAYOUT, title="Özellik Sayısına Göre Model Performansı")
             return html.Div(className="panel", children=[
                 dcc.Graph(figure=fig, config={"displayModeBar": False}),
-                html.Div(f"{best_feat_count} özellik ile maksimum performans elde ediliyor.", style={"marginTop": "10px", "color": "#00C8FF", "fontWeight": "bold"})
+                html.Div(f"{best_feat_count} özellik ile maksimum performans elde ediliyor.", style={"marginTop": "10px", "color": "#0284C7", "fontWeight": "bold"})
             ])
             
         elif tab == "tab-group":
@@ -128,14 +128,14 @@ def register_ablation_callbacks(app):
                 
             return html.Div(className="panel", children=[
                 dcc.Graph(figure=fig, config={"displayModeBar": False}),
-                html.Div(f"En iyi grup kombinasyonu: {best_group}", style={"marginTop": "10px", "color": "#00C8FF", "fontWeight": "bold"})
+                html.Div(f"En iyi grup kombinasyonu: {best_group}", style={"marginTop": "10px", "color": "#0284C7", "fontWeight": "bold"})
             ])
             
         elif tab == "tab-heat":
             df_single = pd.DataFrame(data['single_removal'])
             heat_data = df_single.pivot(index='removed_feature', columns='model', values='AUC-ROC')
             fig = px.imshow(heat_data, text_auto=".3f", 
-                            color_continuous_scale=[[0, "#080C14"], [0.5, "#003A5C"], [1, "#00C8FF"]], 
+                            color_continuous_scale=[[0, "#F4F6FB"], [0.5, "#003A5C"], [1, "#0284C7"]], 
                             aspect='auto')
             fig.update_layout(**PLT_LAYOUT, title="Model - Özellik Bağımlılık Matrisi")
             return html.Div(className="panel", children=[
@@ -172,8 +172,8 @@ def register_ablation_callbacks(app):
                     html.Div(className="panel mb-3", children=[
                         dcc.Graph(figure=fig_pie, config={"displayModeBar": False})
                     ]),
-                    html.Div(className="panel", style={"borderLeft": "2px solid #00C8FF", "backgroundColor": "rgba(0,200,255,0.04)"}, children=[
-                        html.Div("SONUÇ", style={"fontWeight": "bold", "color": "#00C8FF", "marginBottom": "10px"}),
+                    html.Div(className="panel", style={"borderLeft": "2px solid #0284C7", "backgroundColor": "rgba(0,200,255,0.04)"}, children=[
+                        html.Div("SONUÇ", style={"fontWeight": "bold", "color": "#0284C7", "marginBottom": "10px"}),
                         html.Div(f"Yapılan Ablasyon analizine göre, toplam {best_set.get('optimal_count', 19)} özellik ile maksimum anomali tespit verimi alınmaktadır. Geri kalan özellikler sistemden çıkartılarak operasyonel yük azaltılabilir.")
                     ])
                 ], md=6)

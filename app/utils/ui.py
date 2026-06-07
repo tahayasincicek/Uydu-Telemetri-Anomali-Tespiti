@@ -4,8 +4,8 @@ from dash import html
 from dash_iconify import DashIconify
 
 PLT_LAYOUT = dict(
-    template="plotly_dark", paper_bgcolor="#080C14", plot_bgcolor="#080C14",
-    font=dict(family="IBM Plex Sans", color="#94A3B8"),
+    template="plotly_white", paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
+    font=dict(family="IBM Plex Sans", color="#475569"),
     margin=dict(l=40, r=20, t=40, b=30),
 )
 

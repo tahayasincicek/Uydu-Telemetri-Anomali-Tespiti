@@ -77,7 +77,7 @@ def get_summary_layout(all_metrics=None):
     method = html.Div(className="panel mb-4", children=[
         html.Div(className="panel-title", children=[_icon("mdi:shield-check-outline", 16),
                  "Metodolojik Temel (tekrarüretilebilirlik)"]),
-        html.Ul(style={"color": "#CBD5E1", "fontSize": "13px", "lineHeight": "1.8", "paddingLeft": "18px"}, children=[
+        html.Ul(style={"color": "#334155", "fontSize": "13px", "lineHeight": "1.8", "paddingLeft": "18px"}, children=[
             html.Li(["Resmi train/test bölmesi: ", html.B("T = 1594"), " eğitim, ",
                      html.B("Ψ = 529"), " test (dataset.csv 'train' kolonu) — makaleyle birebir kıyaslanabilirlik."]),
             html.Li(["Veri sızıntısı önleme: ölçekleyici yalnız T'de fit, ",
@@ -93,8 +93,8 @@ def get_summary_layout(all_metrics=None):
     def faz(num, title, desc, color, page_hint):
         return dbc.Col(html.Div(className="panel", style={"borderLeft": f"4px solid {color}", "height": "100%"}, children=[
             html.Div(f"FAZ {num}", style={"fontSize": "11px", "letterSpacing": "2px", "color": color, "fontWeight": "700"}),
-            html.Div(title, style={"fontWeight": "600", "color": "#E8F0F8", "margin": "6px 0"}),
-            html.Div(desc, style={"fontSize": "12px", "color": "#94A3B8", "lineHeight": "1.5"}),
+            html.Div(title, style={"fontWeight": "600", "color": "#1E293B", "margin": "6px 0"}),
+            html.Div(desc, style={"fontSize": "12px", "color": "#475569", "lineHeight": "1.5"}),
             html.Div(page_hint, style={"fontSize": "11px", "color": "#64748B", "marginTop": "8px"}),
         ]), md=4)
 
@@ -118,11 +118,11 @@ def get_summary_layout(all_metrics=None):
             dash_table.DataTable(
                 columns=[{"name": "Model", "id": "Model"}] + [{"name": c, "id": c} for c in cols],
                 data=data,
-                style_header={"backgroundColor": "#0D1117", "color": "#64748B", "fontWeight": "600",
-                              "border": "1px solid #1E2A3A", "fontSize": "11px"},
-                style_cell={"backgroundColor": "#151C28", "color": "#F1F5F9", "border": "1px solid #1E2A3A",
+                style_header={"backgroundColor": "#EEF2F8", "color": "#64748B", "fontWeight": "600",
+                              "border": "1px solid #E2E8F0", "fontSize": "11px"},
+                style_cell={"backgroundColor": "#FFFFFF", "color": "#1E293B", "border": "1px solid #E2E8F0",
                             "fontFamily": "IBM Plex Sans", "fontSize": "12.5px", "padding": "10px"},
-                style_data_conditional=[{"if": {"row_index": "odd"}, "backgroundColor": "#111827"}],
+                style_data_conditional=[{"if": {"row_index": "odd"}, "backgroundColor": "#F4F6FB"}],
             ),
         ])
 

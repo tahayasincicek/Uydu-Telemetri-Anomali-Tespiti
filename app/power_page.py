@@ -212,7 +212,7 @@ def register_power_callbacks(app, ALL_METRICS=None):
             y=df_sorted["Model"], x=df_sorted["Enerji (Wh)"],
             orientation="h", marker_color=bar_colors,
             text=[f"{v:.4f}" for v in df_sorted["Enerji (Wh)"]],
-            textposition="outside", textfont=dict(size=9, color="#94A3B8"),
+            textposition="outside", textfont=dict(size=9, color="#475569"),
         ))
         fig_energy.update_layout(
             **PLT_LAYOUT, height=1200,
@@ -240,7 +240,7 @@ def register_power_callbacks(app, ALL_METRICS=None):
                     fig_scatter.add_trace(go.Scatter(
                         x=sub["Enerji (Wh)"], y=sub["F1"],
                         mode="markers+text", text=sub["Model"],
-                        textposition="top center", textfont=dict(size=9, color="#94A3B8"),
+                        textposition="top center", textfont=dict(size=9, color="#475569"),
                         marker=dict(size=10, color=color, opacity=0.85),
                         name=cat,
                     ))
@@ -280,7 +280,7 @@ def register_power_callbacks(app, ALL_METRICS=None):
             orientation="h",
             marker_color=["#06B6D4" if v < 200 else "#F59E0B" if v < 500 else "#EF4444" for v in df_mem["Bellek (MB)"]],
             text=[f"{v} MB" for v in df_mem["Bellek (MB)"]],
-            textposition="outside", textfont=dict(size=9, color="#94A3B8"),
+            textposition="outside", textfont=dict(size=9, color="#475569"),
         ))
         fig_mem.update_layout(**PLT_LAYOUT, height=1200, title="Bellek Kullanimi (MB)",
                               xaxis_title="Bellek (MB)")
@@ -299,7 +299,7 @@ def register_power_callbacks(app, ALL_METRICS=None):
         legend_items = [
             html.Span([html.Span(style={"display": "inline-block", "width": "12px", "height": "12px",
                                          "borderRadius": "2px", "backgroundColor": c, "marginRight": "6px"}),
-                        t], style={"marginRight": "18px", "fontSize": "12px", "color": "#CBD5E1"})
+                        t], style={"marginRight": "18px", "fontSize": "12px", "color": "#334155"})
             for t, c in COMPLEXITY_COLORS.items()
         ]
         legend_bar = html.Div(style={"display": "flex", "alignItems": "center", "padding": "10px 0",
@@ -341,20 +341,20 @@ def register_power_callbacks(app, ALL_METRICS=None):
                 page_size=20,
                 sort_action="native",
                 filter_action="native",
-                style_header={"backgroundColor": "#0D1117", "color": "#64748B",
-                               "fontWeight": "600", "border": "1px solid #1E2A3A",
+                style_header={"backgroundColor": "#EEF2F8", "color": "#64748B",
+                               "fontWeight": "600", "border": "1px solid #E2E8F0",
                                "fontSize": "11px", "textTransform": "uppercase"},
-                style_cell={"backgroundColor": "#151C28", "color": "#F1F5F9",
-                             "border": "1px solid #1E2A3A", "fontFamily": "IBM Plex Sans",
+                style_cell={"backgroundColor": "#FFFFFF", "color": "#1E293B",
+                             "border": "1px solid #E2E8F0", "fontFamily": "IBM Plex Sans",
                              "fontSize": "12px", "padding": "8px"},
                 style_data_conditional=[
-                    {"if": {"row_index": "odd"}, "backgroundColor": "#111827"},
+                    {"if": {"row_index": "odd"}, "backgroundColor": "#F4F6FB"},
                     {"if": {"filter_query": '{Karmasiklik} = "Cok Yuksek"', "column_id": "Karmasiklik"},
-                     "color": "#FCA5A5", "fontWeight": "600"},
+                     "color": "#DC2626", "fontWeight": "600"},
                     {"if": {"filter_query": '{Karmasiklik} = "Yuksek"', "column_id": "Karmasiklik"},
-                     "color": "#FCD34D"},
+                     "color": "#D97706"},
                     {"if": {"filter_query": '{Karmasiklik} = "Dusuk"', "column_id": "Karmasiklik"},
-                     "color": "#86EFAC"},
+                     "color": "#16A34A"},
                 ],
             ),
         ])
