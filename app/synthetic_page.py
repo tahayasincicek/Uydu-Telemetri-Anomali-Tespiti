@@ -28,6 +28,52 @@ CHANNEL_INFO = {
     "CADC0894": {"type": "Fotodiyot", "axis": "4", "color": "#F778A1"},
 }
 
+def _build_ks_panel(synth_feats):
+    """Üretilen sentetik özellikleri gerçek dataset.csv ile karşılaştırır (özellik
+    başına Kolmogorov-Smirnov mesafesi). Gerçek veri yoksa None döner."""
+    real_path = os.path.join(ROOT, "data", "raw", "dataset.csv")
+    if not os.path.exists(real_path):
+        return None
+    try:
+        real = pd.read_csv(real_path)
+        from scipy.stats import ks_2samp
+    except Exception:
+        return None
+    meta = {"segment", "channel", "anomaly", "train", "sampling"}
+    rows = []
+    for f in synth_feats.columns:
+        if f in meta or f not in real.columns or not pd.api.types.is_numeric_dtype(synth_feats[f]):
+            continue
+        s = synth_feats[f].dropna().values
+        r = real[f].dropna().values
+        if len(s) < 5 or len(r) < 5:
+            continue
+        rows.append((f, float(ks_2samp(s, r).statistic)))
+    if not rows:
+        return None
+    rows.sort(key=lambda x: x[1])
+    feats = [f for f, _ in rows]
+    ks = [d for _, d in rows]
+    mean_ks = sum(ks) / len(ks)
+    clr = ["#EF4444" if d >= 0.45 else "#F59E0B" if d >= 0.30 else "#10B981" for d in ks]
+    fig = go.Figure(go.Bar(y=feats, x=ks, orientation="h", marker_color=clr,
+                           text=[f"{d:.2f}" for d in ks], textposition="outside",
+                           textfont=dict(size=9, color="#94A3B8")))
+    fig.update_layout(**PLT_LAYOUT, height=460,
+                      title=f"Dogrulama: Sentetik vs Gercek KS (ortalama {mean_ks:.2f})",
+                      xaxis_title="KS mesafesi (0 = birebir, 1 = tamamen farkli)")
+    return html.Div(className="panel mb-4", children=[
+        html.Div(className="panel-title", children=[
+            _icon("mdi:check-decagram-outline", 16),
+            f" Dogrulama: Gercek Veriyle Dagilim Karsilastirmasi (ort. KS = {mean_ks:.2f})"]),
+        dcc.Graph(figure=fig, config={"displayModeBar": False}),
+        html.Div([f"En iyi uyum: {feats[0]} (KS={ks[0]:.2f})  |  En kotu: {feats[-1]} (KS={ks[-1]:.2f}). ",
+                  "Dusuk KS, sentetik dagilimin gercege yakinligini gosterir; yuksek degerli "
+                  "ozellikler ureteci iyilestirmek icin onceliklidir."],
+                 style={"fontSize": "12px", "color": "#64748B", "marginTop": "8px", "lineHeight": "1.5"}),
+    ])
+
+
 def get_synthetic_layout():
     channel_options = []
     for ch, info in CHANNEL_INFO.items():
@@ -208,6 +254,8 @@ def register_synthetic_callbacks(app):
         for c in table_data.select_dtypes(include=[np.floating]).columns:
             table_data[c] = table_data[c].round(6)
 
+        ks_block = _build_ks_panel(features_df) or html.Div()
+
         output = html.Div([
             dbc.Row([
                 dbc.Col(_metric_card("mdi:database-outline", len(features_df), "Segment", "blue",
@@ -232,6 +280,8 @@ def register_synthetic_callbacks(app):
                     dcc.Graph(figure=fig_box, config={"displayModeBar": False})
                 ]), md=7),
             ], className="mb-4 g-3"),
+
+            ks_block,
 
             html.Div(className="panel mb-4", children=[
                 html.Div(className="panel-title", children=[

@@ -442,32 +442,81 @@ def _performance_recommendation():
     ])
 
 
-_ROC_FIG_CACHE = None
-def build_roc_figure():
-    """ROC eğrilerini (tüm modeller için Ψ üzerinde predict) bir kez hesaplar ve
-    önbelleğe alır. Bu işlem ~3-12 sn sürdüğü için her sayfa ziyaretinde tekrar
-    edilmez; ilk hesaplama sırasında sayfada bir yükleme göstergesi (spinner) çıkar."""
-    global _ROC_FIG_CACHE
-    if _ROC_FIG_CACHE is not None:
-        return _ROC_FIG_CACHE
-    from sklearn.metrics import roc_curve, auc
-    fig = go.Figure()
-    if TEST_DATA:
-        X_t, y_t = TEST_DATA["X_test"], TEST_DATA["y_test"]
-        clrs = ["#3B82F6","#10B981","#F59E0B","#EF4444","#8B5CF6","#06B6D4","#F778A1","#A78BFA","#FB923C"]
-        for i, (name, model) in enumerate(MODELS.items()):
-            try:
-                _, prob = predict(model, name, X_t, THRESHOLDS, 1.0)
-                fpr, tpr, _ = roc_curve(y_t, prob)
-                a = auc(fpr, tpr)
-                fig.add_trace(go.Scatter(x=fpr, y=tpr, mode="lines", name=f"{name} ({a:.3f})",
-                                         line=dict(color=clrs[i % len(clrs)], width=2)))
-            except Exception as e:
-                print(f"ROC çizilemedi ({name}):", e)
-    fig.add_trace(go.Scatter(x=[0,1], y=[0,1], mode="lines", line=dict(dash="dash", color="#4A5568"), showlegend=False))
-    fig.update_layout(**PLT_LAYOUT, height=400, title="ROC Eğrileri", xaxis_title="FPR", yaxis_title="TPR")
-    _ROC_FIG_CACHE = fig
-    return fig
+_PERF_FIGS_CACHE = None
+def build_performance_figures(top_n=10):
+    """En iyi N modelin (AUC-PR sıralı) ROC + PR eğrilerini ve ilk 3 modelin
+    confusion matrislerini Ψ üzerinde bir kez hesaplar, önbelleğe alır. Ağır işlem
+    (~3-12 sn) olduğundan her ziyarette tekrar edilmez; ilk seferde spinner çıkar.
+    PR eğrisi öne çıkar çünkü birincil ölçüt AUC-PR'dır."""
+    global _PERF_FIGS_CACHE
+    if _PERF_FIGS_CACHE is not None:
+        return _PERF_FIGS_CACHE
+    if not TEST_DATA:
+        return html.Div("Test verisi bulunamadı.", className="info-box")
+    from sklearn.metrics import (roc_curve, auc, precision_recall_curve,
+                                 average_precision_score, confusion_matrix)
+    import numpy as _np
+    X_t, y_t = TEST_DATA["X_test"], _np.asarray(TEST_DATA["y_test"])
+    ranked = [n for n in sorted(ALL_METRICS, key=lambda n: ALL_METRICS[n].get(PRIMARY_METRIC, 0),
+                                reverse=True) if n in MODELS]
+    top = ranked[:top_n]
+    clrs = ["#3B82F6","#10B981","#F59E0B","#EF4444","#8B5CF6","#06B6D4","#F778A1","#A78BFA","#FB923C","#22D3EE"]
+    preds = {}
+    for name in top:
+        try:
+            pr, sc = predict(MODELS[name], name, X_t, THRESHOLDS, 1.0)
+            preds[name] = (_np.asarray(pr), _np.asarray(sc))
+        except Exception as e:
+            print(f"Performans tahmini başarısız ({name}):", e)
+
+    fig_roc = go.Figure()
+    fig_roc.add_trace(go.Scatter(x=[0,1], y=[0,1], mode="lines",
+                                 line=dict(dash="dash", color="#4A5568"), showlegend=False))
+    fig_pr = go.Figure()
+    base = float(y_t.mean()) if len(y_t) else 0
+    fig_pr.add_hline(y=base, line_dash="dash", line_color="#4A5568",
+                     annotation_text=f"taban {base:.2f}", annotation_font_color="#64748B")
+    for i, name in enumerate(top):
+        if name not in preds:
+            continue
+        _, sc = preds[name]
+        c = clrs[i % len(clrs)]
+        fpr, tpr, _ = roc_curve(y_t, sc); a = auc(fpr, tpr)
+        fig_roc.add_trace(go.Scatter(x=fpr, y=tpr, mode="lines", name=f"{name} ({a:.3f})",
+                                     line=dict(color=c, width=2)))
+        prec, rec, _ = precision_recall_curve(y_t, sc); ap = average_precision_score(y_t, sc)
+        fig_pr.add_trace(go.Scatter(x=rec, y=prec, mode="lines", name=f"{name} ({ap:.3f})",
+                                    line=dict(color=c, width=2)))
+    fig_roc.update_layout(**PLT_LAYOUT, height=420, title=f"ROC Eğrileri (en iyi {len(top)})",
+                          xaxis_title="FPR", yaxis_title="TPR")
+    fig_pr.update_layout(**PLT_LAYOUT, height=420, title=f"PR Eğrileri (en iyi {len(top)}) — birincil ölçüt",
+                         xaxis_title="Recall", yaxis_title="Precision")
+
+    conf_cols = []
+    for name in top[:3]:
+        if name not in preds:
+            continue
+        pr, _ = preds[name]
+        cm = confusion_matrix(y_t, pr)
+        labels = ["Normal", "Anomali"]
+        fig_cm = go.Figure(go.Heatmap(
+            z=cm, x=[f"Tahmin {l}" for l in labels], y=[f"Gerçek {l}" for l in labels],
+            text=cm, texttemplate="%{text}", textfont=dict(size=16),
+            colorscale="Blues", showscale=False))
+        fig_cm.update_layout(**PLT_LAYOUT, height=300, title=f"{name}")
+        conf_cols.append(dbc.Col(html.Div(className="panel", children=[
+            dcc.Graph(figure=fig_cm, config={"displayModeBar": False})]), md=4))
+
+    component = html.Div([
+        dbc.Row([
+            dbc.Col(html.Div(className="panel", children=[dcc.Graph(figure=fig_pr, config={"displayModeBar": False})]), md=6),
+            dbc.Col(html.Div(className="panel", children=[dcc.Graph(figure=fig_roc, config={"displayModeBar": False})]), md=6),
+        ], className="mb-4 g-3"),
+        html.Div(className="panel-title", children=[icon("mdi:grid", 16), "Confusion Matrisleri (en iyi 3 model)"]),
+        dbc.Row(conf_cols, className="g-3"),
+    ])
+    _PERF_FIGS_CACHE = component
+    return component
 
 
 def page_performance():
@@ -512,19 +561,16 @@ def page_performance():
                 ],
             )
         ]),
-        _performance_recommendation(),
-        html.Br(),
         dbc.Row([
-            dbc.Col(html.Div(className="panel", children=[
-                dcc.Loading(id="loading-roc", type="circle", color="#3B82F6",
-                            children=html.Div(id="performance-roc", children=[
-                                html.Div([icon("mdi:chart-bell-curve-cumulative", 28, "#3B82F6"),
-                                          html.Br(), html.Br(),
-                                          "ROC eğrileri hesaplanıyor (42 model)..."],
-                                         className="info-box", style={"textAlign": "center"})]))
-            ]), md=7),
+            dbc.Col(_performance_recommendation(), md=7),
             dbc.Col(html.Div(className="panel", children=[dcc.Graph(figure=fig_radar, config={"displayModeBar": False})]), md=5),
-        ], className="g-3")
+        ], className="mb-4 g-3"),
+        dcc.Loading(id="loading-roc", type="circle", color="#3B82F6",
+                    children=html.Div(id="performance-roc", children=[
+                        html.Div([icon("mdi:chart-bell-curve-cumulative", 28, "#3B82F6"),
+                                  html.Br(), html.Br(),
+                                  "Performans grafikleri hesaplanıyor (ROC + PR + confusion)..."],
+                                 className="info-box", style={"textAlign": "center"})]))
     ])
 
 
@@ -706,7 +752,7 @@ def load_performance_roc(page_id):
     dcc.Loading sayesinde hesap suresince spinner gosterilir."""
     if page_id != "performance":
         return no_update
-    return dcc.Graph(figure=build_roc_figure(), config={"displayModeBar": False})
+    return build_performance_figures()
 
 @callback(Output("uploaded-data", "data"), Output("upload-preview", "children"),
           Input("file-upload", "contents"), Input("btn-demo", "n_clicks"),

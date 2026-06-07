@@ -5,6 +5,7 @@ Guc Tuketimi Simulasyonu Sayfasi
 egitim suresi, bellek kullanimi ve enerji tuketimini simule eder.
 """
 
+import os
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -13,6 +14,9 @@ from dash import html, dcc, callback, Input, Output, no_update
 import dash_bootstrap_components as dbc
 
 from utils.ui import PLT_LAYOUT, icon as _icon, metric_card as _metric_card
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+POWER_CSV = os.path.join(ROOT, "reports", "power_profiles.csv")
 
 
 POWER_PROFILES = {
@@ -93,11 +97,32 @@ CATEGORY_COLORS = {"Gozetimli": "#3B82F6", "Gozetimsiz": "#8B5CF6"}
 CO2_FACTOR = 400
 
 
+def _active_profiles():
+    """NB11 çıktısı reports/power_profiles.csv varsa onu (tek kaynak) kullanır;
+    yoksa yerleşik POWER_PROFILES tahminlerine düşer. Böylece dashboard ile
+    notebook çıktısı ayrışmaz."""
+    if os.path.exists(POWER_CSV):
+        try:
+            df = pd.read_csv(POWER_CSV)
+            prof = {}
+            for _, r in df.iterrows():
+                prof[str(r["Model"])] = {
+                    "cpu_watts": float(r["CPU (W)"]), "train_sec": float(r["Eğitim (s)"]),
+                    "infer_ms": float(r["Çıkarım (ms)"]), "memory_mb": float(r["Bellek (MB)"]),
+                    "category": r["Kategori"], "complexity": r["Karmaşıklık"]}
+            if prof:
+                return prof, "reports/power_profiles.csv (Notebook 11)"
+        except Exception as e:
+            print("power_profiles.csv okunamadı, yerleşik profillere düşülüyor:", e)
+    return POWER_PROFILES, "yerleşik tahmin profilleri"
+
+
 def _build_df(dataset_size: int = 10000):
-    """Profil verisinden olcekli DataFrame olustur."""
+    """Aktif profil verisinden ölçekli DataFrame oluştur (CSV varsa CSV'den)."""
     scale = dataset_size / 10000
+    profiles, _ = _active_profiles()
     rows = []
-    for name, p in POWER_PROFILES.items():
+    for name, p in profiles.items():
         t = p["train_sec"] * scale
         energy_wh = p["cpu_watts"] * t / 3600
         rows.append({
