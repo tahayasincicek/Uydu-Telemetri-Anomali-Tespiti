@@ -10,27 +10,16 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
 
-import sys, json, time, base64, io, datetime
-import numpy as np
-import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
+import sys
 
-from dash import Dash, html, dcc, dash_table, callback, Input, Output, State, no_update, ctx
+from dash import Dash, html, dcc, callback, Input, Output, ctx
 import dash_bootstrap_components as dbc
-from dash_iconify import DashIconify
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.dirname(__file__))
-from utils.feature_extractor import extract_features_from_raw
-from utils.ui import PLT_LAYOUT, icon, metric_card
-from core.constants import (DEMO_PATH, LIVE_DATA_PATH, SHAP_PKL, BENCHMARK_METRICS,
-                            PRIMARY_METRIC, DROP_COLS, SUP_MODEL_NAMES, UNSUP_MODEL_NAMES,
-                            ANALYSIS_PRESETS)
-from core.state import (MODELS, THRESHOLDS, SCALER, TEST_DATA, ALL_METRICS, FEATURE_COLS,
-                        LIVE_DATA, SHAP_DATA, get_tree_explainer, best_model, predict)
+from utils.ui import icon
+from core.state import ALL_METRICS
 from layout.sidebar import build_sidebar, hidden_refs
 
 app = Dash(__name__, suppress_callback_exceptions=True,
@@ -76,8 +65,6 @@ app.layout = html.Div(id="app-root", children=[
     ]),
 ])
 
-_PERF_FIGS_CACHE = None
-
 from ablation_page import get_ablation_layout, register_ablation_callbacks
 from power_page import get_power_layout, register_power_callbacks
 from synthetic_page import get_synthetic_layout, register_synthetic_callbacks
@@ -111,11 +98,6 @@ def render_page(page_id):
     if page_id == "detail":
         return html.Div(), {"display": "none"}, {"display": "none"}, {"display": "block"}
     return PAGES.get(page_id, dashboard.page_dashboard)(), {"display": "block"}, {"display": "none"}, {"display": "none"}
-
-from reportlab.lib.pagesizes import A4
-from reportlab.pdfgen import canvas
-from reportlab.lib.utils import ImageReader
-from reportlab.lib.colors import HexColor
 
 register_ablation_callbacks(app)
 register_power_callbacks(app, ALL_METRICS)

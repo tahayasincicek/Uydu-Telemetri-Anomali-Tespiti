@@ -22,6 +22,9 @@ from core.constants import (DEMO_PATH, LIVE_DATA_PATH, SHAP_PKL, BENCHMARK_METRI
 from core.state import (MODELS, THRESHOLDS, SCALER, TEST_DATA, ALL_METRICS, FEATURE_COLS,
                         LIVE_DATA, SHAP_DATA, get_tree_explainer, best_model)
 
+# Model performans figürleri (ROC top-10 + PR + confusion) tek sefer hesaplanıp önbelleğe alınır.
+_PERF_FIGS_CACHE = None
+
 
 def _performance_recommendation():
     """ALL_METRICS'ten veri-güdümlü öneri kutusu üretir (AUC_PR birincil ölçüt)."""
