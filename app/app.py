@@ -24,101 +24,13 @@ from dash_iconify import DashIconify
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.dirname(__file__))
-from utils.model_loader import load_all, predict, load_metrics
 from utils.feature_extractor import extract_features_from_raw
 from utils.ui import PLT_LAYOUT, icon, metric_card
-import joblib
-
-MODELS, THRESHOLDS, SCALER, TEST_DATA = load_all()
-ALL_METRICS = load_metrics()
-DEMO_PATH = os.path.join(ROOT, "data", "features", "segment_features.parquet")
-
-LIVE_DATA_PATH = os.path.join(ROOT, "data", "raw", "segments.csv")
-try:
-    LIVE_DATA = pd.read_csv(LIVE_DATA_PATH)
-except Exception:
-    LIVE_DATA = pd.DataFrame()
-
-
-SHAP_PKL = os.path.join(ROOT, "models", "shap_values.pkl")
-try:
-    if os.path.exists(SHAP_PKL):
-        SHAP_DATA = joblib.load(SHAP_PKL)
-    else:
-        SHAP_DATA = None
-except Exception:
-    SHAP_DATA = None
-
-FEATURE_NAMES_TR = {
-    'sampling': 'Ornekleme Frekansi',
-    'duration': 'Segment Suresi',
-    'len': 'Segment Uzunlugu',
-    'mean': 'Ortalama Deger',
-    'var': 'Varyans',
-    'std': 'Standart Sapma',
-    'kurtosis': 'Basiklik (Kurtosis)',
-    'skew': 'Carpiklik (Skewness)',
-    'n_peaks': 'Tepe Sayisi',
-    'smooth10_n_peaks': 'Yumusatilmis Tepe (w=10)',
-    'smooth20_n_peaks': 'Yumusatilmis Tepe (w=20)',
-    'diff_peaks': 'Fark Tepe Sayisi',
-    'diff2_peaks': '2. Fark Tepe Sayisi',
-    'diff_var': 'Fark Varyansi',
-    'diff2_var': '2. Fark Varyansi',
-    'gaps_squared': 'Bosluk Karesi',
-    'len_weighted': 'Agirlikli Uzunluk',
-    'var_div_duration': 'Varyans/Sure',
-    'var_div_len': 'Varyans/Uzunluk',
-}
-
-DROP_COLS = ['segment', 'anomaly', 'train', 'channel']
-FEATURE_COLS = TEST_DATA.get("feature_cols", None) if TEST_DATA else None
-
-BENCHMARK_METRICS = ["Accuracy", "Precision", "Recall", "F1", "MCC", "AUC_ROC", "AUC_PR"]
-PRIMARY_METRIC = "AUC_PR"
-
-SUP_MODEL_NAMES = ["RandomForest","XGBoost","SVM","MLP","LightGBM","CatBoost","Stacking Ensemble",
-                   "ExtraTrees","GradientBoosting","HistGradientBoosting","AdaBoost","KNN",
-                   "LogisticRegression","DecisionTree","NaiveBayes","Voting Ensemble",
-                   "LDA","QDA","Bagging","Ridge","SGD","LSVC","XGBOD",
-                   "LSTM","BiLSTM","GRU","BiGRU","CNN1D","CNN_LSTM","CNN_BiLSTM","CNN_GRU",
-                   "Transformer","TCN","Attention_BiLSTM","FCN","ResNet1D","InceptionTime","LSTM_FCN"]
-UNSUP_MODEL_NAMES = ["IsolationForest","OneClassSVM","KMeans","LOF","Autoencoder",
-                     "GMM","EllipticEnvelope","PCA","DBSCAN","VAE",
-                     "ECOD","COPOD","HBOS","CBLOF",
-                     "ABOD","COF","SOD","SOS","LODA","INNE","LMDD",
-                     "SO_GAAL","MO_GAAL","DeepSVDD","LUNAR","DIF","AnoGAN","ALAD"]
-
-# ── Operatör tespit profilleri (preset) — gözetimli, güvenilir modeller ──
-ANALYSIS_PRESETS = {
-    "hizli": {"title": "Hızlı Tarama", "icon": "mdi:flash",
-              "desc": "Tek hafif model ile düşük maliyetli ön tarama.",
-              "sup": ["HistGradientBoosting"], "unsup": [], "thr": 1.0},
-    "dogru": {"title": "Yüksek Doğruluk", "icon": "mdi:bullseye-arrow",
-              "desc": "En iyi modellerin topluluğu — en güvenilir tespit.",
-              "sup": ["ExtraTrees", "Voting Ensemble", "MLP"], "unsup": [], "thr": 1.0},
-    "dusuk_alarm": {"title": "Düşük Yanlış Alarm", "icon": "mdi:shield-check-outline",
-                    "desc": "Yüksek kesinlikli modeller + sıkı eşik; yanlış alarmı en aza indirir.",
-                    "sup": ["Stacking Ensemble", "Voting Ensemble"], "unsup": [], "thr": 1.15},
-}
-
-_SHAP_EXPLAINERS = {}
-def get_tree_explainer(model):
-    """TreeExplainer'ı model başına bir kez kurup önbelleğe alır (her tıklamada
-    yeniden kurmamak için — detay sayfasında belirgin hızlanma sağlar)."""
-    key = id(model)
-    if key not in _SHAP_EXPLAINERS:
-        import shap
-        _SHAP_EXPLAINERS[key] = shap.TreeExplainer(model)
-    return _SHAP_EXPLAINERS[key]
-
-def best_model(metric=PRIMARY_METRIC, among=None):
-    """ALL_METRICS içinde verilen metriğe göre en iyi modeli (ad, metrik_dict) döndürür."""
-    pool = {n: v for n, v in ALL_METRICS.items() if among is None or n in among}
-    if not pool:
-        return None, {}
-    name = max(pool, key=lambda n: pool[n].get(metric, 0))
-    return name, pool[name]
+from core.constants import (DEMO_PATH, LIVE_DATA_PATH, SHAP_PKL, BENCHMARK_METRICS,
+                            PRIMARY_METRIC, DROP_COLS, SUP_MODEL_NAMES, UNSUP_MODEL_NAMES,
+                            ANALYSIS_PRESETS)
+from core.state import (MODELS, THRESHOLDS, SCALER, TEST_DATA, ALL_METRICS, FEATURE_COLS,
+                        LIVE_DATA, SHAP_DATA, get_tree_explainer, best_model, predict)
 
 def nav_item(ic, text, page_id):
     return html.Button(id={"type": "nav", "page": page_id}, n_clicks=0,
@@ -313,7 +225,6 @@ def page_dashboard():
         ])
     ])
 
-
 def page_upload():
     return html.Div([
         html.Div(className="page-header", children=[
@@ -337,7 +248,6 @@ def page_upload():
             children=[html.Div(id="upload-preview")]
         )
     ])
-
 
 def page_analysis():
     sup = [n for n in SUP_MODEL_NAMES if n in MODELS]
@@ -410,7 +320,6 @@ def page_analysis():
         ], className="g-3")
     ])
 
-
 def page_results():
     return html.Div([
         html.Div(className="page-header", children=[
@@ -418,7 +327,6 @@ def page_results():
             html.Div("Anomali tespit sonuçları ve görselleştirme", className="page-subtitle")]),
         html.Div(id="results-content")
     ])
-
 
 def _performance_recommendation():
     """ALL_METRICS'ten veri-güdümlü öneri kutusu üretir (AUC_PR birincil ölçüt)."""
@@ -438,7 +346,6 @@ def _performance_recommendation():
         html.Div(className="rec-title", children=[icon("mdi:trophy-outline", 18, "#3B82F6"), f"Önerimiz: {best_name}"]),
         html.Div(className="rec-body", children=parts),
     ])
-
 
 _PERF_FIGS_CACHE = None
 def build_performance_figures(top_n=10):
@@ -516,7 +423,6 @@ def build_performance_figures(top_n=10):
     _PERF_FIGS_CACHE = component
     return component
 
-
 def page_performance():
     if not ALL_METRICS:
         return html.Div("Metrik verisi bulunamadi.")
@@ -571,7 +477,6 @@ def page_performance():
                                  className="info-box", style={"textAlign": "center"})]))
     ])
 
-
 def page_shap():
     if SHAP_DATA is None:
         return html.Div([
@@ -611,7 +516,6 @@ def page_shap():
         html.Div(id="shap-tab-content", style={"marginTop": "20px"}),
         dcc.Store(id="shap-anomaly-options", data=[o["value"] for o in anomaly_options]),
     ])
-
 
 def page_live():
     channels = LIVE_DATA['channel'].unique().tolist() if not LIVE_DATA.empty and 'channel' in LIVE_DATA.columns else []
@@ -698,7 +602,6 @@ def page_live():
             ])
         ])
     ])
-
 
 def page_detail():
     return html.Div()
@@ -1161,7 +1064,6 @@ def render_shap_tab(tab):
 
     return html.Div()
 
-
 @callback(Output("shap-importance-chart", "children"),
           Output("shap-importance-text", "children"),
           Input("shap-model-select", "value"),
@@ -1253,7 +1155,6 @@ def update_shap_importance(model):
     ])
 
     return chart, text_block
-
 
 @callback(Output("shap-waterfall-chart", "children"),
           Output("shap-waterfall-text", "children"),
@@ -1375,7 +1276,6 @@ def update_mini_waterfall(selected_rows, table_data):
         html.Div("Kirmizi: Anomaliye iter | Yesil: Normale iter",
                  style={"color": "#64748B", "fontSize": "11px", "textAlign": "center", "marginTop": "8px"})
     ])
-
 
 @callback(
     Output("live-interval", "disabled"),
@@ -1548,7 +1448,6 @@ def update_live_sim(n_int, state, channel, model_name, speed, current_alarms):
         f"OKUNAN: {end_idx}", f"%{prog:.1f}", f"ANOMALİ: {n_anom}", f"SON ALARM: {last_anom}", f"MODEL: {model_name}",
         f"{n_anom} Alarm"
     )
-
 
 @callback(Output("detail-page-content", "children"),
           Input("selected-anomaly", "data"),
