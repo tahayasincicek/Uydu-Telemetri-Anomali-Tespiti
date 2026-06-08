@@ -13,7 +13,7 @@ sayfaları (09–11)** ve **araştırma katkıları (12–14)**.
 
 ### 01 — Veri İnceleme (EDA)
 ESA OPS-SAT telemetrisinin keşifsel analizi: kanal istatistikleri, eksik veri, dağılımlar,
-korelasyon, zaman serisi ve anomali etiketi analizi. **Çıktı:** EDA görselleri + HTML rapor.
+korelasyon, zaman serisi ve anomali etiketi analizi. **Çıktı:** EDA görselleri.
 
 ### 02 — Veri Ön İşleme (Leakage-Free)
 Eksik veri, gürültü, outlier, normalizasyon incelemesi; ardından **kanonik leakage-free akış**:
