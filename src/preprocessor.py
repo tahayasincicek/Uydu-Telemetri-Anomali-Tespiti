@@ -23,7 +23,8 @@ class TelemetriPreprocessor:
     Zaman serisi uydu telemetri verileri için özel ön işleme sınıfı.
 
     Özellikler:
-        - Eksik veri doldurma (Forward fill, Interpolation, KNN)
+        - Eksik veri politikası (varsayılan: 'none' — OPS-SAT metodolojisinde
+          boşluklar doldurulmaz, gaps_squared/len/duration ile korunur)
         - Gürültü temizleme (Savitzky-Golay, Butterworth, Median)
         - Aykırı değer (Outlier) tespiti ve işleme (IQR, Z-score, Modified Z-score)
         - Normalizasyon (RobustScaler, StandardScaler, MinMaxScaler)
@@ -31,7 +32,7 @@ class TelemetriPreprocessor:
     """
 
     def __init__(self,
-                 impute_method: str = "linear",
+                 impute_method: str = "none",
                  filter_method: Optional[str] = "savgol",
                  outlier_method: str = "iqr",
                  scaling_method: str = "robust",
@@ -40,7 +41,11 @@ class TelemetriPreprocessor:
                  outlier_threshold: float = 3.5):
         """
         Args:
-            impute_method (str): Eksik veri yöntemi ('ffill', 'linear', 'spline', 'knn').
+            impute_method (str): Eksik veri politikası. Varsayılan 'none' — OPS-SAT
+                metodolojisinde (Ruszczak et al. 2024) boşluklar DOLDURULMAZ; ham
+                sinyaldeki eksik noktalar gaps_squared/len/duration özellikleriyle
+                korunur ve hatta bir anomali türüdür. Diğer seçenekler (keşif amaçlı):
+                'ffill', 'linear', 'spline', 'knn'.
             filter_method (str): Gürültü filtresi ('savgol', 'butterworth', 'median', None).
             outlier_method (str): Aykırı değer tespit yöntemi ('iqr', 'zscore', 'mod_zscore').
             scaling_method (str): Ölçeklendirme ('robust', 'standard', 'minmax').
@@ -153,14 +158,23 @@ class TelemetriPreprocessor:
         return df
 
     def _impute_missing(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Eksik verileri seçilen yöntemle doldurur."""
+        """Eksik veri politikasını uygular.
+
+        Varsayılan 'none': OPS-SAT metodolojisi gereği boşluklar interpolasyonla
+        DOLDURULMAZ (ham sinyaldeki boşluklar gaps_squared/len/duration ile zaten
+        korunur). Yalnızca özellik matrisindeki dejenere NaN'ler (ör. tek-noktalı
+        segmentte kurtosis) sayısal güvenlik için nötr 0 ile doldurulur; bu bir
+        sinyal-doldurma değildir.
+        """
         missing_count = df[self.numeric_columns].isnull().sum().sum()
         self.metadata["missing_filled"] += int(missing_count)
 
         if missing_count == 0:
             return df
 
-        if self.impute_method == 'ffill':
+        if self.impute_method == 'none':
+            df[self.numeric_columns] = df[self.numeric_columns].fillna(0)
+        elif self.impute_method == 'ffill':
             df[self.numeric_columns] = df[self.numeric_columns].ffill().bfill()
         elif self.impute_method == 'linear':
             df[self.numeric_columns] = df[self.numeric_columns].interpolate(method='linear').bfill()

@@ -60,8 +60,9 @@ ham telemetri ──► extract_esa_features ──► 18 ESA özelliği ──�
 (segments.csv)     (segment başına özet)    (dataset.csv)        (train_all_models.py)
 ```
 
-**Ön işleme (Notebook 02):** resmi split → preprocessor (impute/outlier-clip/scale, yalnız
-T'de fit) → SMOTE (yalnız T) → kaydet. Ayrıntı: [`metodoloji.md`](metodoloji.md#2-veri-sızıntısı-data-leakage-önleme).
+**Ön işleme (Notebook 02):** resmi split → preprocessor (outlier-clip/scale; **eksik veri
+doldurulmaz** — OPS-SAT'ta boşluklar `gaps_squared` ile korunur; yalnız T'de fit) → SMOTE
+(yalnız T) → kaydet. Ayrıntı: [`metodoloji.md`](metodoloji.md#2-veri-sızıntısı-data-leakage-önleme).
 
 ---
 

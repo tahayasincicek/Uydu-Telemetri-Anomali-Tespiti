@@ -35,8 +35,9 @@ yükleme, özet istatistik ve şema doğrulama.
 
 ### `preprocessor.py` — `TelemetriPreprocessor`
 `fit(data, numeric_columns)`, `transform(data)`, `fit_transform(...)`, `save_scaler/load_scaler`,
-`generate_report()`. Eksik-veri impute, outlier-clip, ölçekleme. **Önemli:** `fit` yalnız
-eğitim katmanı (T) üzerinde çağrılır — leakage önleme.
+`generate_report()`. Eksik veri politikası (varsayılan `'none'` — OPS-SAT'ta boşluklar
+doldurulmaz, `gaps_squared`/`len`/`duration` ile korunur), outlier-clip, ölçekleme.
+**Önemli:** `fit` yalnız eğitim katmanı (T) üzerinde çağrılır — leakage önleme.
 
 ### `feature_engineer.py`
 İki bölüm:
