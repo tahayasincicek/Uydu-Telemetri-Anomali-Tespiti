@@ -9,7 +9,7 @@ import dash_bootstrap_components as dbc
 
 from utils.ui import PLT_LAYOUT, icon, metric_card
 
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 ABLATION_PKL = os.path.join(ROOT, "models", "ablation_results.pkl")
 
 def get_ablation_layout():

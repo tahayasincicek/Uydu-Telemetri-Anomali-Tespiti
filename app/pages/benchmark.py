@@ -13,7 +13,7 @@ import dash_bootstrap_components as dbc
 
 from utils.ui import PLT_LAYOUT, icon as _icon, metric_card as _metric_card
 
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 BENCH_CSV = os.path.join(ROOT, "reports", "metrics", "benchmark_comparison.csv")
 
 CAT_COLOR = {"Gozetimli": "#3B82F6", "Gozetimsiz": "#8B5CF6"}

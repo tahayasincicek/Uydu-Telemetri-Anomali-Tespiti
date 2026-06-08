@@ -14,7 +14,7 @@ import dash_bootstrap_components as dbc
 
 from utils.ui import icon as _icon, metric_card as _metric_card
 
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 MDIR = os.path.join(ROOT, "reports", "metrics")
 BENCH_CSV = os.path.join(MDIR, "benchmark_comparison.csv")
 KS_CSV = os.path.join(MDIR, "synthetic_real_ks_distance.csv")

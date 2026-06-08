@@ -65,13 +65,13 @@ app.layout = html.Div(id="app-root", children=[
     ]),
 ])
 
-from ablation_page import get_ablation_layout, register_ablation_callbacks
-from power_page import get_power_layout, register_power_callbacks
-from synthetic_page import get_synthetic_layout, register_synthetic_callbacks
-from esa_pipeline_page import get_esa_pipeline_layout, register_esa_pipeline_callbacks
-from benchmark_page import get_benchmark_layout
-from augmentation_page import get_augmentation_layout
-from summary_page import get_summary_layout
+from pages.ablation import get_ablation_layout, register_ablation_callbacks
+from pages.power import get_power_layout, register_power_callbacks
+from pages.synthetic import get_synthetic_layout, register_synthetic_callbacks
+from pages.esa_pipeline import get_esa_pipeline_layout, register_esa_pipeline_callbacks
+from pages.benchmark import get_benchmark_layout
+from pages.augmentation import get_augmentation_layout
+from pages.summary import get_summary_layout
 from pages import dashboard, upload, analysis, results, performance, shap, live, detail
 
 PAGES = {"dashboard": dashboard.page_dashboard, "upload": upload.page_upload, "analysis": analysis.page_analysis,

@@ -15,7 +15,7 @@ import dash_bootstrap_components as dbc
 
 from utils.ui import PLT_LAYOUT, icon as _icon, metric_card as _metric_card
 
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 POWER_CSV = os.path.join(ROOT, "reports", "power_profiles.csv")
 
 
