@@ -31,66 +31,7 @@ from core.constants import (DEMO_PATH, LIVE_DATA_PATH, SHAP_PKL, BENCHMARK_METRI
                             ANALYSIS_PRESETS)
 from core.state import (MODELS, THRESHOLDS, SCALER, TEST_DATA, ALL_METRICS, FEATURE_COLS,
                         LIVE_DATA, SHAP_DATA, get_tree_explainer, best_model, predict)
-
-def nav_item(ic, text, page_id):
-    return html.Button(id={"type": "nav", "page": page_id}, n_clicks=0,
-                       className="nav-item", children=[icon(ic, 18), html.Span(text)])
-
-def nav_subgroup(text):
-    return html.Div(text, style={"fontSize": "9px", "letterSpacing": "1.5px", "color": "#94A3B8",
-                                 "fontWeight": "600", "padding": "10px 16px 2px"})
-
-# Üst bar kaldırıldı (sade tasarım). Canlı izleme callback'i global-live-dot'a
-# yazdığı için onu gizli bir öğe olarak tutuyoruz (callback sözleşmesi bozulmasın).
-hidden_refs = html.Div(style={"display": "none"}, children=[
-    html.Span(id="global-live-dot"),
-])
-
-sidebar = html.Div(className="sidebar", children=[
-    html.Div(className="sidebar-logo", children=[
-        html.Div([icon("mdi:satellite-variant", 26, "#06B6D4")], className="logo-icon"),
-        html.Div([html.Div("Uydu Telemetri", className="logo-text"),
-                  html.Div("Anomali Tespit Sistemi", className="logo-sub")])
-    ]),
-    html.Div(className="sidebar-nav", children=[
-        html.Div("OPERASYON", className="nav-section-label",
-                 style={"fontSize": "10px", "letterSpacing": "2px", "color": "#94A3B8",
-                        "fontWeight": "600", "padding": "8px 16px 4px"}),
-        nav_item("mdi:view-dashboard", "Operasyon Paneli", "dashboard"),
-        nav_item("mdi:satellite-variant", "Canlı İzleme", "live"),
-        nav_item("mdi:upload", "Veri Yükle", "upload"),
-        nav_item("mdi:chart-timeline-variant", "Analiz", "analysis"),
-        nav_item("mdi:chart-scatter-plot", "Sonuçlar", "results"),
-        nav_item("mdi:magnify-expand", "Anomali Detay", "detail"),
-        html.Details(open=False, className="nav-group", children=[
-            html.Summary("GELİŞTİRİCİ / ARAŞTIRMA", className="nav-group-header",
-                         style={"fontSize": "10px", "letterSpacing": "2px", "color": "#94A3B8",
-                                "fontWeight": "600", "padding": "12px 16px 4px", "cursor": "pointer",
-                                "userSelect": "none", "outline": "none"}),
-            nav_subgroup("MODELLER"),
-            nav_item("mdi:gauge", "Model Performans", "performance"),
-            nav_item("mdi:brain", "SHAP Analiz", "shap"),
-            nav_item("mdi:test-tube", "Ablasyon Analizi", "ablation"),
-            nav_subgroup("ARAŞTIRMA BULGULARI"),
-            nav_item("mdi:book-open-variant", "Araştırma Özeti", "summary"),
-            nav_item("mdi:scale-balance", "Benchmark", "benchmark"),
-            nav_item("mdi:chart-box-outline", "Augmentasyon", "augmentation"),
-            nav_subgroup("VERİ & PIPELINE"),
-            nav_item("mdi:flask-outline", "Sentetik Lab", "synthetic"),
-            nav_item("mdi:rocket-launch-outline", "ESA Pipeline", "esa_pipeline"),
-            nav_item("mdi:lightning-bolt", "Güç Tüketimi", "power"),
-        ]),
-    ]),
-    html.Div(className="sidebar-footer", children=[
-        html.Div(className="status-indicator", children=[
-            html.Span(className="status-dot"), html.Span(f"Sistem Aktif  -  {len(MODELS)} model")]),
-        html.Div(className="sidebar-version", children=[
-            icon("mdi:cpu-64-bit", 14), html.Span("v1.0.0")]),
-        html.Div(className="sidebar-version", children=[
-            icon("mdi:clock-outline", 14), html.Span(time.strftime("%d.%m.%Y %H:%M"))]),
-        html.Div(f"VER 2.0.0 / MDL {len(MODELS)} / ENV PROD", className="sidebar-sys-info"),
-    ])
-])
+from layout.sidebar import build_sidebar, hidden_refs
 
 app = Dash(__name__, suppress_callback_exceptions=True,
            external_stylesheets=[dbc.themes.BOOTSTRAP],
@@ -107,7 +48,7 @@ app.layout = html.Div(id="app-root", children=[
     dcc.Interval(id="live-interval", interval=500, n_intervals=0, disabled=True),
     dcc.Download(id="download-csv"),
     hidden_refs,
-    sidebar,
+    build_sidebar(),
     html.Div(id="page-content", className="main-content"),
     html.Div(id="results-overlay", className="main-content",
              style={"display": "none"}, children=[
