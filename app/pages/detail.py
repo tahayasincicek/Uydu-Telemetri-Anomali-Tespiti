@@ -22,11 +22,6 @@ from core.constants import (DEMO_PATH, LIVE_DATA_PATH, SHAP_PKL, BENCHMARK_METRI
 from core.state import (MODELS, THRESHOLDS, SCALER, TEST_DATA, ALL_METRICS, FEATURE_COLS,
                         LIVE_DATA, SHAP_DATA, get_tree_explainer, best_model)
 
-# PDF rapor uretimi (Anomali Detay sayfasi)
-from reportlab.lib.pagesizes import A4
-from reportlab.pdfgen import canvas
-from reportlab.lib.colors import HexColor
-
 
 def page_detail():
     return html.Div()
@@ -206,8 +201,7 @@ def render_anomaly_detail(selected, current_page, all_anomalies, data_json):
         ]),
         html.Div(f"{row_no} / {len(all_anomalies) if all_anomalies else '?'} Anomali", className="nav-counter"),
         html.Div(className="action-buttons", children=[
-            html.Button("Sonuçlara Dön", id="btn-back-results", className="btn-nav"),
-            html.Button([icon("mdi:file-pdf-box"), " PDF Rapor"], id="btn-pdf-report", className="btn-action-primary")
+            html.Button("Sonuçlara Dön", id="btn-back-results", className="btn-nav")
         ])
     ])
     
@@ -243,49 +237,3 @@ def navigate_anomaly(n_prev, n_next, current, anomaly_list):
 def back_to_results(n):
     if n: return "results"
     return no_update
-
-
-@callback(Output("download-pdf-report", "data"),
-          Input("btn-pdf-report", "n_clicks"),
-          State("selected-anomaly", "data"),
-          prevent_initial_call=True)
-def generate_pdf_report(n, selected):
-    if not n or not selected: return no_update
-    
-    seg = selected.get("Segment", 0)
-    ch = selected.get("Kanal", "N/A")
-    score = selected.get("Skor", 0)
-    sev = selected.get("Şiddet", "Bilinmiyor")
-    
-    def create_pdf(file_path):
-        c = canvas.Canvas(file_path, pagesize=A4)
-        width, height = A4
-        
-        c.setFillColor(HexColor("#F4F6FB"))
-        c.rect(0, height-80, width, 80, stroke=0, fill=1)
-        
-        c.setFillColor(HexColor("#FFFFFF"))
-        c.setFont("Helvetica-Bold", 20)
-        c.drawString(40, height-45, f"Anomali Raporu - Segment #{seg}")
-        
-        c.setFillColor(HexColor("#000000"))
-        c.setFont("Helvetica", 12)
-        
-        y = height - 120
-        c.drawString(40, y, f"Kanal: {ch}")
-        c.drawString(40, y-25, f"Anomali Skoru: {score}")
-        
-        sev_color = "#FF3B5C" if sev == "Kritik" else "#D97706" if sev == "Uyarı" else "#16A34A"
-        c.setFillColor(HexColor(sev_color))
-        c.drawString(40, y-50, f"Siddet: {sev.upper()}")
-        
-        c.setFillColor(HexColor("#000000"))
-        c.drawString(40, y-90, "Bu rapor otomatik olarak olusturulmustur.")
-        
-        c.showPage()
-        c.save()
-        
-    return dcc.send_bytes(
-        lambda f: create_pdf(f), 
-        f"anomali_raporu_seg_{seg}.pdf"
-    )

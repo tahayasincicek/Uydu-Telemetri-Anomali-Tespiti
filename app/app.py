@@ -32,7 +32,6 @@ app.layout = html.Div(id="app-root", children=[
     dcc.Store(id="prediction-results"),
     dcc.Store(id="selected-anomaly"),
     dcc.Store(id="anomaly-list"),
-    dcc.Download(id="download-pdf-report"),
     dcc.Store(id="live-sim-state", data={"index": 0, "is_running": False, "anomalies": []}),
     dcc.Interval(id="live-interval", interval=500, n_intervals=0, disabled=True),
     dcc.Download(id="download-csv"),

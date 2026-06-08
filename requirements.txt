@@ -51,7 +51,6 @@ notebook>=7.0.0
 ipykernel>=6.25.0
 shap
 nbformat
-reportlab
 
 # ========================
 # Test
