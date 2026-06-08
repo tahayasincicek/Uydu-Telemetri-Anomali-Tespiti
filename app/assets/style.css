@@ -297,6 +297,23 @@ body {
   background-color: #F1F5F9 !important;
 }
 
+/* DataTable native filtre satiri - acik temada okunur */
+.dash-table-container .dash-spreadsheet-container .dash-filter input,
+.dash-table-container input.dash-filter--case {
+  color: var(--text-primary) !important;
+  background-color: #FFFFFF !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 0 !important;
+  font-family: 'Inter', sans-serif !important;
+}
+.dash-table-container .dash-filter input::placeholder {
+  color: var(--text-muted) !important;
+  opacity: 1 !important;
+}
+.dash-table-container .dash-filter input::-webkit-input-placeholder {
+  color: var(--text-muted) !important;
+}
+
 /* ── Tabs ── */
 .custom-tabs .tab { background: var(--bg-secondary) !important; border: 1px solid var(--border) !important; color: var(--text-muted) !important; font-weight: 500 !important; padding: 10px 20px !important; font-size: 13px !important; }
 .custom-tabs .tab--selected { background: var(--bg-card) !important; color: var(--accent-blue) !important; border-bottom: 2px solid var(--accent-blue) !important; font-weight: 600 !important; }
