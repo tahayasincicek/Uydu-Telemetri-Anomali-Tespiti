@@ -77,6 +77,7 @@ data/synthetic/
 resources/
 catboost_info/
 reports/*.csv
+reports/*.html
 
 # ========================
 # Eğitilmiş Modeller
@@ -88,6 +89,7 @@ models/*.pt
 models/*.pth
 models/*.onnx
 models/*.joblib
+models/*.keras
 models/*.sav
 
 # ========================
