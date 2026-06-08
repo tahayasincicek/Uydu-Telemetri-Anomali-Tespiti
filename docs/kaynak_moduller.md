@@ -43,7 +43,7 @@ eğitim katmanı (T) üzerinde çağrılır — leakage önleme.
 - **`extract_esa_features(segments_df, ...)`** — kanonik 18 ESA özelliği (segment → satır).
 - **`segment_raw_telemetry(raw_df, train_ratio=0.70, gap_factor=3.0, min_gap_seconds=150.0, min_anomaly_overlap=0.10, seed=42)`** — sürekli ham akıştan hibrit segmentasyon (boşluk-bölme + uzunluk-penceresi); etiketi anomali-örtüşmesinden türetir.
 - **`augment_segments_iccs(segments_df, modes=("omega1","omega2","omega3"), nominal_only=True, seed=42)`** — ICCS-ω sinyal augmentasyonu (ω1 dikey ayna, ω2 zaman tersleme, ω3 dairesel kaydırma).
-- **`ReactionWheelFeatureEngineer`** — genişletilmiş özellik keşfi (zaman/frekans/fiziksel/çok-değişkenli/gecikme özellikleri, özellik seçimi). Kanonik baseline'da kullanılmaz; NB03 keşfi içindir.
+- **`TelemetryFeatureEngineer`** — genişletilmiş özellik keşfi (zaman/frekans/fiziksel/çok-değişkenli/gecikme özellikleri, özellik seçimi). Kanonik baseline'da kullanılmaz; NB03 keşfi içindir.
 
 ### `synthetic_generator.py` — `SyntheticTelemetryGenerator`
 Profil-temelli sentetik telemetri.

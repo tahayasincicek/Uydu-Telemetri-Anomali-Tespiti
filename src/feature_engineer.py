@@ -2,8 +2,8 @@
 Özellik Mühendisliği Modülü (Feature Engineering)
 =================================================
 
-Telemetri verilerinden (özellikle Reaction Wheels) anomali tespiti için 
-zaman alanı, frekans alanı, fiziksel, çok değişkenli ve gecikmeli (lag) 
+Telemetri verilerinden (ESA OPS-SAT) anomali tespiti için
+zaman alanı, frekans alanı, fiziksel, çok değişkenli ve gecikmeli (lag)
 özellikleri (features) çıkaran gelişmiş modül.
 """
 
@@ -16,10 +16,10 @@ from sklearn.feature_selection import VarianceThreshold
 
 warnings.filterwarnings("ignore")
 
-class ReactionWheelFeatureEngineer:
+class TelemetryFeatureEngineer:
     """
-    Reaction Wheel (Tepki Tekerleği) ve uydu telemetrisi için özel
-    olarak tasarlanmış özellik çıkarım (Feature Engineering) sınıfı.
+    Uydu telemetrisi (ESA OPS-SAT) için özellik çıkarım (Feature Engineering)
+    sınıfı: zaman / frekans / fiziksel / çok-değişkenli / gecikme özellikleri.
     """
     
     def __init__(self, 
@@ -105,22 +105,18 @@ class ReactionWheelFeatureEngineer:
 
     def extract_physical_features(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Reaction Wheel sistemlerine özel fiziksel özellikleri hesaplar.
-        Not: Bu veri setinde (ESA OPS-SAT) sensörler CADC... formatındadır.
-        Eğer RW spesifik veriler yoksa, genel proxy özellikler üretilir.
-        
+        ESA OPS-SAT sensörlerine (manyetometre CADC0872-0874, fotodiyot
+        CADC0884-0894) özel fiziksel proxy özellikleri hesaplar.
+
         Args:
             df (pd.DataFrame): Veriyi içeren DataFrame.
-            
+
         Returns:
             pd.DataFrame: Fiziksel özelliklerin eklendiği DataFrame.
         """
         result = df.copy()
         cols = result.columns.tolist()
-        
-        rpm_cols = [c for c in cols if 'RPM' in c.upper()]
-        current_cols = [c for c in cols if 'CURRENT' in c.upper()]
-        
+
         mag_cols = ['CADC0872', 'CADC0873', 'CADC0874']
         if all(c in cols for c in mag_cols):
             result['MAG_Magnitude'] = np.sqrt(result['CADC0872']**2 + result['CADC0873']**2 + result['CADC0874']**2)

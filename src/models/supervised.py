@@ -2,7 +2,7 @@
 Gözetimli Öğrenme Modelleri Modülü (Supervised Learning)
 ========================================================
 
-Uydu telemetrisi (Reaction Wheels) anomali tespiti için gözetimli makine öğrenmesi
+Uydu telemetrisi (ESA OPS-SAT) anomali tespiti için gözetimli makine öğrenmesi
 ve derin öğrenme (LSTM) modellerini eğitme, değerlendirme ve tahmin etme sınıfı.
 """
 

@@ -2,7 +2,7 @@
 Gözetimsiz Anomali Tespiti Modülü (Unsupervised Learning)
 ===========================================================
 
-Uydu telemetrisi (Reaction Wheels) verilerinde etiket kullanmadan
+Uydu telemetrisi (ESA OPS-SAT) verilerinde etiket kullanmadan
 (unsupervised) anomali tespiti yapan modelleri içerir.
 """
 
