@@ -147,14 +147,8 @@ def update_results(pred_json, page, data_json, live_state):
 
     anom_indices = np.where(anom_mask)[0]
     
-    n_crit = n_warn = n_low = 0
-    for idx in anom_indices:
-        if score_ensemble[idx] > 0.8: n_crit += 1
-        elif score_ensemble[idx] > 0.5: n_warn += 1
-        else: n_low += 1
-        
     table_data = []
-    for row_no, idx in enumerate(anom_indices[:100], 1):
+    for row_no, idx in enumerate(anom_indices, 1):
         sev = "Kritik" if score_ensemble[idx] > 0.8 else "Uyarı" if score_ensemble[idx] > 0.5 else "Düşük"
         ch = df.iloc[idx].get("channel", "N/A") if "channel" in df.columns else "N/A"
         table_data.append({"NO": row_no, "Segment": int(df.iloc[idx].get("segment", idx)),
@@ -166,10 +160,18 @@ def update_results(pred_json, page, data_json, live_state):
         lr2 = dict(lr); lr2["NO"] = len(table_data) + 1
         table_data.append(lr2)
 
+    # Şiddet sayımları DOĞRUDAN tablodan hesaplanır — böylece kart sayıları listedeki
+    # kayıtlarla birebir uyuşur (eskiden tablo 100 ile sınırlıyken sayımlar tüm
+    # anomalilerden geliyordu ve "354 Kritik ama 112 kayıt" gibi uyuşmazlık oluyordu).
+    n_shown = len(table_data)
+    n_crit = sum(1 for r in table_data if r["Şiddet"] == "Kritik")
+    n_warn = sum(1 for r in table_data if r["Şiddet"] == "Uyarı")
+    n_low = sum(1 for r in table_data if r["Şiddet"] == "Düşük")
+
     return html.Div([
         stat_strip([
             ("Analiz Edilen", len(df), None, "blue"),
-            ("Tespit Edilen", n_anom, None, "red"),
+            ("Tespit Edilen", n_shown, None, "red"),
             ("Ortalama Skor", f"{avg_score:.3f}", None, "yellow"),
             ("Model Uzlaşması", f"%{agreement*100:.1f}", None, "green"),
         ]),
