@@ -68,21 +68,37 @@ def page_dashboard():
 
     now = time.strftime("%d.%m.%Y %H:%M")
 
+    # ── Kompakt KPI şeridi (tekli büyük kutular yerine tek satır, profesyonel) ──
+    def _stat(label, value, sub=None, accent="#1E293B"):
+        return html.Div(style={"flex": "1", "padding": "2px 18px", "minWidth": "0"}, children=[
+            html.Div(label, style={"fontSize": "10px", "letterSpacing": "1.2px", "color": "#94A3B8",
+                                   "fontWeight": "600", "textTransform": "uppercase", "marginBottom": "4px"}),
+            html.Div(style={"display": "flex", "alignItems": "baseline", "gap": "7px"}, children=[
+                html.Span(f"{value}", style={"fontSize": "20px", "fontWeight": "700", "color": accent}),
+                html.Span(sub or "", style={"fontSize": "11px", "color": "#64748B"}),
+            ]),
+        ])
+
+    def _vdiv():
+        return html.Div(style={"width": "1px", "alignSelf": "stretch", "background": "#E2E8F0", "margin": "6px 0"})
+
+    stat_bar = html.Div(className="panel", style={
+        "display": "flex", "alignItems": "center", "padding": "14px 4px", "marginBottom": "20px"}, children=[
+        _stat("İzlenen Segment", f"{n_seg:,}", f"{n_raw:,} ham ölçüm"),
+        _vdiv(),
+        _stat("Aktif Anomali", f"{n_anomaly:,}", f"{anom_ratio} oran", "#EF4444"),
+        _vdiv(),
+        _stat("İzlenen Kanal", n_channels, "Manyetometre + Fotodiyot"),
+        _vdiv(),
+        _stat("Sistem Durumu", "Aktif", f"{len(MODELS)} model hazır", "#10B981"),
+    ])
+
     return html.Div([
         html.Div(className="page-header", children=[
             html.Div("Operasyon Paneli", className="page-title"),
             html.Div("Telemetri sağlık durumu ve anomali alarm özeti", className="page-subtitle")]),
 
-        dbc.Row([
-            dbc.Col(metric_card("mdi:database-outline", f"{n_seg:,}", "İzlenen Segment", "blue",
-                                f"{n_raw:,} ham ölçüm"), md=3),
-            dbc.Col(metric_card("mdi:alert-circle-outline", n_anomaly, "Aktif Anomali", "red",
-                                f"{anom_ratio} oran"), md=3),
-            dbc.Col(metric_card("mdi:satellite-uplink", n_channels, "İzlenen Kanal", "cyan",
-                                "Manyetometre + Fotodiyot"), md=3),
-            dbc.Col(metric_card("mdi:check-network-outline", "Aktif", "Sistem Durumu", "green",
-                                f"{len(MODELS)} model hazır"), md=3),
-        ], className="mb-4 g-3"),
+        stat_bar,
 
         dbc.Row([
             dbc.Col(html.Div(className="panel", children=[
