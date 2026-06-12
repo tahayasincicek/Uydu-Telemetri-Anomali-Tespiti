@@ -81,6 +81,32 @@ def _empty_score_fig():
     return f
 
 
+def live_detail_records(state):
+    """Canlı izleme anomalilerini Sonuçlar/Detay tablosu formatında (NO sıralı)
+    kayıtlara çevirir. Sonuçlar sayfası ve alarm-tıklama bu kayıtları paylaşır;
+    her anomali gerçekleştiği segmente ve özellik matrisindeki satır konumuna eşlenir."""
+    anomalies = (state or {}).get("anomalies", [])
+    if not anomalies:
+        return []
+    seg2idx = {}
+    try:
+        if os.path.exists(DEMO_PATH):
+            fdf = pd.read_parquet(DEMO_PATH)
+            if 'segment' in fdf.columns:
+                for pos, seg in enumerate(fdf['segment'].values):
+                    seg2idx.setdefault(int(seg), pos)
+    except Exception:
+        pass
+    recs = []
+    for i, a in enumerate(anomalies, 1):
+        seg = int(a.get("segment", 0))
+        recs.append({"NO": i, "Segment": seg, "Kanal": channel_label(a.get("channel", "")),
+                     "_channel": a.get("channel"), "Skor": f"{a.get('score', 0):.2f}",
+                     "Şiddet": "Kritik" if a.get("score", 0) > 0.8 else "Uyarı",
+                     "Detay": "İncele", "_idx": seg2idx.get(seg, 0)})
+    return recs
+
+
 def page_live():
     channels = LIVE_DATA['channel'].unique().tolist() if not LIVE_DATA.empty and 'channel' in LIVE_DATA.columns else []
     # En iyi performanslı modeller üstte (operatör seçimi kolaylaşsın)
@@ -334,32 +360,20 @@ def update_live_sim(n_int, state, channel, model_name, speed, current_alarms):
     prevent_initial_call=True,
 )
 def open_live_anomaly_detail(clicks, state):
-    """Bir canlı alarm kartına tıklanınca o anomaliyi ilgili segmente eşleyip
-    Anomali Detay sayfasına yönlendirir (Analiz/Sonuçlar tablosundaki akışla aynı)."""
-    if not ctx.triggered_id or not clicks or not any(c for c in clicks if c):
+    """Bir canlı alarm kartına tıklanınca o anomalinin Anomali Detay sayfasını açar.
+
+    anomaly-list olarak TÜM canlı anomaliler verilir; böylece detayda Önceki/Sonraki
+    tuşları canlı izlemedeki sırada gezer. Yalnızca gerçek bir tıklamada çalışır:
+    izleme sürerken yeni alarm kartı eklenmesi (n_clicks=0) callback'i tetiklese de
+    işlem yapılmaz (aksi halde sayfa hatalı yönleniyordu)."""
+    trig = ctx.triggered
+    if not trig or not trig[0].get("value") or not ctx.triggered_id:
         return no_update, no_update, no_update
     target_id = ctx.triggered_id.get("id")
     anomalies = (state or {}).get("anomalies", [])
-    anom = next((a for a in anomalies if a.get("id") == target_id), None)
-    if not anom:
+    recs = live_detail_records(state)
+    sel = next((recs[i] for i, a in enumerate(anomalies)
+                if a.get("id") == target_id and i < len(recs)), None)
+    if sel is None:
         return no_update, no_update, no_update
-
-    seg = anom.get("segment", 0)
-    # Özellik matrisinde (DEMO_PATH) bu segmentin satır konumu — detay tablo/SHAP için
-    idx_val = 0
-    try:
-        if os.path.exists(DEMO_PATH):
-            fdf = pd.read_parquet(DEMO_PATH)
-            if 'segment' in fdf.columns:
-                pos = np.where(fdf['segment'].values == seg)[0]
-                if len(pos):
-                    idx_val = int(pos[0])
-    except Exception:
-        pass
-
-    detail = {"Segment": seg, "_channel": anom.get("channel"),
-              "Kanal": channel_label(anom.get("channel", "")),
-              "Skor": f"{anom.get('score', 0):.2f}",
-              "Şiddet": "Kritik" if anom.get("score", 0) > 0.8 else "Uyarı",
-              "_idx": idx_val, "NO": 0}
-    return detail, [detail], "detail"
+    return sel, recs, "detail"

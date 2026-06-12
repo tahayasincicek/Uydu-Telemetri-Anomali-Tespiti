@@ -21,6 +21,7 @@ from core.constants import (DEMO_PATH, LIVE_DATA_PATH, SHAP_PKL, BENCHMARK_METRI
                             ANALYSIS_PRESETS, channel_label)
 from core.state import (MODELS, THRESHOLDS, SCALER, TEST_DATA, ALL_METRICS, FEATURE_COLS,
                         LIVE_DATA, SHAP_DATA, get_tree_explainer, best_model)
+from pages.live import live_detail_records
 
 
 def page_results():
@@ -32,15 +33,71 @@ def page_results():
     ])
 
 
+def _table_panel(table_data):
+    """Tıklanabilir anomali tablosu paneli. select_anomaly bu tablonun active_cell'ini
+    dinler; bir satıra tıklayınca Anomali Detay açılır (analiz + canlı ortak akış)."""
+    return html.Div(className="panel", children=[
+        html.Div(className="panel-title", children=[icon("mdi:format-list-bulleted", 16),
+                                                    f"Anomali Listesi ({len(table_data)} kayıt)"]),
+        dash_table.DataTable(
+            id="results-table",
+            columns=[{"name": c, "id": c} for c in ["NO", "Segment", "Kanal", "Skor", "Şiddet", "Detay"]],
+            data=table_data, page_size=12, row_selectable="single",
+            style_header={"backgroundColor": "#EEF2F8", "color": "#64748B", "fontWeight": "600", "border": "1px solid #E2E8F0", "fontSize": "11px"},
+            style_cell={"backgroundColor": "#FFFFFF", "color": "#1E293B", "border": "1px solid #E2E8F0", "fontFamily": "IBM Plex Sans", "fontSize": "12px", "padding": "8px"},
+            style_data_conditional=[
+                {"if": {"filter_query": '{Şiddet} = "Kritik"'}, "backgroundColor": "rgba(239,68,68,0.08)", "color": "#DC2626"},
+                {"if": {"filter_query": '{Şiddet} = "Uyarı"'}, "backgroundColor": "rgba(245,158,11,0.08)", "color": "#D97706"},
+                {"if": {"filter_query": '{Şiddet} = "Düşük"'}, "backgroundColor": "rgba(16,185,129,0.08)", "color": "#16A34A"},
+                {"if": {"column_id": "Detay"}, "color": "#0284C7", "cursor": "pointer", "textDecoration": "underline", "fontWeight": "bold"},
+                {"if": {"row_index": "odd"}, "backgroundColor": "#F4F6FB"},
+            ],
+            sort_action="native", filter_action="native",
+        ),
+        html.Div(id="detail-info-msg", className="info-box", style={"marginTop": "15px", "textAlign": "center"},
+                 children="Detay görüntülemek için tabloda bir anomali satırına tıklayın."),
+        html.Div(style={"marginTop": "12px", "textAlign": "right"}, children=[
+            html.Button("CSV Olarak İndir", id="btn-csv-download", n_clicks=0, className="btn-download"),
+        ]),
+        dcc.Store(id="csv-store", data=table_data),
+        html.Div(id="shap-mini-waterfall-container", style={"marginTop": "20px"}),
+    ])
+
+
+def _live_only_view(live_rows):
+    """Yalnızca canlı izleme anomalileri için sade Sonuçlar görünümü."""
+    n_crit = sum(1 for r in live_rows if r["Şiddet"] == "Kritik")
+    return html.Div([
+        stat_strip([
+            ("Canlı Anomali", len(live_rows), None, "red"),
+            ("Kritik", n_crit, None, "red"),
+            ("Uyarı", len(live_rows) - n_crit, None, "yellow"),
+        ]),
+        html.Div(className="info-box", style={"marginBottom": "16px"},
+                 children="Canlı İzleme sırasında tespit edilen anomaliler. Detay için bir satıra tıklayın."),
+        _table_panel(live_rows),
+    ])
+
+
 @callback(Output("results-content", "children"),
           Input("prediction-results", "data"),
-          State("uploaded-data", "data"), prevent_initial_call=True)
-def update_results(pred_json, data_json):
-    if not pred_json:
-        return html.Div(className="info-box", children=["Henüz analiz yapılmadı."])
+          Input("current-page", "data"),
+          State("uploaded-data", "data"),
+          State("live-sim-state", "data"),
+          prevent_initial_call=True)
+def update_results(pred_json, page, data_json, live_state):
+    # Başka sayfaya geçişte gereksiz yeniden-render önlenir
+    if ctx.triggered_id == "current-page" and page != "results":
+        return no_update
+
+    live_rows = live_detail_records(live_state)
+
+    if not pred_json or not json.loads(pred_json):
+        if live_rows:
+            return _live_only_view(live_rows)
+        return html.Div(className="info-box", children=["Henüz analiz yapılmadı veya canlı izleme anomalisi yok."])
+
     results = json.loads(pred_json)
-    if not results:
-        return html.Div(className="info-box", children=["Sonuç bulunamadı."])
 
     if data_json:
         df = pd.read_json(io.StringIO(data_json), orient='split')
@@ -104,6 +161,11 @@ def update_results(pred_json, data_json):
                            "Kanal": channel_label(ch), "_channel": ch, "Skor": f"{score_ensemble[idx]:.2f}",
                            "Şiddet": sev, "Detay": "İncele", "_idx": int(idx)})
 
+    # Canlı izleme anomalilerini de listeye ekle (NO devam ederek)
+    for lr in live_rows:
+        lr2 = dict(lr); lr2["NO"] = len(table_data) + 1
+        table_data.append(lr2)
+
     return html.Div([
         stat_strip([
             ("Analiz Edilen", len(df), None, "blue"),
@@ -123,31 +185,7 @@ def update_results(pred_json, data_json):
                 html.Span(f"{n_low}", style={"fontSize":"20px","fontWeight":"700","fontFamily":"Inter, sans-serif"}),
                 html.Span(" Düşük", style={"color":"#16A34A","fontSize":"12px","marginLeft":"6px"})]), md=4),
         ], className="mb-3 g-3"),
-        html.Div(className="panel", children=[
-            html.Div(className="panel-title", children=[icon("mdi:format-list-bulleted", 16), f"Anomali Listesi ({len(table_data)} kayıt)"]),
-            dash_table.DataTable(
-                id="results-table",
-                columns=[{"name": c, "id": c} for c in ["NO","Segment","Kanal","Skor","Şiddet", "Detay"]],
-                data=table_data, page_size=12, row_selectable="single",
-                style_header={"backgroundColor":"#EEF2F8","color":"#64748B","fontWeight":"600","border":"1px solid #E2E8F0","fontSize":"11px"},
-                style_cell={"backgroundColor":"#FFFFFF","color":"#1E293B","border":"1px solid #E2E8F0","fontFamily":"IBM Plex Sans","fontSize":"12px","padding":"8px"},
-                style_data_conditional=[
-                    {"if":{"filter_query":'{Şiddet} = "Kritik"'},"backgroundColor":"rgba(239,68,68,0.08)","color":"#DC2626"},
-                    {"if":{"filter_query":'{Şiddet} = "Uyarı"'},"backgroundColor":"rgba(245,158,11,0.08)","color":"#D97706"},
-                    {"if":{"filter_query":'{Şiddet} = "Düşük"'},"backgroundColor":"rgba(16,185,129,0.08)","color":"#16A34A"},
-                    {"if":{"column_id":"Detay"}, "color":"#0284C7", "cursor":"pointer", "textDecoration":"underline", "fontWeight":"bold"},
-                    {"if":{"row_index":"odd"},"backgroundColor":"#F4F6FB"},
-                ],
-                sort_action="native", filter_action="native",
-            ),
-            html.Div(id="detail-info-msg", className="info-box", style={"marginTop":"15px", "textAlign":"center"},
-                     children="Detay görüntülemek için tabloda bir anomali satırına tıklayın."),
-            html.Div(style={"marginTop": "12px", "textAlign": "right"}, children=[
-                html.Button("CSV Olarak İndir", id="btn-csv-download", n_clicks=0, className="btn-download"),
-            ]),
-            dcc.Store(id="csv-store", data=table_data),
-            html.Div(id="shap-mini-waterfall-container", style={"marginTop": "20px"}),
-        ]),
+        _table_panel(table_data),
     ])
 
 
