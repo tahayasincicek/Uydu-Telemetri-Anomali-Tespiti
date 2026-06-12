@@ -18,7 +18,7 @@ from utils.feature_extractor import extract_features_from_raw
 from utils.ui import PLT_LAYOUT, icon, metric_card
 from core.constants import (DEMO_PATH, LIVE_DATA_PATH, SHAP_PKL, BENCHMARK_METRICS,
                             PRIMARY_METRIC, DROP_COLS, SUP_MODEL_NAMES, UNSUP_MODEL_NAMES,
-                            ANALYSIS_PRESETS)
+                            ANALYSIS_PRESETS, channel_label)
 from core.state import (MODELS, THRESHOLDS, SCALER, TEST_DATA, ALL_METRICS, FEATURE_COLS,
                         LIVE_DATA, SHAP_DATA, get_tree_explainer, best_model)
 
@@ -101,7 +101,8 @@ def update_results(pred_json, data_json):
         sev = "Kritik" if score_ensemble[idx] > 0.8 else "Uyarı" if score_ensemble[idx] > 0.5 else "Düşük"
         ch = df.iloc[idx].get("channel", "N/A") if "channel" in df.columns else "N/A"
         table_data.append({"NO": row_no, "Segment": int(df.iloc[idx].get("segment", idx)),
-                           "Kanal": ch, "Skor": f"{score_ensemble[idx]:.2f}", "Şiddet": sev, "Detay": "İncele", "_idx": int(idx)})
+                           "Kanal": channel_label(ch), "_channel": ch, "Skor": f"{score_ensemble[idx]:.2f}",
+                           "Şiddet": sev, "Detay": "İncele", "_idx": int(idx)})
 
     return html.Div([
         dbc.Row([

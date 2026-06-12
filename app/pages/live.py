@@ -18,7 +18,7 @@ from utils.feature_extractor import extract_features_from_raw
 from utils.ui import PLT_LAYOUT, icon, metric_card
 from core.constants import (DEMO_PATH, LIVE_DATA_PATH, SHAP_PKL, BENCHMARK_METRICS,
                             PRIMARY_METRIC, DROP_COLS, SUP_MODEL_NAMES, UNSUP_MODEL_NAMES,
-                            ANALYSIS_PRESETS)
+                            ANALYSIS_PRESETS, channel_label)
 from core.state import (MODELS, THRESHOLDS, SCALER, TEST_DATA, ALL_METRICS, FEATURE_COLS,
                         LIVE_DATA, SHAP_DATA, get_tree_explainer, best_model)
 
@@ -51,7 +51,7 @@ def page_live():
             html.Div(className="live-controls-left", children=[
                 html.Div([
                     html.Label("Kanal:"),
-                    dcc.Dropdown(id="live-channel", options=[{"label": c, "value": c} for c in channels],
+                    dcc.Dropdown(id="live-channel", options=[{"label": channel_label(c), "value": c} for c in channels],
                                  value=channels[0] if channels else None, className="custom-dropdown", clearable=False)
                 ], className="control-group"),
                 html.Div([
@@ -263,7 +263,7 @@ def update_live_sim(n_int, state, channel, model_name, speed, current_alarms):
                 html.Span(sev_text, className="alarm-badge")
             ]),
             html.Div(className="alarm-card-bottom", children=[
-                html.Span(channel, className="alarm-channel"),
+                html.Span(channel_label(channel), className="alarm-channel"),
                 html.Span(f"Skor: {norm_score:.2f}", className="alarm-score")
             ])
         ])

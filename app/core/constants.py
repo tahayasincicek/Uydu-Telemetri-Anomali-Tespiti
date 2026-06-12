@@ -41,3 +41,23 @@ ANALYSIS_PRESETS = {
                     "desc": "Yüksek kesinlikli modeller ve sıkı eşik; yanlış alarmı en aza indirir.",
                     "sup": ["Stacking Ensemble", "Voting Ensemble"], "unsup": [], "thr": 1.15},
 }
+
+# OPS-SAT telemetri kanalları: kod -> okunabilir isim (9 kanal: 3 manyetometre + 6 fotodiyot).
+# Kaynak: Notebook 01 kanal tablosu.
+CHANNEL_NAMES = {
+    "CADC0872": "Manyetometre X", "CADC0873": "Manyetometre Y", "CADC0874": "Manyetometre Z",
+    "CADC0884": "Foto Diyot 1", "CADC0886": "Foto Diyot 2", "CADC0888": "Foto Diyot 3",
+    "CADC0890": "Foto Diyot 4", "CADC0892": "Foto Diyot 5", "CADC0894": "Foto Diyot 6",
+}
+
+
+def channel_label(code, with_code=True):
+    """Kanal kodunu okunabilir isme çevirir.
+
+    with_code=True ise "İsim (KOD)" (ör. "Manyetometre X (CADC0872)"), aksi halde
+    yalnız ismi döndürür. Bilinmeyen kod olduğu gibi geri verilir (güvenli varsayılan).
+    """
+    name = CHANNEL_NAMES.get(str(code))
+    if not name:
+        return str(code)
+    return f"{name} ({code})" if with_code else name

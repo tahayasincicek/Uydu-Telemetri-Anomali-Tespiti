@@ -18,7 +18,7 @@ from utils.feature_extractor import extract_features_from_raw
 from utils.ui import PLT_LAYOUT, icon, metric_card
 from core.constants import (DEMO_PATH, LIVE_DATA_PATH, SHAP_PKL, BENCHMARK_METRICS,
                             PRIMARY_METRIC, DROP_COLS, SUP_MODEL_NAMES, UNSUP_MODEL_NAMES,
-                            ANALYSIS_PRESETS)
+                            ANALYSIS_PRESETS, channel_label)
 from core.state import (MODELS, THRESHOLDS, SCALER, TEST_DATA, ALL_METRICS, FEATURE_COLS,
                         LIVE_DATA, SHAP_DATA, get_tree_explainer, best_model)
 
@@ -40,7 +40,7 @@ def render_anomaly_detail(selected, current_page, all_anomalies, data_json):
         return html.Div(className="info-box", style={"marginTop":"50px"}, children=["Detaylarını görmek istediğiniz anomaliyi Sonuçlar sayfasındaki tablodan seçiniz."])
     
     seg = selected.get("Segment", 0)
-    ch = selected.get("Kanal", "N/A")
+    ch = selected.get("_channel") or selected.get("Kanal", "N/A")
     score = selected.get("Skor", 0)
     sev = selected.get("Şiddet", "Bilinmiyor")
     idx = selected.get("_idx", 0)
@@ -62,7 +62,7 @@ def render_anomaly_detail(selected, current_page, all_anomalies, data_json):
     
     metrics = dbc.Row([
         dbc.Col(metric_card("mdi:numeric", seg, "Segment Numarası", "blue"), md=2),
-        dbc.Col(metric_card("mdi:satellite-uplink", ch, "Kanal Adı", "blue"), md=3),
+        dbc.Col(metric_card("mdi:satellite-uplink", channel_label(ch), "Kanal Adı", "blue"), md=3),
         dbc.Col(metric_card("mdi:chart-bell-curve", score, "Anomali Skoru", "blue"), md=3),
         dbc.Col(metric_card("mdi:alert-circle", sev, "Şiddet Seviyesi", "red" if sev=="Kritik" else "yellow"), md=2),
         dbc.Col(metric_card("mdi:brain", "1+", "Tespit Eden", "green"), md=2),

@@ -18,7 +18,7 @@ from utils.feature_extractor import extract_features_from_raw
 from utils.ui import PLT_LAYOUT, icon, metric_card
 from core.constants import (DEMO_PATH, LIVE_DATA_PATH, SHAP_PKL, BENCHMARK_METRICS,
                             PRIMARY_METRIC, DROP_COLS, SUP_MODEL_NAMES, UNSUP_MODEL_NAMES,
-                            ANALYSIS_PRESETS)
+                            ANALYSIS_PRESETS, channel_label)
 from core.state import (MODELS, THRESHOLDS, SCALER, TEST_DATA, ALL_METRICS, FEATURE_COLS,
                         LIVE_DATA, SHAP_DATA, get_tree_explainer, best_model)
 
@@ -43,7 +43,7 @@ def page_dashboard():
         ch = ch.sort_values('rate')
         bar_clr = ["#10B981" if r < 15 else "#F59E0B" if r < 30 else "#EF4444" for r in ch['rate']]
         fig_health = go.Figure(go.Bar(
-            y=ch.index.tolist(), x=ch['rate'].tolist(), orientation='h', marker_color=bar_clr,
+            y=[channel_label(c) for c in ch.index], x=ch['rate'].tolist(), orientation='h', marker_color=bar_clr,
             text=[f"{r:.0f}%  ({int(s)}/{int(c)})" for r, s, c in zip(ch['rate'], ch['sum'], ch['count'])],
             textposition='outside', textfont=dict(size=10, color="#475569")))
         fig_health.update_layout(**PLT_LAYOUT, height=360, title="Kanal Sağlığı — Anomali Oranı (%)",
@@ -60,7 +60,7 @@ def page_dashboard():
                 v = r['var']
                 sev = ("Kritik", "badge-error") if v >= p85 else (("Uyarı", "badge-warning") if v >= p50 else ("Düşük", "badge-success"))
                 seg_id = int(r['segment']) if 'segment' in r else "-"
-                chn = r['channel'] if 'channel' in r else "-"
+                chn = channel_label(r['channel']) if 'channel' in r else "-"
                 alarm_rows.append((seg_id, chn, f"{v:.3g}", sev))
 
     def sev_badge(sev):
