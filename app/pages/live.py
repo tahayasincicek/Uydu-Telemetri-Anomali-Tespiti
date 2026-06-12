@@ -10,7 +10,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from dash import html, dcc, dash_table, callback, Input, Output, State, no_update, ctx
+from dash import html, dcc, dash_table, callback, Input, Output, State, no_update, ctx, ALL
 import dash_bootstrap_components as dbc
 
 from utils.model_loader import predict
@@ -33,11 +33,16 @@ def _model_label(m):
 
 
 def _alarm_card(rec):
-    """Tespit edilen bir anomali için detaylı alarm kartı (değer / okuma no / model)."""
+    """Tespit edilen bir anomali için tıklanabilir detaylı alarm kartı.
+
+    Tıklanınca (Analiz/Sonuçlar tablosundaki gibi) ilgili anomalinin Anomali Detay
+    sayfasına gidilir; karta değer / okuma no / model bilgisi de gömülüdür.
+    """
     sev_class = "critical" if rec.get("score", 0) > 0.8 else "warning"
     val = rec.get("value")
     val_str = f"{val:.4g}" if isinstance(val, (int, float)) else str(val)
-    return html.Div(className=f"alarm-card {sev_class}", children=[
+    return html.Div(id={"type": "live-alarm", "id": rec.get("id", 0)}, n_clicks=0,
+                    className=f"alarm-card {sev_class}", style={"cursor": "pointer"}, children=[
         html.Div(className="alarm-card-top", children=[
             html.Span(str(rec.get("time", "")).split("T")[-1][:8], className="alarm-time"),
             html.Span(rec.get("severity", ""), className="alarm-badge"),
@@ -52,6 +57,8 @@ def _alarm_card(rec):
             html.Span(f"Okuma #{rec.get('reading', '-')}"),
             html.Span(rec.get("model", ""), style={"fontWeight": "600"}),
         ]),
+        html.Div("Detayları gör →", style={"fontSize": "9px", "color": "#0284C7",
+                                           "marginTop": "3px", "textAlign": "right", "fontWeight": "600"}),
     ])
 
 
@@ -295,8 +302,11 @@ def update_live_sim(n_int, state, channel, model_name, speed, current_alarms):
     
     if is_anom:
         sev_text = "KRİTİK" if norm_score > 0.8 else "UYARI"
-        rec = {"time": times[-1], "channel": channel, "value": float(vals[-1]),
-               "score": float(norm_score), "severity": sev_text, "reading": end_idx, "model": model_name}
+        seg_id = int(df_slice.iloc[end_idx - 1]['segment']) if 'segment' in df_slice.columns and end_idx > 0 else end_idx
+        state["anom_seq"] = state.get("anom_seq", 0) + 1
+        rec = {"id": state["anom_seq"], "time": times[-1], "channel": channel, "segment": seg_id,
+               "value": float(vals[-1]), "score": float(norm_score), "severity": sev_text,
+               "reading": end_idx, "model": model_name}
         state["anomalies"].append(rec)
         alarms.insert(0, _alarm_card(rec))
         alarms = alarms[:20]
@@ -367,7 +377,7 @@ def restore_live(page, state):
         sc.data[0].x = [s[0] for s in recent]
         sc.data[0].y = [s[1] for s in recent]
 
-    alarm_children = [_alarm_card(a) for a in anomalies[:20]] or [html.Div("Anomali Yok", className="no-alarm-msg")]
+    alarm_children = [_alarm_card(a) for a in reversed(anomalies[-20:])] or [html.Div("Anomali Yok", className="no-alarm-msg")]
     n_anom = len(anomalies)
     last = str(anomalies[-1]["time"]).split("T")[-1][:8] if anomalies else "Yok"
     prog = (idx / total * 100) if total else 0
@@ -382,3 +392,43 @@ def restore_live(page, state):
             running, not running, not running,
             f"OKUNAN: {idx}", f"%{prog:.1f}", f"ANOMALİ: {n_anom}", f"SON ALARM: {last}",
             f"MODEL: {state.get('model', '-')}")
+
+
+@callback(
+    Output("selected-anomaly", "data", allow_duplicate=True),
+    Output("anomaly-list", "data", allow_duplicate=True),
+    Output("current-page", "data", allow_duplicate=True),
+    Input({"type": "live-alarm", "id": ALL}, "n_clicks"),
+    State("live-sim-state", "data"),
+    prevent_initial_call=True,
+)
+def open_live_anomaly_detail(clicks, state):
+    """Bir canlı alarm kartına tıklanınca o anomaliyi ilgili segmente eşleyip
+    Anomali Detay sayfasına yönlendirir (Analiz/Sonuçlar tablosundaki akışla aynı)."""
+    if not ctx.triggered_id or not clicks or not any(c for c in clicks if c):
+        return no_update, no_update, no_update
+    target_id = ctx.triggered_id.get("id")
+    anomalies = (state or {}).get("anomalies", [])
+    anom = next((a for a in anomalies if a.get("id") == target_id), None)
+    if not anom:
+        return no_update, no_update, no_update
+
+    seg = anom.get("segment", 0)
+    # Özellik matrisinde (DEMO_PATH) bu segmentin satır konumu — detay tablo/SHAP için
+    idx_val = 0
+    try:
+        if os.path.exists(DEMO_PATH):
+            fdf = pd.read_parquet(DEMO_PATH)
+            if 'segment' in fdf.columns:
+                pos = np.where(fdf['segment'].values == seg)[0]
+                if len(pos):
+                    idx_val = int(pos[0])
+    except Exception:
+        pass
+
+    detail = {"Segment": seg, "_channel": anom.get("channel"),
+              "Kanal": channel_label(anom.get("channel", "")),
+              "Skor": f"{anom.get('score', 0):.2f}",
+              "Şiddet": "Kritik" if anom.get("score", 0) > 0.8 else "Uyarı",
+              "_idx": idx_val, "NO": 0}
+    return detail, [detail], "detail"
