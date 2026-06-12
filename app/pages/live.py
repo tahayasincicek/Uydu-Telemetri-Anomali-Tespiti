@@ -23,25 +23,69 @@ from core.state import (MODELS, THRESHOLDS, SCALER, TEST_DATA, ALL_METRICS, FEAT
                         LIVE_DATA, SHAP_DATA, get_tree_explainer, best_model)
 
 
+def _model_label(m):
+    """Model adı + temel performans (operatör hangi modeli seçeceğine karar verebilsin)."""
+    mt = ALL_METRICS.get(m, {})
+    f1, ap = mt.get("F1"), mt.get("AUC_PR")
+    if f1 is not None and ap is not None:
+        return f"{m}  ·  F1 {f1:.2f} · AUC-PR {ap:.2f}"
+    return m
+
+
+def _alarm_card(rec):
+    """Tespit edilen bir anomali için detaylı alarm kartı (değer / okuma no / model)."""
+    sev_class = "critical" if rec.get("score", 0) > 0.8 else "warning"
+    val = rec.get("value")
+    val_str = f"{val:.4g}" if isinstance(val, (int, float)) else str(val)
+    return html.Div(className=f"alarm-card {sev_class}", children=[
+        html.Div(className="alarm-card-top", children=[
+            html.Span(str(rec.get("time", "")).split("T")[-1][:8], className="alarm-time"),
+            html.Span(rec.get("severity", ""), className="alarm-badge"),
+        ]),
+        html.Div(className="alarm-card-bottom", children=[
+            html.Span(channel_label(rec.get("channel", "")), className="alarm-channel"),
+            html.Span(f"Skor: {rec.get('score', 0):.2f}", className="alarm-score"),
+        ]),
+        html.Div(style={"fontSize": "10px", "color": "#64748B", "marginTop": "4px",
+                        "display": "flex", "justifyContent": "space-between", "gap": "6px"}, children=[
+            html.Span(f"Değer: {val_str}"),
+            html.Span(f"Okuma #{rec.get('reading', '-')}"),
+            html.Span(rec.get("model", ""), style={"fontWeight": "600"}),
+        ]),
+    ])
+
+
+def _empty_signal_fig():
+    f = go.Figure()
+    f.update_layout(**PLT_LAYOUT, height=300, xaxis=dict(showgrid=True, gridcolor="#E2E8F0"),
+                    yaxis=dict(showgrid=True, gridcolor="#E2E8F0"))
+    f.add_trace(go.Scatter(x=[], y=[], mode="lines", line=dict(color="#64748B", width=1.5), name="Sinyal"))
+    f.add_trace(go.Scatter(x=[], y=[], mode="markers", marker=dict(color="#FF3B5C", size=8), name="Anomali"))
+    return f
+
+
+def _empty_score_fig():
+    f = go.Figure()
+    f.update_layout(**PLT_LAYOUT, height=150, xaxis=dict(showgrid=True, gridcolor="#E2E8F0"),
+                    yaxis=dict(range=[0, 1.05]))
+    f.add_trace(go.Scatter(x=[], y=[], mode="lines", line=dict(color="#0284C7", width=2),
+                           fill='tozeroy', fillcolor='rgba(0,200,255,0.1)', name="Skor"))
+    f.add_hline(y=0.5, line_dash="dash", line_color="#FF3B5C")
+    return f
+
+
 def page_live():
     channels = LIVE_DATA['channel'].unique().tolist() if not LIVE_DATA.empty and 'channel' in LIVE_DATA.columns else []
-    live_models = [n for n in (SUP_MODEL_NAMES + UNSUP_MODEL_NAMES) if n in MODELS]
+    # En iyi performanslı modeller üstte (operatör seçimi kolaylaşsın)
+    live_models = sorted([n for n in (SUP_MODEL_NAMES + UNSUP_MODEL_NAMES) if n in MODELS],
+                         key=lambda n: ALL_METRICS.get(n, {}).get("AUC_PR", 0), reverse=True)
     default_model = next((m for m in ["HistGradientBoosting", "RandomForest", "IsolationForest"] if m in MODELS),
                          live_models[0] if live_models else None)
-    
-    # Grafikleri başlangıçta boş iz'lerle (trace) kur — extendData yalnızca var olan
-    # iz'leri uzatabilir; aksi halde "Başlat"ta (Sıfırla'ya basılmadan) hiçbir şey çizilmez.
-    fig_sig = go.Figure()
-    fig_sig.update_layout(**PLT_LAYOUT, height=300,
-                          xaxis=dict(showgrid=True, gridcolor="#E2E8F0"), yaxis=dict(showgrid=True, gridcolor="#E2E8F0"))
-    fig_sig.add_trace(go.Scatter(x=[], y=[], mode="lines", line=dict(color="#64748B", width=1.5), name="Sinyal"))
-    fig_sig.add_trace(go.Scatter(x=[], y=[], mode="markers", marker=dict(color="#FF3B5C", size=8), name="Anomali"))
-    fig_score = go.Figure()
-    fig_score.update_layout(**PLT_LAYOUT, height=150,
-                            xaxis=dict(showgrid=True, gridcolor="#E2E8F0"), yaxis=dict(range=[0, 1.05]))
-    fig_score.add_trace(go.Scatter(x=[], y=[], mode="lines", line=dict(color="#0284C7", width=2),
-                                   fill='tozeroy', fillcolor='rgba(0,200,255,0.1)', name="Skor"))
-    fig_score.add_hline(y=0.5, line_dash="dash", line_color="#FF3B5C")
+
+    # Grafikleri başlangıçta boş iz'lerle (trace) kur — sayfaya dönüldüğünde restore_live
+    # bunları state'ten yeniden doldurur.
+    fig_sig = _empty_signal_fig()
+    fig_score = _empty_score_fig()
 
     return html.Div(className="live-page-container", children=[
         html.Div(className="page-header", children=[
@@ -54,12 +98,14 @@ def page_live():
                 html.Div([
                     html.Label("Kanal:"),
                     dcc.Dropdown(id="live-channel", options=[{"label": channel_label(c), "value": c} for c in channels],
-                                 value=channels[0] if channels else None, className="custom-dropdown", clearable=False)
+                                 value=channels[0] if channels else None, className="custom-dropdown", clearable=False,
+                                 persistence=True, persistence_type="session")
                 ], className="control-group"),
                 html.Div([
-                    html.Label("Model:"),
-                    dcc.Dropdown(id="live-model", options=[{"label": m, "value": m} for m in live_models],
-                                 value=default_model, className="custom-dropdown", clearable=False)
+                    html.Label("Model (performans ile):"),
+                    dcc.Dropdown(id="live-model", options=[{"label": _model_label(m), "value": m} for m in live_models],
+                                 value=default_model, className="custom-dropdown", clearable=False,
+                                 persistence=True, persistence_type="session")
                 ], className="control-group"),
                 html.Div([
                     html.Label("Hız:"),
@@ -67,7 +113,8 @@ def page_live():
                         {"label": "Yavaş (1x)", "value": 1},
                         {"label": "Normal (5x)", "value": 5},
                         {"label": "Hızlı (20x)", "value": 20}
-                    ], value=5, className="custom-dropdown", clearable=False)
+                    ], value=5, className="custom-dropdown", clearable=False,
+                       persistence=True, persistence_type="session")
                 ], className="control-group"),
             ]),
             html.Div(className="live-controls-right", children=[
@@ -140,25 +187,11 @@ def control_live_sim(start_n, stop_n, reset_n, state):
         ind = [html.Span(className="status-dot"), " DURDURULDU"]
         return True, state, False, True, ind, "live-indicator-badge", "topbar-dot slow-blink", no_update, no_update, no_update
     elif ctx_id == "live-reset":
-        state["index"] = 0
-        state["is_running"] = False
-        state["anomalies"] = []
+        state = {"index": 0, "is_running": False, "anomalies": [], "scores": [], "channel": None, "model": None}
         ind = [html.Span(className="status-dot"), " DURDURULDU"]
-        
-        fig_sig = go.Figure()
-        fig_sig.update_layout(**PLT_LAYOUT, height=300,
-                              xaxis=dict(showgrid=True, gridcolor="#E2E8F0"), yaxis=dict(showgrid=True, gridcolor="#E2E8F0"))
-        fig_sig.add_trace(go.Scatter(x=[], y=[], mode="lines", line=dict(color="#64748B", width=1.5), name="Sinyal"))
-        fig_sig.add_trace(go.Scatter(x=[], y=[], mode="markers", marker=dict(color="#FF3B5C", size=8), name="Anomali"))
-        
-        fig_score = go.Figure()
-        fig_score.update_layout(**PLT_LAYOUT, height=150,
-                                xaxis=dict(showgrid=True, gridcolor="#E2E8F0"), yaxis=dict(range=[0, 1.05]))
-        fig_score.add_trace(go.Scatter(x=[], y=[], mode="lines", line=dict(color="#0284C7", width=2), fill='tozeroy', fillcolor='rgba(0,200,255,0.1)', name="Skor"))
-        fig_score.add_hline(y=0.5, line_dash="dash", line_color="#FF3B5C")
-        
         alarm_msg = html.Div("Anomali Yok", className="no-alarm-msg")
-        return True, state, False, True, ind, "live-indicator-badge", "topbar-dot", fig_sig, fig_score, [alarm_msg]
+        return (True, state, False, True, ind, "live-indicator-badge", "topbar-dot",
+                _empty_signal_fig(), _empty_score_fig(), [alarm_msg])
     return no_update
 
 
@@ -234,7 +267,13 @@ def update_live_sim(n_int, state, channel, model_name, speed, current_alarms):
         print("Prediction error:", e)
         norm_score = 0
         is_anom = False
-        
+
+    # State'i zenginleştir: aktif kanal/model + skor geçmişi (sayfaya dönünce restore_live kullanır)
+    state["channel"] = channel
+    state["model"] = model_name
+    state.setdefault("scores", []).append([times[-1], float(norm_score)])
+    state["scores"] = state["scores"][-300:]
+
     sig_x = [times]
     sig_y = [vals]
 
@@ -255,21 +294,11 @@ def update_live_sim(n_int, state, channel, model_name, speed, current_alarms):
     alarms = current_alarms if isinstance(current_alarms, list) and not getattr(current_alarms[0], 'props', {}).get('className', '') == 'no-alarm-msg' else []
     
     if is_anom:
-        state["anomalies"].append({"time": times[-1], "score": norm_score})
-        sev_class = "critical" if norm_score > 0.8 else "warning"
         sev_text = "KRİTİK" if norm_score > 0.8 else "UYARI"
-        
-        new_alarm = html.Div(className=f"alarm-card {sev_class}", children=[
-            html.Div(className="alarm-card-top", children=[
-                html.Span(times[-1].split("T")[-1][:8], className="alarm-time"),
-                html.Span(sev_text, className="alarm-badge")
-            ]),
-            html.Div(className="alarm-card-bottom", children=[
-                html.Span(channel_label(channel), className="alarm-channel"),
-                html.Span(f"Skor: {norm_score:.2f}", className="alarm-score")
-            ])
-        ])
-        alarms.insert(0, new_alarm)
+        rec = {"time": times[-1], "channel": channel, "value": float(vals[-1]),
+               "score": float(norm_score), "severity": sev_text, "reading": end_idx, "model": model_name}
+        state["anomalies"].append(rec)
+        alarms.insert(0, _alarm_card(rec))
         alarms = alarms[:20]
         
     if not alarms:
@@ -284,3 +313,72 @@ def update_live_sim(n_int, state, channel, model_name, speed, current_alarms):
         f"OKUNAN: {end_idx}", f"%{prog:.1f}", f"ANOMALİ: {n_anom}", f"SON ALARM: {last_anom}", f"MODEL: {model_name}",
         f"{n_anom} Alarm"
     )
+
+
+@callback(
+    Output("live-signal-graph", "figure", allow_duplicate=True),
+    Output("live-score-graph", "figure", allow_duplicate=True),
+    Output("live-alarm-list", "children", allow_duplicate=True),
+    Output("live-alarm-count", "children", allow_duplicate=True),
+    Output("live-indicator", "children", allow_duplicate=True),
+    Output("live-indicator", "className", allow_duplicate=True),
+    Output("live-start", "disabled", allow_duplicate=True),
+    Output("live-stop", "disabled", allow_duplicate=True),
+    Output("live-interval", "disabled", allow_duplicate=True),
+    Output("live-stat-read", "children", allow_duplicate=True),
+    Output("live-stat-prog", "children", allow_duplicate=True),
+    Output("live-stat-anom", "children", allow_duplicate=True),
+    Output("live-stat-last", "children", allow_duplicate=True),
+    Output("live-stat-model", "children", allow_duplicate=True),
+    Input("current-page", "data"),
+    State("live-sim-state", "data"),
+    prevent_initial_call=True,
+)
+def restore_live(page, state):
+    """Sayfaya geri dönüldüğünde canlı izleme durumunu (grafik/alarm/sayaç/çalışma
+    göstergesi) live-sim-state'ten yeniden kurar; böylece izleme baştan başlamaz."""
+    if page != "live" or not state or state.get("index", 0) <= 0:
+        return (no_update,) * 14
+
+    idx = state["index"]
+    channel = state.get("channel")
+    anomalies = state.get("anomalies", [])
+    scores = state.get("scores", [])
+    running = state.get("is_running", False)
+
+    sig = _empty_signal_fig()
+    sc = _empty_score_fig()
+    total = 0
+    if channel and not LIVE_DATA.empty:
+        df_slice = LIVE_DATA[LIVE_DATA['channel'] == channel]
+        total = len(df_slice)
+        win = df_slice.iloc[max(0, idx - 200):idx]
+        sig.data[0].x = win['timestamp'].tolist()
+        sig.data[0].y = win['value'].tolist()
+        tmap = dict(zip(win['timestamp'].tolist(), win['value'].tolist()))
+        ax, ay = [], []
+        for a in anomalies:
+            if a.get("time") in tmap:
+                ax.append(a["time"]); ay.append(tmap[a["time"]])
+        sig.data[1].x = ax
+        sig.data[1].y = ay
+    if scores:
+        recent = scores[-200:]
+        sc.data[0].x = [s[0] for s in recent]
+        sc.data[0].y = [s[1] for s in recent]
+
+    alarm_children = [_alarm_card(a) for a in anomalies[:20]] or [html.Div("Anomali Yok", className="no-alarm-msg")]
+    n_anom = len(anomalies)
+    last = str(anomalies[-1]["time"]).split("T")[-1][:8] if anomalies else "Yok"
+    prog = (idx / total * 100) if total else 0
+    if running:
+        ind = [html.Span(className="status-dot"), " CANLI"]
+        ind_cls = "live-indicator-badge live-active"
+    else:
+        ind = [html.Span(className="status-dot"), " DURDURULDU"]
+        ind_cls = "live-indicator-badge"
+
+    return (sig, sc, alarm_children, f"{n_anom} Alarm", ind, ind_cls,
+            running, not running, not running,
+            f"OKUNAN: {idx}", f"%{prog:.1f}", f"ANOMALİ: {n_anom}", f"SON ALARM: {last}",
+            f"MODEL: {state.get('model', '-')}")
