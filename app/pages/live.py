@@ -89,8 +89,8 @@ def page_live():
     default_model = next((m for m in ["HistGradientBoosting", "RandomForest", "IsolationForest"] if m in MODELS),
                          live_models[0] if live_models else None)
 
-    # Grafikleri başlangıçta boş iz'lerle (trace) kur — sayfaya dönüldüğünde restore_live
-    # bunları state'ten yeniden doldurur.
+    # Grafikler boş başlar; Canlı İzleme bir overlay olduğu için (app.layout'ta) DOM'da
+    # kalıcıdır — başka sekmeye gidip dönünce grafik/alarm/çalışma durumu korunur.
     fig_sig = _empty_signal_fig()
     fig_score = _empty_score_fig()
 
@@ -323,75 +323,6 @@ def update_live_sim(n_int, state, channel, model_name, speed, current_alarms):
         f"OKUNAN: {end_idx}", f"%{prog:.1f}", f"ANOMALİ: {n_anom}", f"SON ALARM: {last_anom}", f"MODEL: {model_name}",
         f"{n_anom} Alarm"
     )
-
-
-@callback(
-    Output("live-signal-graph", "figure", allow_duplicate=True),
-    Output("live-score-graph", "figure", allow_duplicate=True),
-    Output("live-alarm-list", "children", allow_duplicate=True),
-    Output("live-alarm-count", "children", allow_duplicate=True),
-    Output("live-indicator", "children", allow_duplicate=True),
-    Output("live-indicator", "className", allow_duplicate=True),
-    Output("live-start", "disabled", allow_duplicate=True),
-    Output("live-stop", "disabled", allow_duplicate=True),
-    Output("live-interval", "disabled", allow_duplicate=True),
-    Output("live-stat-read", "children", allow_duplicate=True),
-    Output("live-stat-prog", "children", allow_duplicate=True),
-    Output("live-stat-anom", "children", allow_duplicate=True),
-    Output("live-stat-last", "children", allow_duplicate=True),
-    Output("live-stat-model", "children", allow_duplicate=True),
-    Input("current-page", "data"),
-    State("live-sim-state", "data"),
-    prevent_initial_call=True,
-)
-def restore_live(page, state):
-    """Sayfaya geri dönüldüğünde canlı izleme durumunu (grafik/alarm/sayaç/çalışma
-    göstergesi) live-sim-state'ten yeniden kurar; böylece izleme baştan başlamaz."""
-    if page != "live" or not state or state.get("index", 0) <= 0:
-        return (no_update,) * 14
-
-    idx = state["index"]
-    channel = state.get("channel")
-    anomalies = state.get("anomalies", [])
-    scores = state.get("scores", [])
-    running = state.get("is_running", False)
-
-    sig = _empty_signal_fig()
-    sc = _empty_score_fig()
-    total = 0
-    if channel and not LIVE_DATA.empty:
-        df_slice = LIVE_DATA[LIVE_DATA['channel'] == channel]
-        total = len(df_slice)
-        win = df_slice.iloc[max(0, idx - 200):idx]
-        sig.data[0].x = win['timestamp'].tolist()
-        sig.data[0].y = win['value'].tolist()
-        tmap = dict(zip(win['timestamp'].tolist(), win['value'].tolist()))
-        ax, ay = [], []
-        for a in anomalies:
-            if a.get("time") in tmap:
-                ax.append(a["time"]); ay.append(tmap[a["time"]])
-        sig.data[1].x = ax
-        sig.data[1].y = ay
-    if scores:
-        recent = scores[-200:]
-        sc.data[0].x = [s[0] for s in recent]
-        sc.data[0].y = [s[1] for s in recent]
-
-    alarm_children = [_alarm_card(a) for a in reversed(anomalies[-20:])] or [html.Div("Anomali Yok", className="no-alarm-msg")]
-    n_anom = len(anomalies)
-    last = str(anomalies[-1]["time"]).split("T")[-1][:8] if anomalies else "Yok"
-    prog = (idx / total * 100) if total else 0
-    if running:
-        ind = [html.Span(className="status-dot"), " CANLI"]
-        ind_cls = "live-indicator-badge live-active"
-    else:
-        ind = [html.Span(className="status-dot"), " DURDURULDU"]
-        ind_cls = "live-indicator-badge"
-
-    return (sig, sc, alarm_children, f"{n_anom} Alarm", ind, ind_cls,
-            running, not running, not running,
-            f"OKUNAN: {idx}", f"%{prog:.1f}", f"ANOMALİ: {n_anom}", f"SON ALARM: {last}",
-            f"MODEL: {state.get('model', '-')}")
 
 
 @callback(

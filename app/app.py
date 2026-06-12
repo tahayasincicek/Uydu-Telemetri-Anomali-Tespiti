@@ -26,6 +26,14 @@ app = Dash(__name__, suppress_callback_exceptions=True,
            external_stylesheets=[dbc.themes.BOOTSTRAP],
            title="Uydu Telemetri", update_title=None)
 
+from pages.ablation import get_ablation_layout, register_ablation_callbacks
+from pages.power import get_power_layout, register_power_callbacks
+from pages.synthetic import get_synthetic_layout, register_synthetic_callbacks
+from pages.esa_pipeline import get_esa_pipeline_layout, register_esa_pipeline_callbacks
+from pages.benchmark import get_benchmark_layout
+from pages.augmentation import get_augmentation_layout
+from pages import dashboard, upload, analysis, results, performance, shap, live, detail
+
 app.layout = html.Div(id="app-root", children=[
     dcc.Store(id="current-page", data="dashboard"),
     dcc.Store(id="uploaded-data"),
@@ -62,15 +70,12 @@ app.layout = html.Div(id="app-root", children=[
             html.Div("Henüz anomali seçilmedi.", className="info-box")
         ])
     ]),
+    # Canlı İzleme overlay olarak tutulur (Sonuçlar/Detay gibi): başka sayfaya gidince
+    # DOM'dan silinmez, yalnızca gizlenir; dönüldüğünde bırakıldığı gibi (grafik/alarm/
+    # çalışma durumu) korunur. Bu yüzden yeniden-kurma (restore) gerekmez.
+    html.Div(id="live-overlay", className="main-content",
+             style={"display": "none"}, children=live.page_live()),
 ])
-
-from pages.ablation import get_ablation_layout, register_ablation_callbacks
-from pages.power import get_power_layout, register_power_callbacks
-from pages.synthetic import get_synthetic_layout, register_synthetic_callbacks
-from pages.esa_pipeline import get_esa_pipeline_layout, register_esa_pipeline_callbacks
-from pages.benchmark import get_benchmark_layout
-from pages.augmentation import get_augmentation_layout
-from pages import dashboard, upload, analysis, results, performance, shap, live, detail
 
 PAGES = {"dashboard": dashboard.page_dashboard, "upload": upload.page_upload, "analysis": analysis.page_analysis,
          "results": results.page_results, "shap": shap.page_shap, "performance": performance.page_performance, "live": live.page_live, "detail": detail.page_detail, "ablation": get_ablation_layout,
@@ -88,13 +93,18 @@ def navigate(*clicks):
 @callback(Output("page-content", "children"), Output("page-content", "style"),
           Output("results-overlay", "style"),
           Output("detail-overlay", "style"),
+          Output("live-overlay", "style"),
           Input("current-page", "data"))
 def render_page(page_id):
+    hide, show = {"display": "none"}, {"display": "block"}
     if page_id == "results":
-        return html.Div(), {"display": "none"}, {"display": "block"}, {"display": "none"}
+        return html.Div(), hide, show, hide, hide
     if page_id == "detail":
-        return html.Div(), {"display": "none"}, {"display": "none"}, {"display": "block"}
-    return PAGES.get(page_id, dashboard.page_dashboard)(), {"display": "block"}, {"display": "none"}, {"display": "none"}
+        return html.Div(), hide, hide, show, hide
+    if page_id == "live":
+        # Overlay'i göster; içerik DOM'da kalıcı olduğu için yeniden kurulmaz.
+        return html.Div(), hide, hide, hide, show
+    return PAGES.get(page_id, dashboard.page_dashboard)(), show, hide, hide, hide
 
 register_ablation_callbacks(app)
 register_power_callbacks(app, ALL_METRICS)
