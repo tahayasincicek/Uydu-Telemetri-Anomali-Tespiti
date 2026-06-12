@@ -156,7 +156,7 @@ def page_performance():
 
 @callback(Output("performance-roc", "children"), Input("current-page", "data"))
 def load_performance_roc(page_id):
-    """Model Performans sayfasi acildiginda agir ROC hesabini (onbellekli) yukler;
+    """Model Performans sayfasi acildiginda agir ROC hesabini (onbellekli) yükler;
     dcc.Loading sayesinde hesap suresince spinner gosterilir."""
     if page_id != "performance":
         return no_update

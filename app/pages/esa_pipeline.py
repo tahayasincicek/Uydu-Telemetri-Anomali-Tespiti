@@ -2,7 +2,7 @@
 ESA Feature Extraction Pipeline Sayfasi
 ========================================
 Ham segments.csv verisinden ESA OPSSAT-AD 18 handcrafted feature
-cikarimi, gorsellestirilmesi ve analiz pipeline'ina aktarimi.
+çıkarımı, görselleştirilmesi ve analiz pipeline'ina aktarimi.
 """
 
 import os, sys, io, base64
@@ -23,25 +23,25 @@ DATASET_PATH = os.path.join(ROOT, "data", "raw", "dataset.csv")
 SYNTH_SEG_PATH = os.path.join(ROOT, "data", "synthetic", "synthetic_segments.csv")
 
 ESA_FEATURES = [
-    ("sampling", "Ornekleme Frekansi", "Veri toplama hizi (Hz)"),
-    ("duration", "Segment Suresi", "Baslangic-bitis arasi saniye"),
-    ("len", "Segment Uzunlugu", "Veri noktasi sayisi"),
+    ("sampling", "Örnekleme Frekansı", "Veri toplama hızı (Hz)"),
+    ("duration", "Segment Süresi", "Başlangıç-bitis arasi saniye"),
+    ("len", "Segment Uzunluğu", "Veri noktası sayısı"),
     ("mean", "Ortalama", "Sinyal ortalamasi"),
     ("var", "Varyans", "Populasyon varyansi"),
     ("std", "Standart Sapma", "Populasyon standart sapmasi"),
-    ("kurtosis", "Basiklik", "Excess kurtosis (dagilim sivriligi)"),
-    ("skew", "Carpiklik", "Dagilim asimetrisi"),
-    ("n_peaks", "Tepe Sayisi", "Ham sinyaldeki tepe sayisi (%10 prominence)"),
-    ("smooth10_n_peaks", "Yumusak Tepe (w=10)", "10-pkt yumusatilmis sinyaldeki tepe sayisi"),
-    ("smooth20_n_peaks", "Yumusak Tepe (w=20)", "20-pkt yumusatilmis sinyaldeki tepe sayisi"),
-    ("diff_peaks", "1. Turev Tepe", "Birinci turev sinyalindeki tepe sayisi"),
-    ("diff2_peaks", "2. Turev Tepe", "Ikinci turev sinyalindeki tepe sayisi"),
-    ("diff_var", "1. Turev Varyansi", "Birinci turevin varyansi"),
-    ("diff2_var", "2. Turev Varyansi", "Ikinci turevin varyansi"),
-    ("gaps_squared", "Bosluk Karesi", "Zaman farklarinin kareler toplami"),
+    ("kurtosis", "Basıklık", "Excess kurtosis (dağılım sivriliği)"),
+    ("skew", "Çarpıklık", "Dağılım asimetrisi"),
+    ("n_peaks", "Tepe Sayısı", "Ham sinyaldeki tepe sayısı (%10 prominence)"),
+    ("smooth10_n_peaks", "Yumusak Tepe (w=10)", "10-pkt yumusatilmis sinyaldeki tepe sayısı"),
+    ("smooth20_n_peaks", "Yumusak Tepe (w=20)", "20-pkt yumusatilmis sinyaldeki tepe sayısı"),
+    ("diff_peaks", "1. Türev Tepe", "Birinci türev sinyalindeki tepe sayısı"),
+    ("diff2_peaks", "2. Türev Tepe", "Ikinci türev sinyalindeki tepe sayısı"),
+    ("diff_var", "1. Türev Varyansi", "Birinci türevin varyansi"),
+    ("diff2_var", "2. Türev Varyansi", "Ikinci türevin varyansi"),
+    ("gaps_squared", "Boşluk Karesi", "Zaman farklarinin kareler toplamı"),
     ("len_weighted", "Agirlikli Uzunluk", "len * sampling"),
     ("var_div_duration", "Varyans/Sure", "Birim zamandaki varyans"),
-    ("var_div_len", "Varyans/Uzunluk", "Veri noktasi basina varyans"),
+    ("var_div_len", "Varyans/Uzunluk", "Veri noktası basina varyans"),
 ]
 
 def get_esa_pipeline_layout():
@@ -56,12 +56,12 @@ def get_esa_pipeline_layout():
     if has_synth:
         syn_size = os.path.getsize(SYNTH_SEG_PATH) / (1024 * 1024)
         source_options.append({"label": f"synthetic_segments.csv ({syn_size:.1f} MB)", "value": "synthetic"})
-    source_options.append({"label": "Dosya Yukle (CSV)", "value": "upload"})
+    source_options.append({"label": "Dosya Yükle (CSV)", "value": "upload"})
 
     return html.Div([
         html.Div(className="page-header", children=[
             html.Div("ESA Feature Extraction Pipeline", className="page-title"),
-            html.Div("Ham telemetri segmentlerinden 18 handcrafted ozellik cikarimi",
+            html.Div("Ham telemetri segmentlerinden 18 handcrafted özellik çıkarımı",
                      className="page-subtitle"),
         ]),
 
@@ -98,12 +98,12 @@ def get_esa_pipeline_layout():
                     dcc.Upload(id="esa-file-upload", children=html.Div(className="upload-area",
                                style={"padding": "20px"}, children=[
                         _icon("mdi:cloud-upload-outline", 36, "#3B82F6"),
-                        html.Div("CSV dosyasi yukleyin", style={"color": "#475569", "fontSize": "12px"}),
+                        html.Div("CSV dosyası yükleyin", style={"color": "#475569", "fontSize": "12px"}),
                     ]), multiple=False),
                 ]),
 
                 html.Div(style={"marginTop": "20px"}, children=[
-                    html.Button([_icon("mdi:cog-play-outline", 18), " Feature Extraction Baslat"],
+                    html.Button([_icon("mdi:cog-play-outline", 18), " Feature Extraction Başlat"],
                                 id="btn-esa-extract", n_clicks=0, className="btn-primary",
                                 style={"width": "100%"}),
                 ]),
@@ -139,9 +139,9 @@ def get_esa_pipeline_layout():
                         _build_existing_dataset_preview() if has_dataset else
                         html.Div(className="info-box", children=[
                             _icon("mdi:rocket-launch-outline", 32, "#3B82F6"), html.Br(), html.Br(),
-                            "Veri kaynagi secip 'Feature Extraction Baslat' butonuna tiklayin.",
+                            "Veri kaynağı secip 'Feature Extraction Başlat' butonuna tiklayin.",
                             html.Br(),
-                            "Pipeline, her segment icin 18 handcrafted ozellik cikaracaktir."
+                            "Pipeline, her segment icin 18 handcrafted özellik cikaracaktir."
                         ])
                     ])]
                 )
@@ -172,17 +172,17 @@ def _build_existing_dataset_preview():
                 _icon("mdi:check-circle", 20, "#10B981"),
                 html.Span("Mevcut dataset.csv bulundu",
                            style={"color": "#10B981", "fontWeight": "600", "fontSize": "13px"}),
-                html.Span(f"({len(df)} segment, {n_feat} ozellik, {n_anom} anomali)",
+                html.Span(f"({len(df)} segment, {n_feat} özellik, {n_anom} anomali)",
                            style={"color": "#64748B", "fontSize": "12px", "marginLeft": "8px"}),
             ]),
         ]),
-        html.Div("Yeniden cikarim icin 'Feature Extraction Baslat' butonunu kullanabilirsiniz.",
+        html.Div("Yeniden çıkarım icin 'Feature Extraction Başlat' butonunu kullanabilirsiniz.",
                  style={"color": "#64748B", "fontSize": "12px", "marginTop": "8px"}),
     ])
 
 
 def _build_extraction_results(features_df, source_label):
-    """Cikarim sonuclarini gorsellestirir."""
+    """Cikarim sonuclarini görselleştirir."""
     n = len(features_df)
     n_anom = int(features_df["anomaly"].sum()) if "anomaly" in features_df.columns else 0
     n_channels = features_df["channel"].nunique() if "channel" in features_df.columns else 0
@@ -197,7 +197,7 @@ def _build_extraction_results(features_df, source_label):
             colorscale="RdBu_r", zmid=0, text=np.round(corr.values, 2), texttemplate="%{text}",
             textfont=dict(size=9),
         ))
-        fig_corr.update_layout(**PLT_LAYOUT, height=400, title="Ozellik Korelasyon Matrisi")
+        fig_corr.update_layout(**PLT_LAYOUT, height=400, title="Özellik Korelasyon Matrisi")
     else:
         fig_corr = go.Figure()
         fig_corr.update_layout(**PLT_LAYOUT, height=200)
@@ -222,8 +222,8 @@ def _build_extraction_results(features_df, source_label):
             textposition="outside", textfont=dict(size=10, color="#475569"),
         ))
         fig_ratio.update_layout(**PLT_LAYOUT, height=400,
-                                 title="Varyans Orani (Anomali / Normal)",
-                                 xaxis_title="Varyans Orani")
+                                 title="Varyans Oranı (Anomali / Normal)",
+                                 xaxis_title="Varyans Oranı")
         fig_ratio.update_yaxes(autorange="reversed")
     else:
         fig_ratio = go.Figure()
@@ -241,7 +241,7 @@ def _build_extraction_results(features_df, source_label):
             ("Segment", n, f"Kaynak: {source_label}", "blue"),
             ("Anomali", n_anom, f"%{n_anom / max(n, 1) * 100:.1f}", "red"),
             ("Kanal", n_channels, None, "cyan"),
-            ("Ozellik", len(feat_cols), "18 handcrafted + meta", "green"),
+            ("Özellik", len(feat_cols), "18 handcrafted + meta", "green"),
         ]),
 
         dbc.Row([
@@ -256,7 +256,7 @@ def _build_extraction_results(features_df, source_label):
         html.Div(className="panel mb-4", children=[
             html.Div(className="panel-title", children=[
                 _icon("mdi:table-large", 16),
-                f" Cikarilan Ozellikler ({n} segment)"
+                f" Cikarilan Özellikler ({n} segment)"
             ]),
             dash_table.DataTable(
                 columns=[{"name": c, "id": c} for c in show_cols],
@@ -325,14 +325,14 @@ def register_esa_pipeline_callbacks(app):
                 segments_df = pd.read_csv(io.StringIO(decoded.decode("utf-8")))
                 source_label = upload_filename or "yuklenen_dosya.csv"
             else:
-                return no_update, no_update, "Lutfen bir veri kaynagi secin veya dosya yukleyin."
+                return no_update, no_update, "Lütfen bir veri kaynağı seçin veya dosya yükleyin."
 
             features_df = extract_esa_features(segments_df)
 
             feat_json = features_df.to_json(date_format="iso", orient="split")
             results = _build_extraction_results(features_df, source_label)
 
-            return results, feat_json, f"{len(features_df)} segment icin 18 ozellik cikarildi."
+            return results, feat_json, f"{len(features_df)} segment icin 18 özellik cikarildi."
 
         except Exception as e:
             import traceback

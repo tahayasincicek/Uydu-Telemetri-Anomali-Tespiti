@@ -1,8 +1,8 @@
 """
 Sentetik Veri Laboratuvari Sayfasi
 ===================================
-ESA OPS-SAT benzeri sentetik uydu telemetri verisi uretimi,
-gorsellestirilmesi ve analiz pipeline'ina aktarimi.
+ESA OPS-SAT benzeri sentetik uydu telemetri verisi üretimi,
+görselleştirilmesi ve analiz pipeline'ina aktarimi.
 """
 
 import os, sys, io, json
@@ -65,11 +65,11 @@ def _build_ks_panel(synth_feats):
     return html.Div(className="panel mb-4", children=[
         html.Div(className="panel-title", children=[
             _icon("mdi:check-decagram-outline", 16),
-            f" Dogrulama: Gercek Veriyle Dagilim Karsilastirmasi (ort. KS = {mean_ks:.2f})"]),
+            f" Dogrulama: Gercek Veriyle Dağılım Karşılaştırmasi (ort. KS = {mean_ks:.2f})"]),
         dcc.Graph(figure=fig, config={"displayModeBar": False}),
         html.Div([f"En iyi uyum: {feats[0]} (KS={ks[0]:.2f})  |  En kotu: {feats[-1]} (KS={ks[-1]:.2f}). ",
-                  "Dusuk KS, sentetik dagilimin gercege yakinligini gosterir; yuksek degerli "
-                  "ozellikler ureteci iyilestirmek icin onceliklidir."],
+                  "Düşük KS, sentetik dağılımin gercege yakinligini gosterir; yüksek değerli "
+                  "özellikler ureteci iyilestirmek icin onceliklidir."],
                  style={"fontSize": "12px", "color": "#64748B", "marginTop": "8px", "lineHeight": "1.5"}),
     ])
 
@@ -89,14 +89,14 @@ def get_synthetic_layout():
     return html.Div([
         html.Div(className="page-header", children=[
             html.Div("Sentetik Veri Laboratuvari", className="page-title"),
-            html.Div("ESA OPS-SAT benzeri sentetik uydu telemetrisi uretimi ve gorsellestirilmesi",
+            html.Div("ESA OPS-SAT benzeri sentetik uydu telemetrisi üretimi ve görselleştirilmesi",
                      className="page-subtitle"),
         ]),
 
         dbc.Row([
             dbc.Col([html.Div(className="panel", children=[
                 html.Div(className="panel-title", children=[
-                    _icon("mdi:tune-vertical", 16), " Uretim Parametreleri"]),
+                    _icon("mdi:tune-vertical", 16), " Üretim Parametreleri"]),
 
                 html.Div("KANAL SECIMI", className="section-label"),
                 dcc.Checklist(
@@ -173,7 +173,7 @@ def register_synthetic_callbacks(app):
     )
     def generate_synthetic(n, channels, n_segments, anomaly_ratio, seed):
         if not n or not channels:
-            return no_update, no_update, no_update, "En az bir kanal secin."
+            return no_update, no_update, no_update, "En az bir kanal seçin."
 
         from synthetic_generator import SyntheticTelemetryGenerator
         from feature_engineer import extract_esa_features
@@ -212,13 +212,13 @@ def register_synthetic_callbacks(app):
         fig_signals.update_layout(
             **PLT_LAYOUT,
             height=120 * min(len(channels), 4) + 60,
-            title="Ornek Segment Sinyalleri (ilk segment / kanal)",
+            title="Örnek Segment Sinyalleri (ilk segment / kanal)",
         )
 
         anomaly_segs = segments_df[segments_df["anomaly"] == 1]
         ch_dist = features_df["channel"].value_counts()
         fig_dist = make_subplots(rows=1, cols=2,
-                                 subplot_titles=["Kanal Dagilimi", "Normal vs Anomali"],
+                                 subplot_titles=["Kanal Dağılımi", "Normal vs Anomali"],
                                  specs=[[{"type": "pie"}, {"type": "pie"}]])
         fig_dist.add_trace(
             go.Pie(labels=ch_dist.index.tolist(), values=ch_dist.values.tolist(),
@@ -244,7 +244,7 @@ def register_synthetic_callbacks(app):
                                      boxmean=True, showlegend=False))
             fig_box.add_trace(go.Box(y=anom_vals, name=f"{feat} (A)", marker_color="#EF4444",
                                      boxmean=True, showlegend=False))
-        fig_box.update_layout(**PLT_LAYOUT, height=350, title="Ozellik Dagilimi: Normal (N) vs Anomali (A)")
+        fig_box.update_layout(**PLT_LAYOUT, height=350, title="Özellik Dağılımi: Normal (N) vs Anomali (A)")
 
         from dash import dash_table
         preview_cols = ["segment", "channel", "anomaly", "sampling", "duration", "len",
@@ -258,10 +258,10 @@ def register_synthetic_callbacks(app):
 
         output = html.Div([
             stat_strip([
-                ("Segment", len(features_df), f"{n_rows:,} satir ham", "blue"),
+                ("Segment", len(features_df), f"{n_rows:,} satır ham", "blue"),
                 ("Anomali", n_anom, f"%{anomaly_ratio * 100:.0f} oran", "red"),
                 ("Kanal", n_channels_used, f"{', '.join(channels[:3])}...", "cyan"),
-                ("Ozellik", 18, "ESA handcrafted", "green"),
+                ("Özellik", 18, "ESA handcrafted", "green"),
             ]),
 
             html.Div(className="panel mb-4", children=[
@@ -282,7 +282,7 @@ def register_synthetic_callbacks(app):
             html.Div(className="panel mb-4", children=[
                 html.Div(className="panel-title", children=[
                     _icon("mdi:table-large", 16),
-                    f" Cikarilan Ozellikler ({len(features_df)} segment, {len(features_df.columns)} sutun)"
+                    f" Cikarilan Özellikler ({len(features_df)} segment, {len(features_df.columns)} sutun)"
                 ]),
                 dash_table.DataTable(
                     columns=[{"name": c, "id": c} for c in show_cols],

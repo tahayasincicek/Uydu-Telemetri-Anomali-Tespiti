@@ -156,11 +156,8 @@ def update_results(pred_json, data_json):
           Input("results-table", "active_cell"), State("results-table", "data"), prevent_initial_call=True)
 def select_anomaly(active_cell, data):
     if not active_cell or not data: return no_update, no_update, no_update, "Detay görüntülemek için tabloda bir anomali satırına tıklayın."
-    row_idx = active_cell["row"]
-    col_id = active_cell["column_id"]
-    if col_id != "Detay": return no_update, no_update, no_update, no_update
-    
-    selected = data[row_idx]
+    # Satırdaki herhangi bir hücreye tıklamak detayı açar (yalnız "Detay" kolonu değil).
+    selected = data[active_cell["row"]]
     return selected, data, "detail", no_update
 
 

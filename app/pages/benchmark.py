@@ -16,7 +16,7 @@ from utils.ui import PLT_LAYOUT, icon as _icon, metric_card as _metric_card, sta
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 BENCH_CSV = os.path.join(ROOT, "reports", "metrics", "benchmark_comparison.csv")
 
-CAT_COLOR = {"Gozetimli": "#3B82F6", "Gozetimsiz": "#8B5CF6"}
+CAT_COLOR = {"Gözetimli": "#3B82F6", "Gözetimsiz": "#8B5CF6"}
 
 
 def _missing_layout():
@@ -43,8 +43,8 @@ def get_benchmark_layout():
         return _missing_layout()
     df = pd.read_csv(BENCH_CSV)
 
-    sup = df[df["Kategori"] == "Gozetimli"]
-    uns = df[df["Kategori"] == "Gozetimsiz"]
+    sup = df[df["Kategori"] == "Gözetimli"]
+    uns = df[df["Kategori"] == "Gözetimsiz"]
     mae_sup = sup["ΔAUC_PR"].abs().mean() if len(sup) else 0
     mae_uns = uns["ΔAUC_PR"].abs().mean() if len(uns) else 0
 

@@ -1,4 +1,4 @@
-"""Veri Yukle sayfasi: layout + callback'ler."""
+"""Veri Yükle sayfasi: layout + callback'ler."""
 import os
 import io
 import json

@@ -20,79 +20,79 @@ POWER_CSV = os.path.join(ROOT, "reports", "power_profiles.csv")
 
 
 POWER_PROFILES = {
-    "LogisticRegression": {"cpu_watts": 8,  "train_sec": 0.5,  "infer_ms": 0.02, "memory_mb": 15,  "category": "Gozetimli", "complexity": "Dusuk"},
-    "Ridge":              {"cpu_watts": 6,  "train_sec": 0.3,  "infer_ms": 0.01, "memory_mb": 10,  "category": "Gozetimli", "complexity": "Dusuk"},
-    "SGD":                {"cpu_watts": 7,  "train_sec": 0.4,  "infer_ms": 0.01, "memory_mb": 12,  "category": "Gozetimli", "complexity": "Dusuk"},
-    "NaiveBayes":         {"cpu_watts": 5,  "train_sec": 0.2,  "infer_ms": 0.01, "memory_mb": 8,   "category": "Gozetimli", "complexity": "Dusuk"},
-    "LDA":                {"cpu_watts": 6,  "train_sec": 0.3,  "infer_ms": 0.01, "memory_mb": 12,  "category": "Gozetimli", "complexity": "Dusuk"},
-    "QDA":                {"cpu_watts": 7,  "train_sec": 0.4,  "infer_ms": 0.02, "memory_mb": 15,  "category": "Gozetimli", "complexity": "Dusuk"},
-    "DecisionTree":       {"cpu_watts": 8,  "train_sec": 0.8,  "infer_ms": 0.01, "memory_mb": 20,  "category": "Gozetimli", "complexity": "Dusuk"},
-    "KNN":                {"cpu_watts": 10, "train_sec": 0.1,  "infer_ms": 2.5,  "memory_mb": 150, "category": "Gozetimli", "complexity": "Orta"},
-    "LSVC":               {"cpu_watts": 12, "train_sec": 1.5,  "infer_ms": 0.02, "memory_mb": 25,  "category": "Gozetimli", "complexity": "Orta"},
-    "RandomForest":        {"cpu_watts": 25, "train_sec": 8,   "infer_ms": 0.5,  "memory_mb": 200, "category": "Gozetimli", "complexity": "Orta"},
-    "ExtraTrees":          {"cpu_watts": 22, "train_sec": 6,   "infer_ms": 0.4,  "memory_mb": 180, "category": "Gozetimli", "complexity": "Orta"},
-    "GradientBoosting":    {"cpu_watts": 30, "train_sec": 25,  "infer_ms": 0.3,  "memory_mb": 120, "category": "Gozetimli", "complexity": "Orta"},
-    "HistGradientBoosting":{"cpu_watts": 28, "train_sec": 5,   "infer_ms": 0.2,  "memory_mb": 100, "category": "Gozetimli", "complexity": "Orta"},
-    "AdaBoost":            {"cpu_watts": 20, "train_sec": 10,  "infer_ms": 0.3,  "memory_mb": 80,  "category": "Gozetimli", "complexity": "Orta"},
-    "Bagging":             {"cpu_watts": 22, "train_sec": 7,   "infer_ms": 0.4,  "memory_mb": 170, "category": "Gozetimli", "complexity": "Orta"},
-    "Voting Ensemble":     {"cpu_watts": 35, "train_sec": 15,  "infer_ms": 0.8,  "memory_mb": 250, "category": "Gozetimli", "complexity": "Yuksek"},
-    "XGBoost":             {"cpu_watts": 35, "train_sec": 12,  "infer_ms": 0.15, "memory_mb": 150, "category": "Gozetimli", "complexity": "Orta"},
-    "XGBOD":               {"cpu_watts": 40, "train_sec": 30,  "infer_ms": 0.5,  "memory_mb": 300, "category": "Gozetimli", "complexity": "Yuksek"},
-    "SVM":                 {"cpu_watts": 30, "train_sec": 20,  "infer_ms": 1.0,  "memory_mb": 200, "category": "Gozetimli", "complexity": "Yuksek"},
-    "MLP":              {"cpu_watts": 45, "train_sec": 60,  "infer_ms": 0.5,  "memory_mb": 300, "category": "Gozetimli", "complexity": "Yuksek"},
-    "LSTM":             {"cpu_watts": 65, "train_sec": 180, "infer_ms": 2.0,  "memory_mb": 500, "category": "Gozetimli", "complexity": "Cok Yuksek"},
-    "BiLSTM":           {"cpu_watts": 75, "train_sec": 250, "infer_ms": 3.5,  "memory_mb": 650, "category": "Gozetimli", "complexity": "Cok Yuksek"},
-    "GRU":              {"cpu_watts": 55, "train_sec": 150, "infer_ms": 1.8,  "memory_mb": 420, "category": "Gozetimli", "complexity": "Cok Yuksek"},
-    "BiGRU":            {"cpu_watts": 65, "train_sec": 200, "infer_ms": 3.0,  "memory_mb": 550, "category": "Gozetimli", "complexity": "Cok Yuksek"},
-    "CNN1D":            {"cpu_watts": 50, "train_sec": 90,  "infer_ms": 1.0,  "memory_mb": 350, "category": "Gozetimli", "complexity": "Yuksek"},
-    "CNN_LSTM":         {"cpu_watts": 70, "train_sec": 220, "infer_ms": 3.0,  "memory_mb": 600, "category": "Gozetimli", "complexity": "Cok Yuksek"},
-    "CNN_BiLSTM":       {"cpu_watts": 80, "train_sec": 280, "infer_ms": 4.0,  "memory_mb": 700, "category": "Gozetimli", "complexity": "Cok Yuksek"},
-    "CNN_GRU":          {"cpu_watts": 65, "train_sec": 190, "infer_ms": 2.5,  "memory_mb": 520, "category": "Gozetimli", "complexity": "Cok Yuksek"},
-    "Transformer":      {"cpu_watts": 85, "train_sec": 300, "infer_ms": 3.5,  "memory_mb": 800, "category": "Gozetimli", "complexity": "Cok Yuksek"},
-    "TCN":              {"cpu_watts": 60, "train_sec": 160, "infer_ms": 2.0,  "memory_mb": 450, "category": "Gozetimli", "complexity": "Cok Yuksek"},
-    "Attention_BiLSTM": {"cpu_watts": 80, "train_sec": 290, "infer_ms": 4.0,  "memory_mb": 750, "category": "Gozetimli", "complexity": "Cok Yuksek"},
-    "FCN":              {"cpu_watts": 55, "train_sec": 100, "infer_ms": 1.2,  "memory_mb": 380, "category": "Gozetimli", "complexity": "Yuksek"},
-    "ResNet1D":         {"cpu_watts": 70, "train_sec": 200, "infer_ms": 2.5,  "memory_mb": 600, "category": "Gozetimli", "complexity": "Cok Yuksek"},
-    "InceptionTime":    {"cpu_watts": 75, "train_sec": 250, "infer_ms": 3.0,  "memory_mb": 700, "category": "Gozetimli", "complexity": "Cok Yuksek"},
-    "LSTM_FCN":         {"cpu_watts": 70, "train_sec": 210, "infer_ms": 2.8,  "memory_mb": 580, "category": "Gozetimli", "complexity": "Cok Yuksek"},
-    "IsolationForest":  {"cpu_watts": 15, "train_sec": 3,   "infer_ms": 0.3,  "memory_mb": 80,  "category": "Gozetimsiz", "complexity": "Dusuk"},
-    "LOF":              {"cpu_watts": 12, "train_sec": 2,   "infer_ms": 1.5,  "memory_mb": 100, "category": "Gozetimsiz", "complexity": "Dusuk"},
-    "OneClassSVM":      {"cpu_watts": 25, "train_sec": 15,  "infer_ms": 0.8,  "memory_mb": 150, "category": "Gozetimsiz", "complexity": "Orta"},
-    "KMeans":           {"cpu_watts": 10, "train_sec": 2,   "infer_ms": 0.1,  "memory_mb": 50,  "category": "Gozetimsiz", "complexity": "Dusuk"},
-    "GMM":              {"cpu_watts": 15, "train_sec": 5,   "infer_ms": 0.3,  "memory_mb": 80,  "category": "Gozetimsiz", "complexity": "Orta"},
-    "EllipticEnvelope": {"cpu_watts": 18, "train_sec": 8,   "infer_ms": 0.2,  "memory_mb": 90,  "category": "Gozetimsiz", "complexity": "Orta"},
-    "PCA":              {"cpu_watts": 8,  "train_sec": 1,   "infer_ms": 0.05, "memory_mb": 30,  "category": "Gozetimsiz", "complexity": "Dusuk"},
-    "DBSCAN":           {"cpu_watts": 20, "train_sec": 10,  "infer_ms": 0.5,  "memory_mb": 200, "category": "Gozetimsiz", "complexity": "Orta"},
-    "Autoencoder":      {"cpu_watts": 40, "train_sec": 80,  "infer_ms": 0.4,  "memory_mb": 250, "category": "Gozetimsiz", "complexity": "Yuksek"},
-    "LSTM_Autoencoder": {"cpu_watts": 60, "train_sec": 150, "infer_ms": 2.0,  "memory_mb": 400, "category": "Gozetimsiz", "complexity": "Cok Yuksek"},
-    "VAE":              {"cpu_watts": 45, "train_sec": 90,  "infer_ms": 0.5,  "memory_mb": 280, "category": "Gozetimsiz", "complexity": "Yuksek"},
-    "AnoGAN":           {"cpu_watts": 70, "train_sec": 400, "infer_ms": 1.5,  "memory_mb": 500, "category": "Gozetimsiz", "complexity": "Cok Yuksek"},
-    "ALAD":             {"cpu_watts": 75, "train_sec": 350, "infer_ms": 1.2,  "memory_mb": 480, "category": "Gozetimsiz", "complexity": "Cok Yuksek"},
-    "ECOD":  {"cpu_watts": 5,  "train_sec": 1,   "infer_ms": 0.05, "memory_mb": 20,  "category": "Gozetimsiz", "complexity": "Dusuk"},
-    "COPOD": {"cpu_watts": 6,  "train_sec": 1.5, "infer_ms": 0.08, "memory_mb": 25,  "category": "Gozetimsiz", "complexity": "Dusuk"},
-    "HBOS":  {"cpu_watts": 4,  "train_sec": 0.5, "infer_ms": 0.03, "memory_mb": 15,  "category": "Gozetimsiz", "complexity": "Dusuk"},
-    "CBLOF": {"cpu_watts": 10, "train_sec": 3,   "infer_ms": 0.2,  "memory_mb": 60,  "category": "Gozetimsiz", "complexity": "Orta"},
-    "ABOD":  {"cpu_watts": 18, "train_sec": 25,  "infer_ms": 5.0,  "memory_mb": 200, "category": "Gozetimsiz", "complexity": "Yuksek"},
-    "COF":   {"cpu_watts": 15, "train_sec": 20,  "infer_ms": 3.0,  "memory_mb": 180, "category": "Gozetimsiz", "complexity": "Orta"},
-    "SOD":   {"cpu_watts": 14, "train_sec": 15,  "infer_ms": 2.0,  "memory_mb": 150, "category": "Gozetimsiz", "complexity": "Orta"},
-    "SOS":   {"cpu_watts": 12, "train_sec": 10,  "infer_ms": 1.5,  "memory_mb": 120, "category": "Gozetimsiz", "complexity": "Orta"},
-    "LODA":  {"cpu_watts": 5,  "train_sec": 1,   "infer_ms": 0.05, "memory_mb": 20,  "category": "Gozetimsiz", "complexity": "Dusuk"},
-    "INNE":  {"cpu_watts": 12, "train_sec": 5,   "infer_ms": 0.8,  "memory_mb": 80,  "category": "Gozetimsiz", "complexity": "Orta"},
-    "LMDD":  {"cpu_watts": 10, "train_sec": 8,   "infer_ms": 0.5,  "memory_mb": 60,  "category": "Gozetimsiz", "complexity": "Orta"},
-    "SO_GAAL":  {"cpu_watts": 50, "train_sec": 200, "infer_ms": 1.0, "memory_mb": 350, "category": "Gozetimsiz", "complexity": "Cok Yuksek"},
-    "MO_GAAL":  {"cpu_watts": 55, "train_sec": 250, "infer_ms": 1.2, "memory_mb": 400, "category": "Gozetimsiz", "complexity": "Cok Yuksek"},
-    "DeepSVDD": {"cpu_watts": 45, "train_sec": 120, "infer_ms": 0.8, "memory_mb": 300, "category": "Gozetimsiz", "complexity": "Yuksek"},
-    "LUNAR":    {"cpu_watts": 50, "train_sec": 180, "infer_ms": 1.5, "memory_mb": 400, "category": "Gozetimsiz", "complexity": "Cok Yuksek"},
-    "DIF":      {"cpu_watts": 40, "train_sec": 100, "infer_ms": 0.8, "memory_mb": 250, "category": "Gozetimsiz", "complexity": "Yuksek"},
+    "LogisticRegression": {"cpu_watts": 8,  "train_sec": 0.5,  "infer_ms": 0.02, "memory_mb": 15,  "category": "Gözetimli", "complexity": "Düşük"},
+    "Ridge":              {"cpu_watts": 6,  "train_sec": 0.3,  "infer_ms": 0.01, "memory_mb": 10,  "category": "Gözetimli", "complexity": "Düşük"},
+    "SGD":                {"cpu_watts": 7,  "train_sec": 0.4,  "infer_ms": 0.01, "memory_mb": 12,  "category": "Gözetimli", "complexity": "Düşük"},
+    "NaiveBayes":         {"cpu_watts": 5,  "train_sec": 0.2,  "infer_ms": 0.01, "memory_mb": 8,   "category": "Gözetimli", "complexity": "Düşük"},
+    "LDA":                {"cpu_watts": 6,  "train_sec": 0.3,  "infer_ms": 0.01, "memory_mb": 12,  "category": "Gözetimli", "complexity": "Düşük"},
+    "QDA":                {"cpu_watts": 7,  "train_sec": 0.4,  "infer_ms": 0.02, "memory_mb": 15,  "category": "Gözetimli", "complexity": "Düşük"},
+    "DecisionTree":       {"cpu_watts": 8,  "train_sec": 0.8,  "infer_ms": 0.01, "memory_mb": 20,  "category": "Gözetimli", "complexity": "Düşük"},
+    "KNN":                {"cpu_watts": 10, "train_sec": 0.1,  "infer_ms": 2.5,  "memory_mb": 150, "category": "Gözetimli", "complexity": "Orta"},
+    "LSVC":               {"cpu_watts": 12, "train_sec": 1.5,  "infer_ms": 0.02, "memory_mb": 25,  "category": "Gözetimli", "complexity": "Orta"},
+    "RandomForest":        {"cpu_watts": 25, "train_sec": 8,   "infer_ms": 0.5,  "memory_mb": 200, "category": "Gözetimli", "complexity": "Orta"},
+    "ExtraTrees":          {"cpu_watts": 22, "train_sec": 6,   "infer_ms": 0.4,  "memory_mb": 180, "category": "Gözetimli", "complexity": "Orta"},
+    "GradientBoosting":    {"cpu_watts": 30, "train_sec": 25,  "infer_ms": 0.3,  "memory_mb": 120, "category": "Gözetimli", "complexity": "Orta"},
+    "HistGradientBoosting":{"cpu_watts": 28, "train_sec": 5,   "infer_ms": 0.2,  "memory_mb": 100, "category": "Gözetimli", "complexity": "Orta"},
+    "AdaBoost":            {"cpu_watts": 20, "train_sec": 10,  "infer_ms": 0.3,  "memory_mb": 80,  "category": "Gözetimli", "complexity": "Orta"},
+    "Bagging":             {"cpu_watts": 22, "train_sec": 7,   "infer_ms": 0.4,  "memory_mb": 170, "category": "Gözetimli", "complexity": "Orta"},
+    "Voting Ensemble":     {"cpu_watts": 35, "train_sec": 15,  "infer_ms": 0.8,  "memory_mb": 250, "category": "Gözetimli", "complexity": "Yüksek"},
+    "XGBoost":             {"cpu_watts": 35, "train_sec": 12,  "infer_ms": 0.15, "memory_mb": 150, "category": "Gözetimli", "complexity": "Orta"},
+    "XGBOD":               {"cpu_watts": 40, "train_sec": 30,  "infer_ms": 0.5,  "memory_mb": 300, "category": "Gözetimli", "complexity": "Yüksek"},
+    "SVM":                 {"cpu_watts": 30, "train_sec": 20,  "infer_ms": 1.0,  "memory_mb": 200, "category": "Gözetimli", "complexity": "Yüksek"},
+    "MLP":              {"cpu_watts": 45, "train_sec": 60,  "infer_ms": 0.5,  "memory_mb": 300, "category": "Gözetimli", "complexity": "Yüksek"},
+    "LSTM":             {"cpu_watts": 65, "train_sec": 180, "infer_ms": 2.0,  "memory_mb": 500, "category": "Gözetimli", "complexity": "Çok Yüksek"},
+    "BiLSTM":           {"cpu_watts": 75, "train_sec": 250, "infer_ms": 3.5,  "memory_mb": 650, "category": "Gözetimli", "complexity": "Çok Yüksek"},
+    "GRU":              {"cpu_watts": 55, "train_sec": 150, "infer_ms": 1.8,  "memory_mb": 420, "category": "Gözetimli", "complexity": "Çok Yüksek"},
+    "BiGRU":            {"cpu_watts": 65, "train_sec": 200, "infer_ms": 3.0,  "memory_mb": 550, "category": "Gözetimli", "complexity": "Çok Yüksek"},
+    "CNN1D":            {"cpu_watts": 50, "train_sec": 90,  "infer_ms": 1.0,  "memory_mb": 350, "category": "Gözetimli", "complexity": "Yüksek"},
+    "CNN_LSTM":         {"cpu_watts": 70, "train_sec": 220, "infer_ms": 3.0,  "memory_mb": 600, "category": "Gözetimli", "complexity": "Çok Yüksek"},
+    "CNN_BiLSTM":       {"cpu_watts": 80, "train_sec": 280, "infer_ms": 4.0,  "memory_mb": 700, "category": "Gözetimli", "complexity": "Çok Yüksek"},
+    "CNN_GRU":          {"cpu_watts": 65, "train_sec": 190, "infer_ms": 2.5,  "memory_mb": 520, "category": "Gözetimli", "complexity": "Çok Yüksek"},
+    "Transformer":      {"cpu_watts": 85, "train_sec": 300, "infer_ms": 3.5,  "memory_mb": 800, "category": "Gözetimli", "complexity": "Çok Yüksek"},
+    "TCN":              {"cpu_watts": 60, "train_sec": 160, "infer_ms": 2.0,  "memory_mb": 450, "category": "Gözetimli", "complexity": "Çok Yüksek"},
+    "Attention_BiLSTM": {"cpu_watts": 80, "train_sec": 290, "infer_ms": 4.0,  "memory_mb": 750, "category": "Gözetimli", "complexity": "Çok Yüksek"},
+    "FCN":              {"cpu_watts": 55, "train_sec": 100, "infer_ms": 1.2,  "memory_mb": 380, "category": "Gözetimli", "complexity": "Yüksek"},
+    "ResNet1D":         {"cpu_watts": 70, "train_sec": 200, "infer_ms": 2.5,  "memory_mb": 600, "category": "Gözetimli", "complexity": "Çok Yüksek"},
+    "InceptionTime":    {"cpu_watts": 75, "train_sec": 250, "infer_ms": 3.0,  "memory_mb": 700, "category": "Gözetimli", "complexity": "Çok Yüksek"},
+    "LSTM_FCN":         {"cpu_watts": 70, "train_sec": 210, "infer_ms": 2.8,  "memory_mb": 580, "category": "Gözetimli", "complexity": "Çok Yüksek"},
+    "IsolationForest":  {"cpu_watts": 15, "train_sec": 3,   "infer_ms": 0.3,  "memory_mb": 80,  "category": "Gözetimsiz", "complexity": "Düşük"},
+    "LOF":              {"cpu_watts": 12, "train_sec": 2,   "infer_ms": 1.5,  "memory_mb": 100, "category": "Gözetimsiz", "complexity": "Düşük"},
+    "OneClassSVM":      {"cpu_watts": 25, "train_sec": 15,  "infer_ms": 0.8,  "memory_mb": 150, "category": "Gözetimsiz", "complexity": "Orta"},
+    "KMeans":           {"cpu_watts": 10, "train_sec": 2,   "infer_ms": 0.1,  "memory_mb": 50,  "category": "Gözetimsiz", "complexity": "Düşük"},
+    "GMM":              {"cpu_watts": 15, "train_sec": 5,   "infer_ms": 0.3,  "memory_mb": 80,  "category": "Gözetimsiz", "complexity": "Orta"},
+    "EllipticEnvelope": {"cpu_watts": 18, "train_sec": 8,   "infer_ms": 0.2,  "memory_mb": 90,  "category": "Gözetimsiz", "complexity": "Orta"},
+    "PCA":              {"cpu_watts": 8,  "train_sec": 1,   "infer_ms": 0.05, "memory_mb": 30,  "category": "Gözetimsiz", "complexity": "Düşük"},
+    "DBSCAN":           {"cpu_watts": 20, "train_sec": 10,  "infer_ms": 0.5,  "memory_mb": 200, "category": "Gözetimsiz", "complexity": "Orta"},
+    "Autoencoder":      {"cpu_watts": 40, "train_sec": 80,  "infer_ms": 0.4,  "memory_mb": 250, "category": "Gözetimsiz", "complexity": "Yüksek"},
+    "LSTM_Autoencoder": {"cpu_watts": 60, "train_sec": 150, "infer_ms": 2.0,  "memory_mb": 400, "category": "Gözetimsiz", "complexity": "Çok Yüksek"},
+    "VAE":              {"cpu_watts": 45, "train_sec": 90,  "infer_ms": 0.5,  "memory_mb": 280, "category": "Gözetimsiz", "complexity": "Yüksek"},
+    "AnoGAN":           {"cpu_watts": 70, "train_sec": 400, "infer_ms": 1.5,  "memory_mb": 500, "category": "Gözetimsiz", "complexity": "Çok Yüksek"},
+    "ALAD":             {"cpu_watts": 75, "train_sec": 350, "infer_ms": 1.2,  "memory_mb": 480, "category": "Gözetimsiz", "complexity": "Çok Yüksek"},
+    "ECOD":  {"cpu_watts": 5,  "train_sec": 1,   "infer_ms": 0.05, "memory_mb": 20,  "category": "Gözetimsiz", "complexity": "Düşük"},
+    "COPOD": {"cpu_watts": 6,  "train_sec": 1.5, "infer_ms": 0.08, "memory_mb": 25,  "category": "Gözetimsiz", "complexity": "Düşük"},
+    "HBOS":  {"cpu_watts": 4,  "train_sec": 0.5, "infer_ms": 0.03, "memory_mb": 15,  "category": "Gözetimsiz", "complexity": "Düşük"},
+    "CBLOF": {"cpu_watts": 10, "train_sec": 3,   "infer_ms": 0.2,  "memory_mb": 60,  "category": "Gözetimsiz", "complexity": "Orta"},
+    "ABOD":  {"cpu_watts": 18, "train_sec": 25,  "infer_ms": 5.0,  "memory_mb": 200, "category": "Gözetimsiz", "complexity": "Yüksek"},
+    "COF":   {"cpu_watts": 15, "train_sec": 20,  "infer_ms": 3.0,  "memory_mb": 180, "category": "Gözetimsiz", "complexity": "Orta"},
+    "SOD":   {"cpu_watts": 14, "train_sec": 15,  "infer_ms": 2.0,  "memory_mb": 150, "category": "Gözetimsiz", "complexity": "Orta"},
+    "SOS":   {"cpu_watts": 12, "train_sec": 10,  "infer_ms": 1.5,  "memory_mb": 120, "category": "Gözetimsiz", "complexity": "Orta"},
+    "LODA":  {"cpu_watts": 5,  "train_sec": 1,   "infer_ms": 0.05, "memory_mb": 20,  "category": "Gözetimsiz", "complexity": "Düşük"},
+    "INNE":  {"cpu_watts": 12, "train_sec": 5,   "infer_ms": 0.8,  "memory_mb": 80,  "category": "Gözetimsiz", "complexity": "Orta"},
+    "LMDD":  {"cpu_watts": 10, "train_sec": 8,   "infer_ms": 0.5,  "memory_mb": 60,  "category": "Gözetimsiz", "complexity": "Orta"},
+    "SO_GAAL":  {"cpu_watts": 50, "train_sec": 200, "infer_ms": 1.0, "memory_mb": 350, "category": "Gözetimsiz", "complexity": "Çok Yüksek"},
+    "MO_GAAL":  {"cpu_watts": 55, "train_sec": 250, "infer_ms": 1.2, "memory_mb": 400, "category": "Gözetimsiz", "complexity": "Çok Yüksek"},
+    "DeepSVDD": {"cpu_watts": 45, "train_sec": 120, "infer_ms": 0.8, "memory_mb": 300, "category": "Gözetimsiz", "complexity": "Yüksek"},
+    "LUNAR":    {"cpu_watts": 50, "train_sec": 180, "infer_ms": 1.5, "memory_mb": 400, "category": "Gözetimsiz", "complexity": "Çok Yüksek"},
+    "DIF":      {"cpu_watts": 40, "train_sec": 100, "infer_ms": 0.8, "memory_mb": 250, "category": "Gözetimsiz", "complexity": "Yüksek"},
 }
 
 COMPLEXITY_COLORS = {
-    "Dusuk": "#10B981",
+    "Düşük": "#10B981",
     "Orta": "#F59E0B",
-    "Yuksek": "#EF4444",
-    "Cok Yuksek": "#DC2626",
+    "Yüksek": "#EF4444",
+    "Çok Yüksek": "#DC2626",
 }
-CATEGORY_COLORS = {"Gozetimli": "#3B82F6", "Gozetimsiz": "#8B5CF6"}
+CATEGORY_COLORS = {"Gözetimli": "#3B82F6", "Gözetimsiz": "#8B5CF6"}
 
 CO2_FACTOR = 400
 
@@ -128,7 +128,7 @@ def _build_df(dataset_size: int = 10000):
         rows.append({
             "Model": name,
             "Kategori": p["category"],
-            "Karmasiklik": p["complexity"],
+            "Karmaşıklık": p["complexity"],
             "CPU (W)": p["cpu_watts"],
             "Egitim (s)": round(t, 2),
             "Cikarim (ms)": p["infer_ms"],
@@ -151,7 +151,7 @@ def get_power_layout(ALL_METRICS=None):
 
         html.Div(className="panel mb-4", children=[
             html.Div(className="panel-title", children=[
-                _icon("mdi:database-cog-outline", 16), " Veri Seti Boyutu (ornek sayisi)"]),
+                _icon("mdi:database-cog-outline", 16), " Veri Seti Boyutu (örnek sayısı)"]),
             dcc.Slider(
                 id="power-dataset-slider",
                 min=1000, max=100000, step=1000, value=10000,
@@ -191,14 +191,14 @@ def register_power_callbacks(app, ALL_METRICS=None):
         cost_val = df["Enerji (Wh)"].max()
 
         cards = stat_strip([
-            ("Toplam Enerji", f"{total_energy:.2f} Wh", "64 model toplami", "cyan"),
+            ("Toplam Enerji", f"{total_energy:.2f} Wh", "64 model toplamı", "cyan"),
             ("CO2 Emisyonu", f"{total_co2:.3f} g", "Tahmini karbon", "green"),
             ("En Verimli", most_efficient, f"{eff_val:.4f} Wh", "green"),
             ("En Maliyetli", most_costly, f"{cost_val:.4f} Wh", "red"),
         ])
 
         df_sorted = df.sort_values("Enerji (Wh)", ascending=True)
-        bar_colors = [COMPLEXITY_COLORS.get(c, "#64748B") for c in df_sorted["Karmasiklik"]]
+        bar_colors = [COMPLEXITY_COLORS.get(c, "#64748B") for c in df_sorted["Karmaşıklık"]]
 
         fig_energy = go.Figure(go.Bar(
             y=df_sorted["Model"], x=df_sorted["Enerji (Wh)"],
@@ -208,7 +208,7 @@ def register_power_callbacks(app, ALL_METRICS=None):
         ))
         fig_energy.update_layout(
             **PLT_LAYOUT, height=1200,
-            title=f"Egitim Enerji Tuketimi (Wh) - {dataset_size:,} ornek",
+            title=f"Egitim Enerji Tuketimi (Wh) - {dataset_size:,} örnek",
             xaxis_title="Enerji (Wh)",
         )
 
@@ -250,20 +250,20 @@ def register_power_callbacks(app, ALL_METRICS=None):
             textinfo="label+percent", textfont=dict(size=12),
             hole=0.45,
         ))
-        fig_pie.update_layout(**PLT_LAYOUT, height=350, title="Kategori Bazli Enerji Dagilimi",
+        fig_pie.update_layout(**PLT_LAYOUT, height=350, title="Kategori Bazlı Enerji Dağılımi",
                               showlegend=False)
 
-        comp_energy = df.groupby("Karmasiklik")["Enerji (Wh)"].mean().reset_index()
-        comp_order = ["Dusuk", "Orta", "Yuksek", "Cok Yuksek"]
-        comp_energy["_order"] = comp_energy["Karmasiklik"].map({v: i for i, v in enumerate(comp_order)})
+        comp_energy = df.groupby("Karmaşıklık")["Enerji (Wh)"].mean().reset_index()
+        comp_order = ["Düşük", "Orta", "Yüksek", "Çok Yüksek"]
+        comp_energy["_order"] = comp_energy["Karmaşıklık"].map({v: i for i, v in enumerate(comp_order)})
         comp_energy = comp_energy.sort_values("_order")
         fig_comp = go.Figure(go.Bar(
-            x=comp_energy["Karmasiklik"], y=comp_energy["Enerji (Wh)"],
-            marker_color=[COMPLEXITY_COLORS.get(c, "#64748B") for c in comp_energy["Karmasiklik"]],
+            x=comp_energy["Karmaşıklık"], y=comp_energy["Enerji (Wh)"],
+            marker_color=[COMPLEXITY_COLORS.get(c, "#64748B") for c in comp_energy["Karmaşıklık"]],
             text=[f"{v:.4f}" for v in comp_energy["Enerji (Wh)"]],
             textposition="outside",
         ))
-        fig_comp.update_layout(**PLT_LAYOUT, height=350, title="Karmasiklik Seviyesine Gore Ort. Enerji",
+        fig_comp.update_layout(**PLT_LAYOUT, height=350, title="Karmaşıklık Seviyesine Gore Ort. Enerji",
                                yaxis_title="Ort. Enerji (Wh)")
 
         df_mem = df.sort_values("Bellek (MB)", ascending=True)
@@ -285,7 +285,7 @@ def register_power_callbacks(app, ALL_METRICS=None):
             textposition="outside",
         ))
         fig_time.update_layout(**PLT_LAYOUT, height=400,
-                               title=f"En Yavas 15 Model - Egitim Suresi ({dataset_size:,} ornek)",
+                               title=f"En Yavas 15 Model - Egitim Süresi ({dataset_size:,} örnek)",
                                yaxis_title="Sure (saniye)")
 
         legend_items = [
@@ -296,7 +296,7 @@ def register_power_callbacks(app, ALL_METRICS=None):
         ]
         legend_bar = html.Div(style={"display": "flex", "alignItems": "center", "padding": "10px 0",
                                       "marginBottom": "8px"}, children=[
-            html.Span("Karmasiklik: ", style={"fontWeight": "600", "fontSize": "12px", "color": "#64748B",
+            html.Span("Karmaşıklık: ", style={"fontWeight": "600", "fontSize": "12px", "color": "#64748B",
                                                 "marginRight": "12px"}),
             *legend_items,
         ])
@@ -341,11 +341,11 @@ def register_power_callbacks(app, ALL_METRICS=None):
                              "fontSize": "12px", "padding": "8px"},
                 style_data_conditional=[
                     {"if": {"row_index": "odd"}, "backgroundColor": "#F4F6FB"},
-                    {"if": {"filter_query": '{Karmasiklik} = "Cok Yuksek"', "column_id": "Karmasiklik"},
+                    {"if": {"filter_query": '{Karmaşıklık} = "Çok Yüksek"', "column_id": "Karmaşıklık"},
                      "color": "#DC2626", "fontWeight": "600"},
-                    {"if": {"filter_query": '{Karmasiklik} = "Yuksek"', "column_id": "Karmasiklik"},
+                    {"if": {"filter_query": '{Karmaşıklık} = "Yüksek"', "column_id": "Karmaşıklık"},
                      "color": "#D97706"},
-                    {"if": {"filter_query": '{Karmasiklik} = "Dusuk"', "column_id": "Karmasiklik"},
+                    {"if": {"filter_query": '{Karmaşıklık} = "Düşük"', "column_id": "Karmaşıklık"},
                      "color": "#16A34A"},
                 ],
             ),

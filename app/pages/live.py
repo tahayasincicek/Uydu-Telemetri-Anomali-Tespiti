@@ -25,7 +25,9 @@ from core.state import (MODELS, THRESHOLDS, SCALER, TEST_DATA, ALL_METRICS, FEAT
 
 def page_live():
     channels = LIVE_DATA['channel'].unique().tolist() if not LIVE_DATA.empty and 'channel' in LIVE_DATA.columns else []
-    fast_models = [n for n in ["IsolationForest", "LOF", "OneClassSVM", "KMeans"] if n in MODELS]
+    live_models = [n for n in (SUP_MODEL_NAMES + UNSUP_MODEL_NAMES) if n in MODELS]
+    default_model = next((m for m in ["HistGradientBoosting", "RandomForest", "IsolationForest"] if m in MODELS),
+                         live_models[0] if live_models else None)
     
     # Grafikleri başlangıçta boş iz'lerle (trace) kur — extendData yalnızca var olan
     # iz'leri uzatabilir; aksi halde "Başlat"ta (Sıfırla'ya basılmadan) hiçbir şey çizilmez.
@@ -55,9 +57,9 @@ def page_live():
                                  value=channels[0] if channels else None, className="custom-dropdown", clearable=False)
                 ], className="control-group"),
                 html.Div([
-                    html.Label("Hızlı Model:"),
-                    dcc.Dropdown(id="live-model", options=[{"label": m, "value": m} for m in fast_models],
-                                 value=fast_models[0] if fast_models else None, className="custom-dropdown", clearable=False)
+                    html.Label("Model:"),
+                    dcc.Dropdown(id="live-model", options=[{"label": m, "value": m} for m in live_models],
+                                 value=default_model, className="custom-dropdown", clearable=False)
                 ], className="control-group"),
                 html.Div([
                     html.Label("Hız:"),
@@ -237,8 +239,8 @@ def update_live_sim(n_int, state, channel, model_name, speed, current_alarms):
     sig_y = [vals]
 
     # Anomali iz'ini sinyalle AYNI uzunlukta besle (ayni x'ler, yalniz anomali
-    # noktasinda y dolu, gerisi None). Boylece iki iz maxpoints=200 ile ayni
-    # pencerede birlikte kayar; eski anomali noktalari cizgiyle birlikte soldan
+    # noktasında y dolu, gerisi None). Boylece iki iz maxpoints=200 ile ayni
+    # pencerede birlikte kayar; eski anomali noktaları cizgiyle birlikte soldan
     # dusulur (aksi halde stale anomali isaretleri x-eksenini gererek cizgiyi
     # "soldan kayboluyor" gibi gosteriyordu).
     anom_marks = [None] * len(times)
