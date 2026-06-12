@@ -32,10 +32,9 @@ def page_analysis():
 
     def preset_option(key, p):
         return {"value": key, "label": html.Span([
-            html.Span([icon(p["icon"], 15, "#06B6D4"), html.Span(p["title"],
-                       style={"fontWeight": "600", "marginLeft": "6px"})]),
+            html.Span(p["title"], style={"fontWeight": "600"}),
             html.Div(p["desc"], style={"fontSize": "11px", "color": "#64748B",
-                                       "marginLeft": "21px", "lineHeight": "1.4"}),
+                                       "lineHeight": "1.4"}),
         ])}
     # Varsayılan profil: Yüksek Doğruluk
     default = ANALYSIS_PRESETS["dogru"]

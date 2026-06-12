@@ -11,13 +11,9 @@ from core.state import MODELS
 
 
 def nav_item(ic, text, page_id):
-    """Tıklanabilir bir navigasyon butonu (pattern-matching id ile).
-
-    İkonlar bilinçli olarak kaldırıldı (menü göz yormasın, metin odaklı sade tasarım);
-    `ic` parametresi çağrı yerleri değişmesin diye korunur fakat artık çizilmez.
-    """
+    """Tıklanabilir bir navigasyon butonu (pattern-matching id ile)."""
     return html.Button(id={"type": "nav", "page": page_id}, n_clicks=0,
-                       className="nav-item nav-item-text", children=[html.Span(text)])
+                       className="nav-item", children=[icon(ic, 18), html.Span(text)])
 
 
 def nav_subgroup(text):
