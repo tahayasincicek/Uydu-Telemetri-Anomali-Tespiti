@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 from dash import html, dcc, callback, Input, Output
 import dash_bootstrap_components as dbc
 
-from utils.ui import PLT_LAYOUT, icon, metric_card
+from utils.ui import PLT_LAYOUT, icon, metric_card, stat_strip
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 ABLATION_PKL = os.path.join(ROOT, "models", "ablation_results.pkl")
@@ -61,12 +61,12 @@ def get_ablation_layout():
             ])
         ]),
         
-        dbc.Row([
-            dbc.Col(metric_card("mdi:chart-arc", f"{baseline_auc:.3f}", "Baseline AUC-ROC", "blue"), md=3),
-            dbc.Col(metric_card("mdi:alert-decagram", crit_feat_name, "En Kritik Özellik", "red"), md=3),
-            dbc.Col(metric_card("mdi:format-list-checks", f"{min_feat_count} Adet", "Yeterli Özellik", "green"), md=3),
-            dbc.Col(metric_card("mdi:trending-down", f"%{abs(max_drop_pct):.2f}", "Performans Değişimi", "cyan"), md=3),
-        ], className="mb-4 g-3"),
+        stat_strip([
+            ("Baseline AUC-ROC", f"{baseline_auc:.3f}", None, "blue"),
+            ("En Kritik Özellik", crit_feat_name, None, "red"),
+            ("Yeterli Özellik", f"{min_feat_count} Adet", None, "green"),
+            ("Performans Değişimi", f"%{abs(max_drop_pct):.2f}", None, "cyan"),
+        ]),
         
         dcc.Tabs(id="ablation-tabs", value="tab-single", className="custom-tabs", children=[
             dcc.Tab(label="Tekil Özellik Etkisi", value="tab-single", className="tab", selected_className="tab--selected"),

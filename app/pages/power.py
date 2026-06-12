@@ -13,7 +13,7 @@ from plotly.subplots import make_subplots
 from dash import html, dcc, callback, Input, Output, no_update
 import dash_bootstrap_components as dbc
 
-from utils.ui import PLT_LAYOUT, icon as _icon, metric_card as _metric_card
+from utils.ui import PLT_LAYOUT, icon as _icon, metric_card as _metric_card, stat_strip
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 POWER_CSV = os.path.join(ROOT, "reports", "power_profiles.csv")
@@ -190,20 +190,12 @@ def register_power_callbacks(app, ALL_METRICS=None):
         eff_val = df["Enerji (Wh)"].min()
         cost_val = df["Enerji (Wh)"].max()
 
-        cards = dbc.Row([
-            dbc.Col(_metric_card("mdi:lightning-bolt", f"{total_energy:.2f} Wh",
-                                 "Toplam Enerji", "cyan",
-                                 f"64 model toplami"), md=3),
-            dbc.Col(_metric_card("mdi:leaf", f"{total_co2:.3f} g",
-                                 "CO2 Emisyonu", "green",
-                                 "Tahmini karbon ayak izi"), md=3),
-            dbc.Col(_metric_card("mdi:speedometer-slow", most_efficient,
-                                 "En Verimli", "green",
-                                 f"{eff_val:.4f} Wh"), md=3),
-            dbc.Col(_metric_card("mdi:speedometer", most_costly,
-                                 "En Maliyetli", "red",
-                                 f"{cost_val:.4f} Wh"), md=3),
-        ], className="mb-4 g-3")
+        cards = stat_strip([
+            ("Toplam Enerji", f"{total_energy:.2f} Wh", "64 model toplami", "cyan"),
+            ("CO2 Emisyonu", f"{total_co2:.3f} g", "Tahmini karbon", "green"),
+            ("En Verimli", most_efficient, f"{eff_val:.4f} Wh", "green"),
+            ("En Maliyetli", most_costly, f"{cost_val:.4f} Wh", "red"),
+        ])
 
         df_sorted = df.sort_values("Enerji (Wh)", ascending=True)
         bar_colors = [COMPLEXITY_COLORS.get(c, "#64748B") for c in df_sorted["Karmasiklik"]]

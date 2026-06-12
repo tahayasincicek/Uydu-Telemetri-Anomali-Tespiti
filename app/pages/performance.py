@@ -26,26 +26,6 @@ from core.state import (MODELS, THRESHOLDS, SCALER, TEST_DATA, ALL_METRICS, FEAT
 _PERF_FIGS_CACHE = None
 
 
-def _performance_recommendation():
-    """ALL_METRICS'ten veri-güdümlü öneri kutusu üretir (AUC_PR birincil ölçüt)."""
-    best_name, m = best_model(PRIMARY_METRIC)
-    if not best_name:
-        return html.Div()
-    u_name, um = best_model(PRIMARY_METRIC, among=set(UNSUP_MODEL_NAMES))
-    parts = [
-        f"{best_name} modeli {m.get('AUC_PR',0):.3f} AUC-PR, {m.get('F1',0):.3f} F1 ve "
-        f"{m.get('MCC',0):.3f} MCC ile resmi test setinde (Ψ) en yüksek performansı göstermiştir. ",
-    ]
-    if "FAR" in m:
-        parts.append(f"Yanlış alarm oranı (FAR) {m.get('FAR',0):.3f}. ")
-    if u_name:
-        parts.append(f"Gözetimsiz modeller arasında {u_name} {um.get('AUC_PR',0):.3f} AUC-PR ile öne çıkmaktadır.")
-    return html.Div(className="recommendation-box", children=[
-        html.Div(className="rec-title", children=[icon("mdi:trophy-outline", 18, "#3B82F6"), f"Önerimiz: {best_name}"]),
-        html.Div(className="rec-body", children=parts),
-    ])
-
-
 def build_performance_figures(top_n=10):
     """En iyi N modelin (AUC-PR sıralı) ROC + PR eğrilerini ve ilk 3 modelin
     confusion matrislerini Ψ üzerinde bir kez hesaplar, önbelleğe alır. Ağır işlem
@@ -164,10 +144,7 @@ def page_performance():
                 ],
             )
         ]),
-        dbc.Row([
-            dbc.Col(_performance_recommendation(), md=7),
-            dbc.Col(html.Div(className="panel", children=[dcc.Graph(figure=fig_radar, config={"displayModeBar": False})]), md=5),
-        ], className="mb-4 g-3"),
+        html.Div(className="panel mb-4", children=[dcc.Graph(figure=fig_radar, config={"displayModeBar": False})]),
         dcc.Loading(id="loading-roc", type="circle", color="#3B82F6",
                     children=html.Div(id="performance-roc", children=[
                         html.Div([icon("mdi:chart-bell-curve-cumulative", 28, "#3B82F6"),

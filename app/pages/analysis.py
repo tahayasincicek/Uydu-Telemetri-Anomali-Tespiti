@@ -15,7 +15,7 @@ import dash_bootstrap_components as dbc
 
 from utils.model_loader import predict
 from utils.feature_extractor import extract_features_from_raw
-from utils.ui import PLT_LAYOUT, icon, metric_card
+from utils.ui import PLT_LAYOUT, icon, metric_card, stat_strip
 from core.constants import (DEMO_PATH, LIVE_DATA_PATH, SHAP_PKL, BENCHMARK_METRICS,
                             PRIMARY_METRIC, DROP_COLS, SUP_MODEL_NAMES, UNSUP_MODEL_NAMES,
                             ANALYSIS_PRESETS)
@@ -146,11 +146,11 @@ def run_analysis(n, sup_sel, unsup_sel, thresh_mult, data_json):
             ]))
 
     total = sum(r["n_anomaly"] for r in results.values())
-    summary = dbc.Row([
-        dbc.Col(metric_card("mdi:check-circle-outline", len(results), "Başarılı Model", "green"), md=4),
-        dbc.Col(metric_card("mdi:alert-outline", total, "Toplam Anomali", "red"), md=4),
-        dbc.Col(metric_card("mdi:timer-outline", f"{len(selected)}", "Çalışan Model", "blue"), md=4),
-    ], className="mb-3 g-3")
+    summary = stat_strip([
+        ("Başarılı Model", len(results), None, "green"),
+        ("Toplam Anomali", total, None, "red"),
+        ("Çalışan Model", len(selected), None, "blue"),
+    ])
 
     return html.Div([summary, html.Div(className="panel-title", children=[icon("mdi:format-list-bulleted",16), "Model Sonuçları"]), *rows]), json.dumps(results)
 

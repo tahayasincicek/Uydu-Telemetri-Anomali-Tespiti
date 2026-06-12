@@ -13,7 +13,7 @@ from plotly.subplots import make_subplots
 from dash import html, dcc, callback, Input, Output, State, no_update, ctx, dash_table
 import dash_bootstrap_components as dbc
 
-from utils.ui import PLT_LAYOUT, icon as _icon, metric_card as _metric_card
+from utils.ui import PLT_LAYOUT, icon as _icon, metric_card as _metric_card, stat_strip
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, os.path.join(ROOT, "src"))
@@ -237,15 +237,12 @@ def _build_extraction_results(features_df, source_label):
         table_data[c] = table_data[c].round(6)
 
     return html.Div([
-        dbc.Row([
-            dbc.Col(_metric_card("mdi:database-check-outline", n, "Segment", "blue",
-                                  f"Kaynak: {source_label}"), md=3),
-            dbc.Col(_metric_card("mdi:alert-circle-outline", n_anom, "Anomali", "red",
-                                  f"%{n_anom / max(n, 1) * 100:.1f}"), md=3),
-            dbc.Col(_metric_card("mdi:satellite-variant", n_channels, "Kanal", "cyan"), md=3),
-            dbc.Col(_metric_card("mdi:format-list-numbered", len(feat_cols), "Ozellik", "green",
-                                  "18 handcrafted + meta"), md=3),
-        ], className="mb-4 g-3"),
+        stat_strip([
+            ("Segment", n, f"Kaynak: {source_label}", "blue"),
+            ("Anomali", n_anom, f"%{n_anom / max(n, 1) * 100:.1f}", "red"),
+            ("Kanal", n_channels, None, "cyan"),
+            ("Ozellik", len(feat_cols), "18 handcrafted + meta", "green"),
+        ]),
 
         dbc.Row([
             dbc.Col(html.Div(className="panel", children=[

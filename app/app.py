@@ -70,15 +70,13 @@ from pages.synthetic import get_synthetic_layout, register_synthetic_callbacks
 from pages.esa_pipeline import get_esa_pipeline_layout, register_esa_pipeline_callbacks
 from pages.benchmark import get_benchmark_layout
 from pages.augmentation import get_augmentation_layout
-from pages.summary import get_summary_layout
 from pages import dashboard, upload, analysis, results, performance, shap, live, detail
 
 PAGES = {"dashboard": dashboard.page_dashboard, "upload": upload.page_upload, "analysis": analysis.page_analysis,
          "results": results.page_results, "shap": shap.page_shap, "performance": performance.page_performance, "live": live.page_live, "detail": detail.page_detail, "ablation": get_ablation_layout,
          "power": lambda: get_power_layout(ALL_METRICS),
          "synthetic": get_synthetic_layout, "esa_pipeline": get_esa_pipeline_layout,
-         "benchmark": get_benchmark_layout, "augmentation": get_augmentation_layout,
-         "summary": lambda: get_summary_layout(ALL_METRICS)}
+         "benchmark": get_benchmark_layout, "augmentation": get_augmentation_layout}
 
 @callback(Output("current-page", "data"),
           [Input({"type": "nav", "page": p}, "n_clicks") for p in PAGES],

@@ -15,7 +15,7 @@ import dash_bootstrap_components as dbc
 
 from utils.model_loader import predict
 from utils.feature_extractor import extract_features_from_raw
-from utils.ui import PLT_LAYOUT, icon, metric_card
+from utils.ui import PLT_LAYOUT, icon, metric_card, stat_strip
 from core.constants import (DEMO_PATH, LIVE_DATA_PATH, SHAP_PKL, BENCHMARK_METRICS,
                             PRIMARY_METRIC, DROP_COLS, SUP_MODEL_NAMES, UNSUP_MODEL_NAMES,
                             ANALYSIS_PRESETS)
@@ -124,12 +124,12 @@ def build_preview(df, filename):
             dcc.Graph(figure=fig_ts, config={"displayModeBar": False})])
 
     children = [
-        dbc.Row([
-            dbc.Col(metric_card("mdi:file-document-outline", filename[:25], "Dosya", "blue"), md=3),
-            dbc.Col(metric_card("mdi:table-row", f"{df.shape[0]:,}", "Satır", "green"), md=3),
-            dbc.Col(metric_card("mdi:table-column", df.shape[1], "Sütun", "cyan"), md=3),
-            dbc.Col(metric_card("mdi:alert-circle-outline", anom, "Anomali Oranı", "red"), md=3),
-        ], className="mb-4 g-3"),
+        stat_strip([
+            ("Dosya", filename[:25], None, "blue"),
+            ("Satır", f"{df.shape[0]:,}", None, "green"),
+            ("Sütun", df.shape[1], None, "cyan"),
+            ("Anomali Oranı", anom, None, "red"),
+        ]),
         html.Div(className="panel mb-4", children=[
             html.Div(className="panel-title", children=[icon("mdi:format-list-bulleted", 16), "Sütun Listesi"]),
             html.Div(className="col-grid", children=col_items),

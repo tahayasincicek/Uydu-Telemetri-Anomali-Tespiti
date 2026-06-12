@@ -15,7 +15,7 @@ import dash_bootstrap_components as dbc
 
 from utils.model_loader import predict
 from utils.feature_extractor import extract_features_from_raw
-from utils.ui import PLT_LAYOUT, icon, metric_card
+from utils.ui import PLT_LAYOUT, icon, metric_card, stat_strip
 from core.constants import (DEMO_PATH, LIVE_DATA_PATH, SHAP_PKL, BENCHMARK_METRICS,
                             PRIMARY_METRIC, DROP_COLS, SUP_MODEL_NAMES, UNSUP_MODEL_NAMES,
                             ANALYSIS_PRESETS, channel_label)
@@ -69,28 +69,11 @@ def page_dashboard():
     now = time.strftime("%d.%m.%Y %H:%M")
 
     # ── Kompakt KPI şeridi (tekli büyük kutular yerine tek satır, profesyonel) ──
-    def _stat(label, value, sub=None, accent="#1E293B"):
-        return html.Div(style={"flex": "1", "padding": "2px 18px", "minWidth": "0"}, children=[
-            html.Div(label, style={"fontSize": "10px", "letterSpacing": "1.2px", "color": "#94A3B8",
-                                   "fontWeight": "600", "textTransform": "uppercase", "marginBottom": "4px"}),
-            html.Div(style={"display": "flex", "alignItems": "baseline", "gap": "7px"}, children=[
-                html.Span(f"{value}", style={"fontSize": "20px", "fontWeight": "700", "color": accent}),
-                html.Span(sub or "", style={"fontSize": "11px", "color": "#64748B"}),
-            ]),
-        ])
-
-    def _vdiv():
-        return html.Div(style={"width": "1px", "alignSelf": "stretch", "background": "#E2E8F0", "margin": "6px 0"})
-
-    stat_bar = html.Div(className="panel", style={
-        "display": "flex", "alignItems": "center", "padding": "14px 4px", "marginBottom": "20px"}, children=[
-        _stat("İzlenen Segment", f"{n_seg:,}", f"{n_raw:,} ham ölçüm"),
-        _vdiv(),
-        _stat("Aktif Anomali", f"{n_anomaly:,}", f"{anom_ratio} oran", "#EF4444"),
-        _vdiv(),
-        _stat("İzlenen Kanal", n_channels, "Manyetometre + Fotodiyot"),
-        _vdiv(),
-        _stat("Sistem Durumu", "Aktif", f"{len(MODELS)} model hazır", "#10B981"),
+    stat_bar = stat_strip([
+        ("İzlenen Segment", f"{n_seg:,}", f"{n_raw:,} ham ölçüm", None),
+        ("Aktif Anomali", f"{n_anomaly:,}", f"{anom_ratio} oran", "red"),
+        ("İzlenen Kanal", n_channels, "Manyetometre + Fotodiyot", None),
+        ("Sistem Durumu", "Aktif", f"{len(MODELS)} model hazır", "green"),
     ])
 
     return html.Div([

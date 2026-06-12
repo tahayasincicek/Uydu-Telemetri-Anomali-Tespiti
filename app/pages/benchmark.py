@@ -11,7 +11,7 @@ import plotly.graph_objects as go
 from dash import html, dcc, dash_table
 import dash_bootstrap_components as dbc
 
-from utils.ui import PLT_LAYOUT, icon as _icon, metric_card as _metric_card
+from utils.ui import PLT_LAYOUT, icon as _icon, metric_card as _metric_card, stat_strip
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 BENCH_CSV = os.path.join(ROOT, "reports", "metrics", "benchmark_comparison.csv")
@@ -91,16 +91,12 @@ def get_benchmark_layout():
             html.Div("Ruszczak et al. (2024) Tablo 3 ile aynı resmi test seti (Ψ) üzerinde",
                      className="page-subtitle")]),
 
-        dbc.Row([
-            dbc.Col(_metric_card("mdi:bullseye-arrow", f"{mae_sup:.3f}", "Gözetimli |ΔAUC-PR|",
-                                 "green", f"{len(sup)} algoritma — neredeyse birebir"), md=3),
-            dbc.Col(_metric_card("mdi:chart-scatter-plot", f"{mae_uns:.3f}", "Gözetimsiz |ΔAUC-PR|",
-                                 "purple", f"{len(uns)} algoritma — daha değişken"), md=3),
-            dbc.Col(_metric_card("mdi:format-list-numbered", len(df), "Eşleşen Algoritma",
-                                 "blue", "makale ∩ bizim"), md=3),
-            dbc.Col(_metric_card("mdi:check-decagram", "Faz 2", "Metodoloji Doğrulaması",
-                                 "cyan", "resmi split + sızıntısızlık"), md=3),
-        ], className="mb-4 g-3"),
+        stat_strip([
+            ("Gözetimli |ΔAUC-PR|", f"{mae_sup:.3f}", f"{len(sup)} algoritma", "green"),
+            ("Gözetimsiz |ΔAUC-PR|", f"{mae_uns:.3f}", f"{len(uns)} algoritma", "purple"),
+            ("Eşleşen Algoritma", len(df), "makale ∩ bizim", "blue"),
+            ("Metodoloji Doğrulaması", "Faz 2", "resmi split", "cyan"),
+        ]),
 
         html.Div(className="panel mb-4", style={"borderLeft": "4px solid #10B981", "padding": "14px"},
                  children=[html.Div([

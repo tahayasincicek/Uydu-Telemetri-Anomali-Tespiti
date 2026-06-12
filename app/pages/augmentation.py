@@ -15,7 +15,7 @@ import plotly.graph_objects as go
 from dash import html, dcc, dash_table
 import dash_bootstrap_components as dbc
 
-from utils.ui import PLT_LAYOUT, icon as _icon, metric_card as _metric_card
+from utils.ui import PLT_LAYOUT, icon as _icon, metric_card as _metric_card, stat_strip
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 MDIR = os.path.join(ROOT, "reports", "metrics")
@@ -143,16 +143,12 @@ def get_augmentation_layout():
         ], className="mb-4 g-3")]
 
     # ── Özet kartlar ──
-    cards = dbc.Row([
-        dbc.Col(_metric_card("mdi:scale-balance", "Nötr", "Augmentasyon Etkisi", "yellow",
-                             "zengin-etiket rejiminde AUC-PR ~sabit"), md=3),
-        dbc.Col(_metric_card("mdi:target", f"{ks_mean:.2f}" if ks_mean is not None else "N/A",
-                             "Ortalama KS Açığı", "red", "sentetik vs gerçek"), md=3),
-        dbc.Col(_metric_card("mdi:arrow-up-bold", "ICCS-ω", "Kesinlik ↑", "blue",
-                             "yanlış alarmı azaltır"), md=3),
-        dbc.Col(_metric_card("mdi:arrow-up-bold", "SMOTE", "Duyarlılık ↑", "green",
-                             "kaçırmayı azaltır"), md=3),
-    ], className="mb-4 g-3")
+    cards = stat_strip([
+        ("Augmentasyon Etkisi", "Nötr", "AUC-PR ~sabit", "yellow"),
+        ("Ortalama KS Açığı", f"{ks_mean:.2f}" if ks_mean is not None else "N/A", "sentetik vs gerçek", "red"),
+        ("Kesinlik (ICCS-ω)", "Artar", "yanlış alarmı azaltır", "blue"),
+        ("Duyarlılık (SMOTE)", "Artar", "kaçırmayı azaltır", "green"),
+    ])
 
     return html.Div([
         html.Div(className="page-header", children=[

@@ -15,7 +15,7 @@ import dash_bootstrap_components as dbc
 
 from utils.model_loader import predict
 from utils.feature_extractor import extract_features_from_raw
-from utils.ui import PLT_LAYOUT, icon, metric_card
+from utils.ui import PLT_LAYOUT, icon, metric_card, stat_strip
 from core.constants import (DEMO_PATH, LIVE_DATA_PATH, SHAP_PKL, BENCHMARK_METRICS,
                             PRIMARY_METRIC, DROP_COLS, SUP_MODEL_NAMES, UNSUP_MODEL_NAMES,
                             ANALYSIS_PRESETS, channel_label)
@@ -105,12 +105,12 @@ def update_results(pred_json, data_json):
                            "Şiddet": sev, "Detay": "İncele", "_idx": int(idx)})
 
     return html.Div([
-        dbc.Row([
-            dbc.Col(metric_card("mdi:file-document-check-outline", len(df), "Analiz Edilen", "blue"), md=3),
-            dbc.Col(metric_card("mdi:alert-circle-outline", n_anom, "Tespit Edilen", "red"), md=3),
-            dbc.Col(metric_card("mdi:chart-line", f"{avg_score:.3f}", "Ortalama Skor", "yellow"), md=3),
-            dbc.Col(metric_card("mdi:handshake-outline", f"%{agreement*100:.1f}", "Model Uzlaşması", "green"), md=3),
-        ], className="mb-4 g-3"),
+        stat_strip([
+            ("Analiz Edilen", len(df), None, "blue"),
+            ("Tespit Edilen", n_anom, None, "red"),
+            ("Ortalama Skor", f"{avg_score:.3f}", None, "yellow"),
+            ("Model Uzlaşması", f"%{agreement*100:.1f}", None, "green"),
+        ]),
         html.Div(className="panel mb-4", children=[dcc.Graph(figure=fig_scores, config={"displayModeBar": False})]),
         dbc.Row([
             dbc.Col(html.Div(className="metric-card red", style={"padding":"12px"}, children=[

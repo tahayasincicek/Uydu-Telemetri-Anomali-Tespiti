@@ -3,11 +3,9 @@
 Navigasyon yapısı tek noktada tanımlıdır; yeni bir sayfa eklendiğinde yalnızca
 buradaki listeye bir `nav_item` eklemek yeterlidir.
 """
-import time
 from dash import html
 
 from utils.ui import icon
-from core.state import MODELS
 
 
 def nav_item(ic, text, page_id):
@@ -30,8 +28,7 @@ hidden_refs = html.Div(style={"display": "none"}, children=[
 
 
 def build_sidebar():
-    """Sol kenar çubuğunu (logo + navigasyon + footer) oluşturur."""
-    n_models = len(MODELS)
+    """Sol kenar çubuğunu (logo + navigasyon) oluşturur."""
     return html.Div(className="sidebar", children=[
         html.Div(className="sidebar-logo", children=[
             html.Div([icon("mdi:satellite-variant", 26, "#06B6D4")], className="logo-icon"),
@@ -58,7 +55,6 @@ def build_sidebar():
                 nav_item("mdi:brain", "SHAP Analiz", "shap"),
                 nav_item("mdi:test-tube", "Ablasyon Analizi", "ablation"),
                 nav_subgroup("ARAŞTIRMA BULGULARI"),
-                nav_item("mdi:book-open-variant", "Araştırma Özeti", "summary"),
                 nav_item("mdi:scale-balance", "Benchmark", "benchmark"),
                 nav_item("mdi:chart-box-outline", "Augmentasyon", "augmentation"),
                 nav_subgroup("VERİ & PIPELINE"),
@@ -67,13 +63,4 @@ def build_sidebar():
                 nav_item("mdi:lightning-bolt", "Güç Tüketimi", "power"),
             ]),
         ]),
-        html.Div(className="sidebar-footer", children=[
-            html.Div(className="status-indicator", children=[
-                html.Span(className="status-dot"), html.Span(f"Sistem Aktif  -  {n_models} model")]),
-            html.Div(className="sidebar-version", children=[
-                icon("mdi:cpu-64-bit", 14), html.Span("v1.0.0")]),
-            html.Div(className="sidebar-version", children=[
-                icon("mdi:clock-outline", 14), html.Span(time.strftime("%d.%m.%Y %H:%M"))]),
-            html.Div(f"VER 2.0.0 / MDL {n_models} / ENV PROD", className="sidebar-sys-info"),
-        ])
     ])

@@ -15,7 +15,7 @@ import dash_bootstrap_components as dbc
 
 from utils.model_loader import predict
 from utils.feature_extractor import extract_features_from_raw
-from utils.ui import PLT_LAYOUT, icon, metric_card
+from utils.ui import PLT_LAYOUT, icon, metric_card, stat_strip
 from core.constants import (DEMO_PATH, LIVE_DATA_PATH, SHAP_PKL, BENCHMARK_METRICS,
                             PRIMARY_METRIC, DROP_COLS, SUP_MODEL_NAMES, UNSUP_MODEL_NAMES,
                             ANALYSIS_PRESETS, channel_label)
@@ -60,13 +60,13 @@ def render_anomaly_detail(selected, current_page, all_anomalies, data_json):
         ])
     ])
     
-    metrics = dbc.Row([
-        dbc.Col(metric_card("mdi:numeric", seg, "Segment Numarası", "blue"), md=2),
-        dbc.Col(metric_card("mdi:satellite-uplink", channel_label(ch), "Kanal Adı", "blue"), md=3),
-        dbc.Col(metric_card("mdi:chart-bell-curve", score, "Anomali Skoru", "blue"), md=3),
-        dbc.Col(metric_card("mdi:alert-circle", sev, "Şiddet Seviyesi", "red" if sev=="Kritik" else "yellow"), md=2),
-        dbc.Col(metric_card("mdi:brain", "1+", "Tespit Eden", "green"), md=2),
-    ], className="mb-4 g-3", style={"marginTop": "20px"})
+    metrics = stat_strip([
+        ("Segment Numarası", seg, None, "blue"),
+        ("Kanal Adı", channel_label(ch), None, "blue"),
+        ("Anomali Skoru", score, None, "blue"),
+        ("Şiddet Seviyesi", sev, None, "red" if sev == "Kritik" else "yellow"),
+        ("Tespit Eden", "1+", None, "green"),
+    ])
     
     context_fig = go.Figure()
     context_fig.update_layout(**PLT_LAYOUT, height=350, title="Anomali Bağlamı (±100 Segment)", xaxis_title="Segment", yaxis_title="Sinyal")

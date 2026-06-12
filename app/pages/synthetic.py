@@ -13,7 +13,7 @@ from plotly.subplots import make_subplots
 from dash import html, dcc, callback, Input, Output, State, no_update, ctx
 import dash_bootstrap_components as dbc
 
-from utils.ui import PLT_LAYOUT, icon as _icon, metric_card as _metric_card
+from utils.ui import PLT_LAYOUT, icon as _icon, metric_card as _metric_card, stat_strip
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, os.path.join(ROOT, "src"))
@@ -257,16 +257,12 @@ def register_synthetic_callbacks(app):
         ks_block = _build_ks_panel(features_df) or html.Div()
 
         output = html.Div([
-            dbc.Row([
-                dbc.Col(_metric_card("mdi:database-outline", len(features_df), "Segment", "blue",
-                                      f"{n_rows:,} satir ham veri"), md=3),
-                dbc.Col(_metric_card("mdi:alert-circle-outline", n_anom, "Anomali", "red",
-                                      f"%{anomaly_ratio * 100:.0f} oran"), md=3),
-                dbc.Col(_metric_card("mdi:satellite-variant", n_channels_used, "Kanal", "cyan",
-                                      f"{', '.join(channels[:3])}..."), md=3),
-                dbc.Col(_metric_card("mdi:format-list-numbered", 18, "Ozellik", "green",
-                                      "ESA handcrafted features"), md=3),
-            ], className="mb-4 g-3"),
+            stat_strip([
+                ("Segment", len(features_df), f"{n_rows:,} satir ham", "blue"),
+                ("Anomali", n_anom, f"%{anomaly_ratio * 100:.0f} oran", "red"),
+                ("Kanal", n_channels_used, f"{', '.join(channels[:3])}...", "cyan"),
+                ("Ozellik", 18, "ESA handcrafted", "green"),
+            ]),
 
             html.Div(className="panel mb-4", children=[
                 dcc.Graph(figure=fig_signals, config={"displayModeBar": False})
