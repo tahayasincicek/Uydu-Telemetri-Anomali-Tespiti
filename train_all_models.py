@@ -359,74 +359,18 @@ try:
 except ImportError:
     print("  LMDD                           ATLANACAK")
 
-try:
-    from pyod.models.so_gaal import SO_GAAL
-    train_pyod("SO_GAAL", SO_GAAL, "so_gaal_model.joblib", contamination=0.2, epoch_num=30)
-except ImportError:
-    print("  SO_GAAL                        ATLANACAK")
-
-try:
-    from pyod.models.mo_gaal import MO_GAAL
-    train_pyod("MO_GAAL", MO_GAAL, "mo_gaal_model.joblib", contamination=0.2, epoch_num=30)
-except ImportError:
-    print("  MO_GAAL                        ATLANACAK")
-
-try:
-    from pyod.models.deep_svdd import DeepSVDD
-    train_pyod("DeepSVDD", DeepSVDD, "deepsvdd_model.joblib", contamination=0.2, n_features=X_train_s.shape[1], epochs=30)
-except ImportError:
-    print("  DeepSVDD                       ATLANACAK")
-
-try:
-    from pyod.models.lunar import LUNAR
-    train_pyod("LUNAR", LUNAR, "lunar_model.joblib", contamination=0.2)
-except ImportError:
-    print("  LUNAR                          ATLANACAK")
-
-try:
-    from pyod.models.dif import DIF
-    train_pyod("DIF", DIF, "dif_model.joblib", contamination=0.2)
-except ImportError:
-    print("  DIF                            ATLANACAK")
-
+# Not: Kanonik dışı PyOD deep dedektörleri (SO_GAAL, MO_GAAL, DeepSVDD, LUNAR, DIF)
+# kanonik 42 modele DAHİL DEĞİLDİR; bilinçli olarak burada eğitilmez (aksi halde
+# kurulu oldukları ortamda final_comparison.json'a sızarlardı).
 
 if "MLP" in SUP_MODELS:
     joblib.dump(SUP_MODELS["MLP"], os.path.join(MODEL_DIR, "mlp_sklearn_model.joblib"))
 
 
-print("\n" + "-" * 60)
-print("  DERIN SIRALI MODELLER (resmi split, 18 ozellik)")
-print("-" * 60)
-try:
-    from sklearn.model_selection import train_test_split as _tts
-    from models.supervised import SupervisedAnomalyDetector
-
-    Xtr_d, Xval_d, ytr_d, yval_d = _tts(
-        X_train_s, y_train, test_size=0.15, random_state=42, stratify=y_train)
-
-    det = SupervisedAnomalyDetector(random_state=42)
-    seq_trainers = {
-        "LSTM": det.train_lstm, "BiLSTM": det.train_bilstm, "GRU": det.train_gru,
-        "BiGRU": det.train_bigru, "CNN1D": det.train_cnn1d, "CNN_LSTM": det.train_cnn_lstm,
-        "CNN_BiLSTM": det.train_cnn_bilstm, "CNN_GRU": det.train_cnn_gru,
-        "Transformer": det.train_transformer, "TCN": det.train_tcn,
-        "Attention_BiLSTM": det.train_attention_bilstm, "FCN": det.train_fcn,
-        "ResNet1D": det.train_resnet1d, "InceptionTime": det.train_inceptiontime,
-        "LSTM_FCN": det.train_lstm_fcn,
-    }
-    for name, trainer in seq_trainers.items():
-        try:
-            trainer(Xtr_d, ytr_d, Xval_d, yval_d, epochs=40, batch_size=32)
-            model = det.models[name]
-            prob = model.predict(det._reshape_seq(X_test_s), verbose=0).flatten()
-            pred = (prob >= 0.5).astype(int)
-            m = calc_metrics(name, y_test, pred, prob)
-            print_metrics(name, m)
-            det.save_model(name, os.path.join(MODEL_DIR, f"{name.lower()}_model.keras"))
-        except Exception as e:
-            print(f"  {name:30s}  ATLANDI ({str(e)[:50]})")
-except Exception as e:
-    print(f"  Derin sirali modeller atlandi: {e}")
+# Not: Derin sıralı modeller (CNN1D, TCN) artık 18-özellik sözde-dizi yerine HAM
+# telemetri sinyali üzerinde NB04 Bölüm 9'da eğitilir (deep_sequence_comparison.json).
+# Bu kanonik motor yalnız 42 tabular modeli üretir; eski 18-özellik derin-dizi bloğu
+# (15 modeli ALL_METRICS'e ekleyip 42'yi 57'ye çıkaran) kaldırılmıştır.
 
 
 print("\n" + "─" * 60)
