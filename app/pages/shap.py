@@ -23,6 +23,26 @@ from core.state import (MODELS, THRESHOLDS, SCALER, TEST_DATA, ALL_METRICS, FEAT
                         LIVE_DATA, SHAP_DATA, get_tree_explainer, best_model)
 
 
+def _shap_model_list():
+    """SHAP değeri hesaplanmış tüm modellerin adları (NB07 'shap_models' listesi).
+    Geriye dönük: liste yoksa anahtarlardan türetilir (kısa rf/xgb/mlp aliaslar hariç)."""
+    if SHAP_DATA is None:
+        return []
+    models = SHAP_DATA.get("shap_models")
+    if models:
+        return list(models)
+    aliases = ("rf_", "xgb_", "mlp_")
+    return sorted(k[:-len("_shap_values")] for k in SHAP_DATA
+                  if k.endswith("_shap_values") and not k.startswith(aliases))
+
+
+def _default_shap_model(models):
+    """Açıklama için varsayılan model: RandomForest (kesin ağaç SHAP) varsa o, yoksa ilk."""
+    if "RandomForest" in models:
+        return "RandomForest"
+    return models[0] if models else None
+
+
 def page_shap():
     if SHAP_DATA is None:
         return html.Div([
@@ -77,16 +97,16 @@ def render_shap_tab(tab):
     anomaly_indices = np.where(y_test == 1)[0]
 
     if tab == "tab-importance":
+        models = _shap_model_list()
         return html.Div([
             html.Div(className="panel", children=[
-                html.Div(className="panel-title", children=[icon("mdi:chart-bar", 16), "Model Seçimi"]),
+                html.Div(className="panel-title", children=[icon("mdi:chart-bar", 16),
+                         f"Model Seçimi ({len(models)} model)"]),
                 dcc.Dropdown(
                     id="shap-model-select",
-                    options=[{"label": lbl, "value": key} for key, lbl in
-                             [("rf", "Random Forest"), ("xgb", "XGBoost"), ("mlp", "MLP")]
-                             if f"{key}_shap_values" in SHAP_DATA],
-                    value="rf",
-                    className="shap-dropdown"
+                    options=[{"label": m, "value": m} for m in models],
+                    value=_default_shap_model(models),
+                    className="shap-dropdown", clearable=False,
                 ),
             ]),
             html.Div(id="shap-importance-chart", className="panel", style={"marginTop": "16px"}),
@@ -96,24 +116,38 @@ def render_shap_tab(tab):
     elif tab == "tab-explain":
         anomaly_options = [{"label": f"Segment #{i} (index {idx})", "value": int(idx)}
                            for i, idx in enumerate(anomaly_indices, 1)]
+        models = _shap_model_list()
         return html.Div([
             html.Div(className="panel", children=[
-                html.Div(className="panel-title", children=[icon("mdi:magnify", 16), "Anomali Seçimi"]),
-                dcc.Dropdown(
-                    id="shap-anomaly-select",
-                    options=anomaly_options,
-                    value=anomaly_options[0]["value"] if anomaly_options else None,
-                    placeholder="Bir anomali segmenti seçin...",
-                    className="shap-dropdown"
-                ),
+                html.Div(className="panel-title", children=[icon("mdi:magnify", 16), "Anomali ve Model Seçimi"]),
+                dbc.Row([
+                    dbc.Col([
+                        html.Div("Anomali segmenti", className="section-label"),
+                        dcc.Dropdown(
+                            id="shap-anomaly-select", options=anomaly_options,
+                            value=anomaly_options[0]["value"] if anomaly_options else None,
+                            placeholder="Bir anomali segmenti seçin...",
+                            className="shap-dropdown", clearable=False)], md=8),
+                    dbc.Col([
+                        html.Div("Açıklayıcı model", className="section-label"),
+                        dcc.Dropdown(
+                            id="shap-explain-model", options=[{"label": m, "value": m} for m in models],
+                            value=_default_shap_model(models),
+                            className="shap-dropdown", clearable=False)], md=4),
+                ], className="g-2"),
             ]),
             html.Div(id="shap-waterfall-chart", className="panel", style={"marginTop": "16px"}),
             html.Div(id="shap-waterfall-text", className="panel", style={"marginTop": "16px"}),
         ])
 
     elif tab == "tab-compare":
-        rf_shap = SHAP_DATA['rf_shap_values']
-        xgb_shap = SHAP_DATA['xgb_shap_values']
+        models = _shap_model_list()
+        m1 = "RandomForest" if "RandomForest" in models else (models[0] if models else None)
+        m2 = "XGBoost" if "XGBoost" in models else next((m for m in models if m != m1), m1)
+        if not m1 or not m2 or f"{m1}_shap_values" not in SHAP_DATA or f"{m2}_shap_values" not in SHAP_DATA:
+            return html.Div("Karşılaştırma için en az iki modelin SHAP verisi gerekli.", className="info-box")
+        rf_shap = SHAP_DATA[f'{m1}_shap_values']
+        xgb_shap = SHAP_DATA[f'{m2}_shap_values']
         rf_imp = np.abs(rf_shap).mean(axis=0)
         xgb_imp = np.abs(xgb_shap).mean(axis=0)
 
@@ -122,12 +156,12 @@ def render_shap_tab(tab):
         top_labels = [feature_labels[i] for i in top_idx]
 
         fig = go.Figure()
-        fig.add_trace(go.Bar(name="Random Forest", y=top_labels, x=rf_imp[top_idx],
+        fig.add_trace(go.Bar(name=m1, y=top_labels, x=rf_imp[top_idx],
                              orientation='h', marker_color='#3B82F6', opacity=0.85))
-        fig.add_trace(go.Bar(name="XGBoost", y=top_labels, x=xgb_imp[top_idx],
+        fig.add_trace(go.Bar(name=m2, y=top_labels, x=xgb_imp[top_idx],
                              orientation='h', marker_color='#10B981', opacity=0.85))
         fig.update_layout(**PLT_LAYOUT, height=500, barmode='group',
-                          title="RF vs XGBoost - SHAP Özellik Onemi Karşılaştırmasi",
+                          title=f"{m1} vs {m2} - SHAP Özellik Onemi Karşılaştırmasi",
                           xaxis_title="Ortalama |SHAP Değeri|",
                           legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
         fig.update_yaxes(autorange="reversed")
@@ -139,8 +173,8 @@ def render_shap_tab(tab):
             lbl = feature_labels[idx]
             rf_v = rf_imp[idx]
             xgb_v = xgb_imp[idx]
-            dominant = "Random Forest" if rf_v > xgb_v else "XGBoost"
-            diff_text_parts.append(f"{lbl}: {dominant} modeli bu ozelligi daha önemli buluyor (RF: {rf_v:.4f}, XGB: {xgb_v:.4f})")
+            dominant = m1 if rf_v > xgb_v else m2
+            diff_text_parts.append(f"{lbl}: {dominant} modeli bu ozelligi daha önemli buluyor ({m1}: {rf_v:.4f}, {m2}: {xgb_v:.4f})")
 
         return html.Div([
             html.Div(className="panel", children=[
@@ -176,7 +210,7 @@ def update_shap_importance(model):
     if sv_key not in SHAP_DATA:
         return html.Div(), html.Div()
     shap_vals = SHAP_DATA[sv_key]
-    model_name = {"rf": "Random Forest", "xgb": "XGBoost", "mlp": "MLP"}.get(model, model)
+    model_name = model
 
     importance = np.abs(shap_vals).mean(axis=0)
     top_idx = np.argsort(importance)[-10:][::-1]
@@ -256,14 +290,19 @@ def update_shap_importance(model):
 @callback(Output("shap-waterfall-chart", "children"),
           Output("shap-waterfall-text", "children"),
           Input("shap-anomaly-select", "value"),
+          Input("shap-explain-model", "value"),
           prevent_initial_call=False)
-def update_shap_waterfall(selected_idx):
-    if SHAP_DATA is None or selected_idx is None:
+def update_shap_waterfall(selected_idx, model):
+    if SHAP_DATA is None or selected_idx is None or not model:
         return html.Div(), html.Div()
 
+    sv_key = f"{model}_shap_values"
+    if sv_key not in SHAP_DATA:
+        return html.Div("Seçilen model için SHAP verisi yok.", className="info-box"), html.Div()
+
     feature_labels = SHAP_DATA.get('feature_labels', SHAP_DATA.get('feature_cols', []))
-    shap_vals = SHAP_DATA['rf_shap_values']
-    expected = SHAP_DATA['rf_expected_value']
+    shap_vals = SHAP_DATA[sv_key]
+    expected = SHAP_DATA.get(f'{model}_expected_value', 0)
     X_test = SHAP_DATA['X_test']
 
     idx = int(selected_idx)
@@ -288,7 +327,7 @@ def update_shap_waterfall(selected_idx):
         textposition='outside', textfont=dict(size=10, color='#475569')
     ))
     fig.update_layout(**PLT_LAYOUT, height=500,
-                      title=f"Anomali Açıklamasi - Segment Index: {idx} (Random Forest)",
+                      title=f"Anomali Açıklamasi - Segment Index: {idx} ({model})",
                       xaxis_title="SHAP Değeri",
                       annotations=[dict(text="Kirmizi: Anomaliye iter | Yesil: Normale iter",
                                         xref="paper", yref="paper", x=0.5, y=-0.08,
@@ -335,7 +374,9 @@ def update_mini_waterfall(selected_rows, table_data):
     segment_no = row.get("Segment", 0)
 
     feature_labels = SHAP_DATA.get('feature_labels', SHAP_DATA.get('feature_cols', []))
-    shap_vals = SHAP_DATA['rf_shap_values']
+    shap_vals = SHAP_DATA.get('rf_shap_values', SHAP_DATA.get('RandomForest_shap_values'))
+    if shap_vals is None:
+        return html.Div()
     X_test = SHAP_DATA['X_test']
     y_test = SHAP_DATA['y_test']
 
