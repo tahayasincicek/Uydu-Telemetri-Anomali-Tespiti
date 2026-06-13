@@ -196,15 +196,29 @@ def predict(model, name, X, thresholds, threshold_mult=1.0):
 
 
 def load_metrics():
-    """Kanonik final_comparison.json'u yükler (7 metrik: Accuracy/Precision/Recall/
-    F1/MCC/AUC_ROC/AUC_PR + FAR/FNR, AUC_PR sıralı).
+    """Kanonik metrikleri yükler (7 metrik: Accuracy/Precision/Recall/F1/MCC/
+    AUC_ROC/AUC_PR + FAR/FNR). İki kaynak birleştirilir:
+      - final_comparison.json        : 42 tabular model (18 ESA özelliği)
+      - deep_sequence_comparison.json: 2 derin sıralı model (CNN1D, TCN; ham sinyal)
+    Toplam Ψ-ölçümlü 44 model. ESA-ADB baseline'ları (2) literatür olduğu için
+    metrik içermez; ayrı listelenir.
 
     Not: Eski şemalı adv_metrics.json (tireli 'AUC-ROC', MCC/AUC_PR yok) bilinçli
     olarak BİRLEŞTİRİLMEZ — kanonik anahtarları bozar ve karışık şema yaratırdı.
     """
+    metrics = {}
     p1 = os.path.join(ROOT, "reports", "metrics", "final_comparison.json")
     if os.path.exists(p1):
         with open(p1) as f:
-            return json.load(f)
-    log.warning("final_comparison.json bulunamadı: %s", p1)
-    return {}
+            metrics.update(json.load(f))
+    else:
+        log.warning("final_comparison.json bulunamadı: %s", p1)
+    # Ham-sinyal derin sıralı modeller (NB04 Bölüm 6 çıktısı; varsa birleştir)
+    p2 = os.path.join(ROOT, "reports", "metrics", "deep_sequence_comparison.json")
+    if os.path.exists(p2):
+        try:
+            with open(p2) as f:
+                metrics.update(json.load(f))
+        except Exception as e:
+            log.warning("deep_sequence_comparison.json okunamadı: %s", e)
+    return metrics

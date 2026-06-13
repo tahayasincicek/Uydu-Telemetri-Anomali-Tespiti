@@ -18,7 +18,7 @@ from utils.feature_extractor import extract_features_from_raw
 from utils.ui import PLT_LAYOUT, icon, metric_card, stat_strip
 from core.constants import (DEMO_PATH, LIVE_DATA_PATH, SHAP_PKL, BENCHMARK_METRICS,
                             PRIMARY_METRIC, DROP_COLS, SUP_MODEL_NAMES, UNSUP_MODEL_NAMES,
-                            ANALYSIS_PRESETS, channel_label)
+                            ANALYSIS_PRESETS, channel_label, CANONICAL_MODEL_COUNT)
 from core.state import (MODELS, THRESHOLDS, SCALER, TEST_DATA, ALL_METRICS, FEATURE_COLS,
                         LIVE_DATA, SHAP_DATA, get_tree_explainer, best_model)
 
@@ -73,7 +73,7 @@ def page_dashboard():
         ("İzlenen Segment", f"{n_seg:,}", f"{n_raw:,} ham ölçüm", None),
         ("Aktif Anomali", f"{n_anomaly:,}", f"{anom_ratio} oran", "red"),
         ("İzlenen Kanal", n_channels, "Manyetometre + Fotodiyot", None),
-        ("Sistem Durumu", "Aktif", f"{len(MODELS)} model hazır", "green"),
+        ("Model Envanteri", CANONICAL_MODEL_COUNT, f"{len(MODELS)} çalıştırılabilir", "green"),
     ])
 
     return html.Div([
@@ -92,7 +92,7 @@ def page_dashboard():
                     html.Tr([html.Td("Veri akışı"), html.Td(html.Span("AKTİF", className="badge-success"))]),
                     html.Tr([html.Td("Ham telemetri"), html.Td(f"{n_raw:,} ölçüm")]),
                     html.Tr([html.Td("İzlenen kanal"), html.Td(f"{n_channels} kanal")]),
-                    html.Tr([html.Td("Tespit motoru"), html.Td(f"{len(MODELS)} model yüklü")]),
+                    html.Tr([html.Td("Model envanteri"), html.Td(f"{CANONICAL_MODEL_COUNT} kanonik · {len(MODELS)} çalıştırılabilir")]),
                     html.Tr([html.Td("Son güncelleme"), html.Td(now)]),
                 ])]),
                 html.Div(style={"marginTop": "12px", "fontSize": "11px", "color": "#64748B"},

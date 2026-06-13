@@ -17,17 +17,47 @@ PRIMARY_METRIC = "AUC_PR"
 # Özellik matrisinde model girdisi olmayan meta sütunlar
 DROP_COLS = ["segment", "anomaly", "train", "channel"]
 
+# Kanonik 46 model (sabit liste; models_trained.txt ile birebir). Tahmin yapan
+# (18 özellik üzerinde çalışan, tablo girdili) gözetimli ve gözetimsiz modeller.
 SUP_MODEL_NAMES = ["RandomForest", "XGBoost", "SVM", "MLP", "LightGBM", "CatBoost", "Stacking Ensemble",
                    "ExtraTrees", "GradientBoosting", "HistGradientBoosting", "AdaBoost", "KNN",
                    "LogisticRegression", "DecisionTree", "NaiveBayes", "Voting Ensemble",
-                   "LDA", "QDA", "Bagging", "Ridge", "SGD", "LSVC", "XGBOD",
-                   "LSTM", "BiLSTM", "GRU", "BiGRU", "CNN1D", "CNN_LSTM", "CNN_BiLSTM", "CNN_GRU",
-                   "Transformer", "TCN", "Attention_BiLSTM", "FCN", "ResNet1D", "InceptionTime", "LSTM_FCN"]
-UNSUP_MODEL_NAMES = ["IsolationForest", "OneClassSVM", "KMeans", "LOF", "Autoencoder",
-                     "GMM", "EllipticEnvelope", "PCA", "DBSCAN", "VAE",
+                   "LDA", "QDA", "Bagging", "Ridge", "SGD", "LSVC", "XGBOD"]            # 23
+UNSUP_MODEL_NAMES = ["IsolationForest", "OneClassSVM", "KMeans", "LOF",
+                     "GMM", "EllipticEnvelope", "PCA", "DBSCAN",
                      "ECOD", "COPOD", "HBOS", "CBLOF",
-                     "ABOD", "COF", "SOD", "SOS", "LODA", "INNE", "LMDD",
-                     "SO_GAAL", "MO_GAAL", "DeepSVDD", "LUNAR", "DIF", "AnoGAN", "ALAD"]
+                     "ABOD", "COF", "SOD", "SOS", "LODA", "INNE", "LMDD"]               # 19
+
+# Ham telemetri sinyalinde eğitilen derin sıralı modeller (NB04 Bölüm 6; 18 özellik
+# değil, segment başına L=256 ham örnek dizisi). Gözetimli sınıflandırıcılardır,
+# ham-sinyal girdisi gerektirdiği için canlı tahmin dropdown'larında yer almaz.
+DEEP_SEQ_MODELS = ["CNN1D", "TCN"]                                                     # 2
+
+# ESA-ADB literatür baseline'ları: aynı ESA telemetri alanından, OPS-SAT Ψ test
+# setinde ölçülmedi (ayrı benchmark). Dashboardda referans olarak listelenir.
+ESA_ADB_BASELINES = [                                                                  # 2
+    {"name": "Telemanom-ESA", "type": "Gözetimsiz (LSTM + dinamik eşikleme)",
+     "source": "Hundman et al., 2018; ESA-ADB: Kotowski et al., 2024"},
+    {"name": "DC-VAE-ESA", "type": "Gözetimsiz (genişletilmiş 1D-CNN + VAE)",
+     "source": "García González et al., 2022; ESA-ADB: Kotowski et al., 2024"},
+]
+
+# Kanonik çalışma kapsamı (sabit): 23 + 19 + 2 + 2 = 46.
+CANONICAL_MODEL_COUNT = (len(SUP_MODEL_NAMES) + len(UNSUP_MODEL_NAMES)
+                         + len(DEEP_SEQ_MODELS) + len(ESA_ADB_BASELINES))
+
+
+def model_category(name):
+    """Model adını kanonik kategoriye eşler (performans tablosu ve gösterim için)."""
+    if name in SUP_MODEL_NAMES:
+        return "Gözetimli"
+    if name in UNSUP_MODEL_NAMES:
+        return "Gözetimsiz"
+    if name in DEEP_SEQ_MODELS:
+        return "Derin Sıralı"
+    if name in {b["name"] for b in ESA_ADB_BASELINES}:
+        return "ESA-ADB"
+    return "Diğer"
 
 # Operatör tespit profilleri (preset) — gözetimli, güvenilir modeller
 ANALYSIS_PRESETS = {

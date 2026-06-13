@@ -18,7 +18,8 @@ from utils.feature_extractor import extract_features_from_raw
 from utils.ui import PLT_LAYOUT, icon, metric_card
 from core.constants import (DEMO_PATH, LIVE_DATA_PATH, SHAP_PKL, BENCHMARK_METRICS,
                             PRIMARY_METRIC, DROP_COLS, SUP_MODEL_NAMES, UNSUP_MODEL_NAMES,
-                            ANALYSIS_PRESETS)
+                            ANALYSIS_PRESETS, DEEP_SEQ_MODELS, ESA_ADB_BASELINES,
+                            CANONICAL_MODEL_COUNT, model_category)
 from core.state import (MODELS, THRESHOLDS, SCALER, TEST_DATA, ALL_METRICS, FEATURE_COLS,
                         LIVE_DATA, SHAP_DATA, get_tree_explainer, best_model)
 
@@ -118,15 +119,27 @@ def page_performance():
         fig_radar.add_trace(go.Scatterpolar(r=vals + [vals[0]], theta=cats + [cats[0]], name=n, fill="toself", opacity=0.5))
     fig_radar.update_layout(**PLT_LAYOUT, height=400, polar=dict(bgcolor="#F4F6FB", radialaxis=dict(range=[0,1], showticklabels=True, tickfont=dict(size=10))))
 
+    n_metric = len(ALL_METRICS)
     return html.Div([
         html.Div(className="page-header", children=[
             html.Div("Model Performans", className="page-title"),
-            html.Div("Tüm modellerin karşılaştırmalı analizi", className="page-subtitle")]),
+            html.Div(f"{CANONICAL_MODEL_COUNT} kanonik modelin karşılaştırmalı analizi "
+                     f"({n_metric} Ψ-ölçümlü + {len(ESA_ADB_BASELINES)} ESA-ADB literatür)",
+                     className="page-subtitle")]),
+        html.Div(className="info-box", style={"marginBottom": "16px"},
+                 children=f"Kanonik {CANONICAL_MODEL_COUNT} model: {len(SUP_MODEL_NAMES)} gözetimli + "
+                          f"{len(UNSUP_MODEL_NAMES)} gözetimsiz + {len(DEEP_SEQ_MODELS)} derin sıralı "
+                          f"(ham sinyal) + {len(ESA_ADB_BASELINES)} ESA-ADB literatür baseline. Aşağıdaki "
+                          f"tablo resmi Ψ test setinde ölçülen {n_metric} modeli gösterir; ESA-ADB "
+                          f"baseline'ları ayrı panelde referans olarak listelenir."),
         html.Div(className="panel mb-4", children=[
-            html.Div(className="panel-title", children=[icon("mdi:table", 16), "Metrik Tablosu"]),
+            html.Div(className="panel-title", children=[icon("mdi:table", 16),
+                     f"Metrik Tablosu ({n_metric} model, AUC_PR sıralı)"]),
             dash_table.DataTable(
-                columns=[{"name": "Model", "id": "Model"}] + [{"name": c, "id": c} for c in cols],
-                data=[{"Model": n, **{c: f"{ALL_METRICS[n].get(c,0):.4f}" for c in cols}} for n in ranked],
+                columns=([{"name": "Model", "id": "Model"}, {"name": "Kategori", "id": "Kategori"}]
+                         + [{"name": c, "id": c} for c in cols]),
+                data=[{"Model": n, "Kategori": model_category(n),
+                       **{c: f"{ALL_METRICS[n].get(c,0):.4f}" for c in cols}} for n in ranked],
                 style_header={"backgroundColor": "#EEF2F8", "color": "#64748B", "fontWeight": "600",
                                "border": "1px solid #E2E8F0", "textTransform": "uppercase", "fontSize": "11px"},
                 style_cell={"backgroundColor": "#FFFFFF", "color": "#1E293B", "border": "1px solid #E2E8F0",
@@ -142,6 +155,24 @@ def page_performance():
                         {"if": {"filter_query": f'{{{col}}} <= 0.80', "column_id": col}, "color": "#FF3B5C"},
                     ]
                 ],
+            )
+        ]),
+        html.Div(className="panel mb-4", children=[
+            html.Div(className="panel-title", children=[icon("mdi:book-open-variant", 16),
+                     "ESA-ADB Literatür Baseline'ları (Ψ-dışı referans)"]),
+            html.Div(className="info-box", style={"marginBottom": "12px"},
+                     children="Aynı ESA uydu telemetrisi alanından; OPS-SAT Ψ test setinde "
+                              "çalıştırılmadı, ayrı ESA-ADB benchmark'ında raporlanır. Bu yüzden "
+                              "yukarıdaki nicel metrik tablosunda yer almaz, referans olarak listelenir."),
+            dash_table.DataTable(
+                columns=[{"name": c, "id": c} for c in ["Model", "Tip", "Kaynak"]],
+                data=[{"Model": b["name"], "Tip": b["type"], "Kaynak": b["source"]}
+                      for b in ESA_ADB_BASELINES],
+                style_header={"backgroundColor": "#EEF2F8", "color": "#64748B", "fontWeight": "600",
+                               "border": "1px solid #E2E8F0", "textTransform": "uppercase", "fontSize": "11px"},
+                style_cell={"backgroundColor": "#FFFFFF", "color": "#1E293B", "border": "1px solid #E2E8F0",
+                             "fontFamily": "IBM Plex Sans", "fontSize": "12.5px", "padding": "10px",
+                             "textAlign": "left", "whiteSpace": "normal", "height": "auto"},
             )
         ]),
         html.Div(className="panel mb-4", children=[dcc.Graph(figure=fig_radar, config={"displayModeBar": False})]),
