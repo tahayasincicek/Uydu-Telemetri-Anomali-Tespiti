@@ -21,7 +21,6 @@ from core.constants import (DEMO_PATH, LIVE_DATA_PATH, SHAP_PKL, BENCHMARK_METRI
                             ANALYSIS_PRESETS, channel_label)
 from core.state import (MODELS, THRESHOLDS, SCALER, TEST_DATA, ALL_METRICS, FEATURE_COLS,
                         LIVE_DATA, SHAP_DATA, get_tree_explainer, best_model)
-from pages.live import live_detail_records
 
 
 def page_results():
@@ -64,38 +63,21 @@ def _table_panel(table_data):
     ])
 
 
-def _live_only_view(live_rows):
-    """Yalnızca canlı izleme anomalileri için sade Sonuçlar görünümü."""
-    n_crit = sum(1 for r in live_rows if r["Şiddet"] == "Kritik")
-    return html.Div([
-        stat_strip([
-            ("Canlı Anomali", len(live_rows), None, "red"),
-            ("Kritik", n_crit, None, "red"),
-            ("Uyarı", len(live_rows) - n_crit, None, "yellow"),
-        ]),
-        html.Div(className="info-box", style={"marginBottom": "16px"},
-                 children="Canlı İzleme sırasında tespit edilen anomaliler. Detay için bir satıra tıklayın."),
-        _table_panel(live_rows),
-    ])
-
-
 @callback(Output("results-content", "children"),
           Input("prediction-results", "data"),
           Input("current-page", "data"),
           State("uploaded-data", "data"),
-          State("live-sim-state", "data"),
           prevent_initial_call=True)
-def update_results(pred_json, page, data_json, live_state):
+def update_results(pred_json, page, data_json):
     # Başka sayfaya geçişte gereksiz yeniden-render önlenir
     if ctx.triggered_id == "current-page" and page != "results":
         return no_update
 
-    live_rows = live_detail_records(live_state)
-
+    # Not: Canlı İzleme anomalileri Sonuçlar listesini ETKİLEMEZ; yalnızca yüklenen
+    # veri üzerinde yapılan analiz sonuçları listelenir. (Canlı alarmlar kendi
+    # panelinden tıklanınca yine de Anomali Detay'a gider.)
     if not pred_json or not json.loads(pred_json):
-        if live_rows:
-            return _live_only_view(live_rows)
-        return html.Div(className="info-box", children=["Henüz analiz yapılmadı veya canlı izleme anomalisi yok."])
+        return html.Div(className="info-box", children=["Henüz analiz yapılmadı."])
 
     results = json.loads(pred_json)
 
@@ -154,11 +136,6 @@ def update_results(pred_json, page, data_json, live_state):
         table_data.append({"NO": row_no, "Segment": int(df.iloc[idx].get("segment", idx)),
                            "Kanal": channel_label(ch), "_channel": ch, "Skor": f"{score_ensemble[idx]:.2f}",
                            "Şiddet": sev, "Detay": "İncele", "_idx": int(idx)})
-
-    # Canlı izleme anomalilerini de listeye ekle (NO devam ederek)
-    for lr in live_rows:
-        lr2 = dict(lr); lr2["NO"] = len(table_data) + 1
-        table_data.append(lr2)
 
     # Şiddet sayımları DOĞRUDAN tablodan hesaplanır — böylece kart sayıları listedeki
     # kayıtlarla birebir uyuşur (eskiden tablo 100 ile sınırlıyken sayımlar tüm

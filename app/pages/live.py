@@ -362,10 +362,11 @@ def update_live_sim(n_int, state, channel, model_name, speed, current_alarms):
 def open_live_anomaly_detail(clicks, state):
     """Bir canlı alarm kartına tıklanınca o anomalinin Anomali Detay sayfasını açar.
 
-    anomaly-list olarak TÜM canlı anomaliler verilir; böylece detayda Önceki/Sonraki
-    tuşları canlı izlemedeki sırada gezer. Yalnızca gerçek bir tıklamada çalışır:
-    izleme sürerken yeni alarm kartı eklenmesi (n_clicks=0) callback'i tetiklese de
-    işlem yapılmaz (aksi halde sayfa hatalı yönleniyordu)."""
+    Canlı anomaliler Sonuçlar listesini ve detay gezinme sırasını ETKİLEMEZ:
+    anomaly-list yalnızca tıklanan tek anomaliyi içerir, böylece detaydaki
+    Önceki/Sonraki tuşları canlı izleme anomalilerini dolaşmaz (1/1 gösterir).
+    Yalnızca gerçek bir tıklamada çalışır: izleme sürerken yeni alarm kartı
+    eklenmesi (n_clicks=0) callback'i tetiklese de işlem yapılmaz."""
     trig = ctx.triggered
     if not trig or not trig[0].get("value") or not ctx.triggered_id:
         return no_update, no_update, no_update
@@ -376,4 +377,5 @@ def open_live_anomaly_detail(clicks, state):
                 if a.get("id") == target_id and i < len(recs)), None)
     if sel is None:
         return no_update, no_update, no_update
-    return sel, recs, "detail"
+    sel = dict(sel); sel["NO"] = 1   # tek öğeli liste; sayaç "1 / 1" gösterir
+    return sel, [sel], "detail"
