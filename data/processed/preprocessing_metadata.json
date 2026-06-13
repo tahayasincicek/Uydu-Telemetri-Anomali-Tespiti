@@ -2,7 +2,7 @@
     "class": "TelemetriPreprocessor",
     "is_fitted": true,
     "parameters": {
-        "impute_method": "linear",
+        "impute_method": "none",
         "filter_method": null,
         "outlier_method": "mod_zscore",
         "scaling_method": "robust",
@@ -11,7 +11,7 @@
         "outlier_threshold": 4.0
     },
     "stats": {
-        "impute_method": "linear",
+        "impute_method": "none",
         "filter_method": null,
         "outlier_method": "mod_zscore",
         "scaling_method": "robust",
