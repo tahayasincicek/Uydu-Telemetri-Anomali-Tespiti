@@ -1,8 +1,9 @@
 """
 Guc Tuketimi Simulasyonu Sayfasi
 =================================
-64 anomali tespit algoritmasinin tahmini hesaplama maliyeti,
-egitim suresi, bellek kullanimi ve enerji tuketimini simule eder.
+Kanonik 44 modelin (42 tabular + 2 derin sirali) tahmini hesaplama maliyeti,
+egitim suresi, bellek kullanimi ve enerji tuketimini simule eder. ESA-ADB
+literatur baseline'lari fiilen egitilmedigi icin maliyet katalogunda yer almaz.
 """
 
 import os
@@ -36,7 +37,10 @@ POWER_PROFILES = {
     "AdaBoost":            {"cpu_watts": 20, "train_sec": 10,  "infer_ms": 0.3,  "memory_mb": 80,  "category": "Gözetimli", "complexity": "Orta"},
     "Bagging":             {"cpu_watts": 22, "train_sec": 7,   "infer_ms": 0.4,  "memory_mb": 170, "category": "Gözetimli", "complexity": "Orta"},
     "Voting Ensemble":     {"cpu_watts": 35, "train_sec": 15,  "infer_ms": 0.8,  "memory_mb": 250, "category": "Gözetimli", "complexity": "Yüksek"},
+    "Stacking Ensemble":   {"cpu_watts": 40, "train_sec": 28,  "infer_ms": 1.0,  "memory_mb": 320, "category": "Gözetimli", "complexity": "Yüksek"},
     "XGBoost":             {"cpu_watts": 35, "train_sec": 12,  "infer_ms": 0.15, "memory_mb": 150, "category": "Gözetimli", "complexity": "Orta"},
+    "LightGBM":            {"cpu_watts": 28, "train_sec": 6,   "infer_ms": 0.15, "memory_mb": 120, "category": "Gözetimli", "complexity": "Orta"},
+    "CatBoost":            {"cpu_watts": 32, "train_sec": 18,  "infer_ms": 0.20, "memory_mb": 160, "category": "Gözetimli", "complexity": "Orta"},
     "XGBOD":               {"cpu_watts": 40, "train_sec": 30,  "infer_ms": 0.5,  "memory_mb": 300, "category": "Gözetimli", "complexity": "Yüksek"},
     "SVM":                 {"cpu_watts": 30, "train_sec": 20,  "infer_ms": 1.0,  "memory_mb": 200, "category": "Gözetimli", "complexity": "Yüksek"},
     "MLP":              {"cpu_watts": 45, "train_sec": 60,  "infer_ms": 0.5,  "memory_mb": 300, "category": "Gözetimli", "complexity": "Yüksek"},
@@ -85,6 +89,14 @@ POWER_PROFILES = {
     "LUNAR":    {"cpu_watts": 50, "train_sec": 180, "infer_ms": 1.5, "memory_mb": 400, "category": "Gözetimsiz", "complexity": "Çok Yüksek"},
     "DIF":      {"cpu_watts": 40, "train_sec": 100, "infer_ms": 0.8, "memory_mb": 250, "category": "Gözetimsiz", "complexity": "Yüksek"},
 }
+
+# Kanonik 44 modele indirge: 23 gözetimli + 19 gözetimsiz + 2 derin sıralı (CNN1D, TCN).
+# ESA-ADB literatür baseline'ları (Telemanom-ESA, DC-VAE-ESA) bu projede fiilen
+# eğitilmediği için ampirik maliyet kataloğunda yer ALMAZ. Tek kaynak: core.constants
+# (model listesi değişirse katalog otomatik senkron kalır).
+from core.constants import SUP_MODEL_NAMES as _SUP, UNSUP_MODEL_NAMES as _UNSUP, DEEP_SEQ_MODELS as _DEEP
+_CANONICAL_ORDER = list(_SUP) + list(_DEEP) + list(_UNSUP)
+POWER_PROFILES = {k: POWER_PROFILES[k] for k in _CANONICAL_ORDER if k in POWER_PROFILES}
 
 COMPLEXITY_COLORS = {
     "Düşük": "#10B981",
@@ -191,7 +203,7 @@ def register_power_callbacks(app, ALL_METRICS=None):
         cost_val = df["Enerji (Wh)"].max()
 
         cards = stat_strip([
-            ("Toplam Enerji", f"{total_energy:.2f} Wh", "64 model toplamı", "cyan"),
+            ("Toplam Enerji", f"{total_energy:.2f} Wh", f"{len(POWER_PROFILES)} model toplamı", "cyan"),
             ("CO2 Emisyonu", f"{total_co2:.3f} g", "Tahmini karbon", "green"),
             ("En Verimli", most_efficient, f"{eff_val:.4f} Wh", "green"),
             ("En Maliyetli", most_costly, f"{cost_val:.4f} Wh", "red"),
