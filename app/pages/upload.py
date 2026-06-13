@@ -23,6 +23,85 @@ from core.state import (MODELS, THRESHOLDS, SCALER, TEST_DATA, ALL_METRICS, FEAT
                         LIVE_DATA, SHAP_DATA, get_tree_explainer, best_model)
 
 
+# Beklenen sütunlar (tek kaynak: handle_upload algılaması + extract_features_from_raw)
+_HAM_REQUIRED = ["value"]
+_HAM_OPTIONAL = ["segment", "channel", "sampling", "timestamp", "anomaly", "train"]
+_ESA_18 = ["mean", "var", "std", "kurtosis", "skew", "n_peaks",
+           "duration", "len", "gaps_squared", "len_weighted",
+           "var_div_duration", "var_div_len", "smooth10_n_peaks", "smooth20_n_peaks",
+           "diff_peaks", "diff2_peaks", "diff_var", "diff2_var"]
+
+
+def _chip(name, kind="req"):
+    """Sütun adı için küçük etiket (chip). kind: req | opt | esa."""
+    palette = {
+        "req": ("#0C4A6E", "#E0F2FE", "#7DD3FC"),   # zorunlu — mavi
+        "opt": ("#475569", "#F1F5F9", "#CBD5E1"),   # opsiyonel — gri
+        "esa": ("#3730A3", "#EEF2FF", "#C7D2FE"),   # ESA özelliği — indigo
+    }
+    color, bg, border = palette.get(kind, palette["req"])
+    return html.Span(name, style={
+        "display": "inline-block", "fontFamily": "IBM Plex Mono, ui-monospace, monospace",
+        "fontSize": "11.5px", "color": color, "backgroundColor": bg,
+        "border": f"1px solid {border}", "borderRadius": "5px",
+        "padding": "2px 8px", "margin": "4px 5px 0 0"})
+
+
+def _fmt_label(text):
+    return html.Div(text, style={"fontSize": "10.5px", "fontWeight": "700", "letterSpacing": "0.6px",
+                                 "textTransform": "uppercase", "color": "#64748B",
+                                 "marginTop": "12px", "marginBottom": "2px"})
+
+
+def _format_info_panel():
+    """Yükleme formatı bilgilendirmesi: hangi sütunların beklendiğini açıklar."""
+    card_style = {"backgroundColor": "#FFFFFF", "border": "1px solid #E2E8F0",
+                  "borderRadius": "10px", "padding": "16px 18px", "height": "100%"}
+    title_style = {"display": "flex", "alignItems": "center", "gap": "6px",
+                   "fontSize": "14px", "fontWeight": "700", "color": "#1E293B", "marginBottom": "4px"}
+    desc_style = {"fontSize": "12px", "color": "#64748B", "lineHeight": "1.5"}
+    note_style = {"fontSize": "11px", "color": "#94A3B8", "marginTop": "12px",
+                  "lineHeight": "1.5", "borderTop": "1px dashed #E2E8F0", "paddingTop": "8px"}
+
+    return html.Div(className="panel mb-4", children=[
+        html.Div(className="panel-title", children=[icon("mdi:information-outline", 16),
+                 "Yükleme Formatı — Beklenen Sütunlar"]),
+        html.Div(className="info-box", style={"marginBottom": "14px"},
+                 children=["Sistem yüklediğiniz dosyanın hangi formatta olduğunu ",
+                           html.B("sütun adlarına"), " bakarak otomatik anlar. Aşağıdaki iki "
+                           "formattan biri kullanılabilir; dosya tipi .csv veya .parquet olabilir."]),
+        dbc.Row([
+            dbc.Col(html.Div(style=card_style, children=[
+                html.Div([icon("mdi:chart-timeline-variant", 15, "#0EA5E9"),
+                          " 1) Ham Telemetri Sinyali"], style=title_style),
+                html.Div("Satır başına bir ölçüm. Sistem segmentlere göre gruplayıp 18 ESA "
+                         "özelliğini sizin için otomatik hesaplar.", style=desc_style),
+                _fmt_label("Zorunlu"),
+                html.Div([_chip(c, "req") for c in _HAM_REQUIRED]),
+                _fmt_label("Önerilen (yoksa makul varsayılan atanır)"),
+                html.Div([_chip(c, "opt") for c in _HAM_OPTIONAL]),
+                html.Div(style=note_style, children=[
+                    html.B("value"), " sinyal değeri · ", html.B("segment"), " segment numarası · ",
+                    html.B("channel"), " kanal kodu · ", html.B("sampling"), " örnekleme · ",
+                    html.B("anomaly / train"), " etiket (varsa). value yoksa ilk sayısal sütun, "
+                    "segment yoksa her 250 satır bir segment olarak alınır."]),
+            ]), md=6),
+            dbc.Col(html.Div(style=card_style, children=[
+                html.Div([icon("mdi:table", 15, "#6366F1"),
+                          " 2) Öznitelik Matrisi (hazır 18 ESA özelliği)"], style=title_style),
+                html.Div("Satır başına bir segment. Öznitelikler önceden hesaplanmışsa doğrudan "
+                         "kullanılır, çıkarım adımı atlanır.", style=desc_style),
+                _fmt_label("18 ESA özelliği (hepsi beklenir)"),
+                html.Div([_chip(c, "esa") for c in _ESA_18]),
+                html.Div(style=note_style, children=[
+                    "Algılama kuralı: ", html.B("mean, var, std, n_peaks, diff_var"),
+                    " sütunlarının tümü varsa dosya öznitelik matrisi sayılır. Modeller bu 18 "
+                    "özelliği girdi alır; sıra önemli değildir, fazladan sütunlar yok sayılır."]),
+            ]), md=6),
+        ], className="g-3"),
+    ])
+
+
 def page_upload():
     return html.Div([
         html.Div(className="page-header", children=[
@@ -39,6 +118,7 @@ def page_upload():
                     html.Button("Demo Veri Kullan", id="btn-demo", n_clicks=0, className="btn-outline")])
             ], md=12)
         ], className="mb-4"),
+        _format_info_panel(),
         dcc.Loading(
             id="loading-upload",
             type="circle",
