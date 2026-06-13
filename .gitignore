@@ -91,6 +91,8 @@ models/*.onnx
 models/*.joblib
 models/*.keras
 models/*.sav
+# ham-sinyal derin modeller (train_deep_sequence.py ile yeniden üretilir)
+models/deep_sequence/
 
 # ========================
 # Raporlar (büyük dosyalar)

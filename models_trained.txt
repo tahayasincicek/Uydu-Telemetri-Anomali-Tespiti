@@ -2,8 +2,10 @@
  PROJE MODEL LİSTESİ VE KAYNAK REFERANSLARI
  Uydu Telemetri Anomali Tespiti (OPS-SAT)
 ==============================================================================
-Kanonik eğitilen 42 model (reports/metrics/final_comparison.json, resmi Ψ test
-seti) + Öncelik-1 ESA-ADB baseline (2, literatürden eklendi). Toplam: 44.
+Kanonik eğitilen 42 tabular model (reports/metrics/final_comparison.json, resmi Ψ
+test seti, 18 ESA özelliği) + 5 derin sıralı model (ham telemetri sinyali,
+reports/metrics/deep_sequence_comparison.json) + Öncelik-1 ESA-ADB baseline (2,
+literatürden eklendi). Toplam: 49.
 Her modelin yanında kısa atıf; tam künyeler en altta KAYNAKLAR bölümünde.
 
 
@@ -57,10 +59,22 @@ GÖZETİMSİZ (19)
   42. LMDD                  — Arning, Agrawal & Raghavan, 1996
 
 
+DERİN SIRALI — HAM SİNYAL (5, eğitildi; segments.csv, L=256, per-kanal std)
+--------------------------------------------------------------------------
+  43. LSTM                  — Hochreiter & Schmidhuber, 1997
+  44. GRU                   — Cho et al., 2014
+  45. Transformer           — Vaswani et al., 2017
+  46. CNN1D (1D-CNN)        — Wang, Yan & Oates, 2017
+  47. TCN                   — Bai, Kolter & Koltun, 2018
+  Not: Konvolüsyonel TCN/CNN1D özellik-tabanlı modellerle yarışır (AUC_PR 0.90 ile
+  0.92); LSTM/GRU/Transformer ağır padding ve küçük veride zayıf kalır. Bu modeller
+  18 ESA özelliğini değil, her segmentin ham örnek dizisini girdi alır.
+
+
 ÖNCELİK 1 — ESA-ADB BASELINE (literatürden eklendi; aynı ESA telemetri alanı)
 -----------------------------------------------------------------------------
-  43. Telemanom-ESA         — Hundman et al., 2018 ; ESA: Kotowski et al., 2024
-  44. DC-VAE-ESA            — García González et al., 2022 ; ESA: Kotowski et al., 2024
+  48. Telemanom-ESA         — Hundman et al., 2018 ; ESA: Kotowski et al., 2024
+  49. DC-VAE-ESA            — García González et al., 2022 ; ESA: Kotowski et al., 2024
 
 
 ==============================================================================
@@ -170,4 +184,17 @@ Genel kaynak
 [46] Zhao, Y., Nasrullah, Z., & Li, Z. (2019). PyOD: A Python Toolbox for Scalable
      Outlier Detection. JMLR, 20(96), 1-7. (ECOD/COPOD/HBOS/CBLOF/ABOD/COF/SOD/SOS/
      LODA/iNNE/LMDD/XGBOD uygulamaları)
+
+Derin sıralı (ham sinyal)
+-------------------------
+[47] Hochreiter, S., & Schmidhuber, J. (1997). Long Short-Term Memory. Neural
+     Computation, 9(8), 1735-1780.
+[48] Cho, K. et al. (2014). Learning Phrase Representations using RNN Encoder-Decoder
+     for Statistical Machine Translation (GRU). Proc. EMNLP, 1724-1734.
+[49] Vaswani, A. et al. (2017). Attention Is All You Need (Transformer). Proc.
+     NeurIPS, 5998-6008.
+[50] Wang, Z., Yan, W., & Oates, T. (2017). Time Series Classification from Scratch
+     with Deep Neural Networks: A Strong Baseline (FCN / 1D-CNN). Proc. IJCNN.
+[51] Bai, S., Kolter, J. Z., & Koltun, V. (2018). An Empirical Evaluation of Generic
+     Convolutional and Recurrent Networks for Sequence Modeling (TCN). arXiv:1803.01271.
 ==============================================================================
