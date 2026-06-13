@@ -24,8 +24,13 @@ from core.state import (MODELS, THRESHOLDS, SCALER, TEST_DATA, ALL_METRICS, FEAT
 
 
 def page_analysis():
+    # Çalıştırılabilir (yüklü) TÜM modeller seçilebilir olmalı: kanonik sırayı koru,
+    # ardından kanonik listede olmayıp yüklü olan modelleri de ekle ki hiçbir
+    # runnable model seçim dışında kalmasın (kategori bilinmiyorsa gözetimsiz sayılır).
     sup = [n for n in SUP_MODEL_NAMES if n in MODELS]
     unsup = [n for n in UNSUP_MODEL_NAMES if n in MODELS]
+    extra = [n for n in MODELS if n not in SUP_MODEL_NAMES and n not in UNSUP_MODEL_NAMES]
+    unsup = unsup + extra
     def model_option(name):
         f1 = ALL_METRICS.get(name, {}).get("F1", 0)
         return html.Span([name, html.Span(f"F1: {f1:.3f}", className="model-f1-badge")])

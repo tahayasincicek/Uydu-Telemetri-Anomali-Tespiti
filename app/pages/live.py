@@ -109,9 +109,10 @@ def live_detail_records(state):
 
 def page_live():
     channels = LIVE_DATA['channel'].unique().tolist() if not LIVE_DATA.empty and 'channel' in LIVE_DATA.columns else []
-    # En iyi performanslı modeller üstte (operatör seçimi kolaylaşsın)
-    live_models = sorted([n for n in (SUP_MODEL_NAMES + UNSUP_MODEL_NAMES) if n in MODELS],
-                         key=lambda n: ALL_METRICS.get(n, {}).get("AUC_PR", 0), reverse=True)
+    # Çalıştırılabilir (yüklü) TÜM modeller listelensin: kanonik liste filtresi yerine
+    # doğrudan MODELS üzerinden, performansa göre sıralı (en iyi üstte) — böylece hiçbir
+    # runnable model dropdown dışında kalmaz.
+    live_models = sorted(MODELS, key=lambda n: ALL_METRICS.get(n, {}).get("AUC_PR", 0), reverse=True)
     default_model = next((m for m in ["HistGradientBoosting", "RandomForest", "IsolationForest"] if m in MODELS),
                          live_models[0] if live_models else None)
 
