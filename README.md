@@ -1,25 +1,41 @@
-# 🛰️ Uydu Telemetri Anomali Tespiti
+# 🛰️ Uydu Telemetri Anomali Tespiti (ESA OPS-SAT)
 
-> Uydu telemetri verilerinde makine öğrenmesi ve derin öğrenme yöntemleri ile anomali tespiti yapan kapsamlı bir MLOps projesi.
+> ESA OPS-SAT uydu telemetrisinde, **tek bir kanonik eğitim motoruyla** resmi test
+> seti (Ψ) üzerinde değerlendirilen, sızıntısız ve literatürle birebir
+> karşılaştırılabilir bir anomali tespiti çalışması. 46 modellik bir envanter,
+> Plotly Dash arayüzü, SHAP yorumlanabilirliği, güç/maliyet analizi ve sentetik veri
+> üretimi içerir.
 
 ---
 
 ## 📋 Proje Özeti
 
-Bu proje, uydu telemetri sinyallerindeki anormallikleri tespit etmek için **supervised** ve **unsupervised** makine öğrenmesi yöntemlerini bir arada kullanan uçtan uca bir anomali tespit pipeline'ı sunar.
+Çalışma, OPS-SAT-AD veri setinde segment başına **18 elle-üretilmiş ESA özelliği**
+çıkarır ve modelleri `dataset.csv`'deki `train` kolonuyla tanımlı **resmi bölme**
+üzerinde değerlendirir (T = 1594 eğitim, Ψ = 529 test). Tüm modeller tek bir kanonik
+kaynak (`train_all_models.py`) tarafından aynı özellik, aynı ölçekleyici ve aynı
+bölmeyle eğitilir; böylece "iki ayrı boru hattının birbirini ezmesi" türü sızıntılar
+önlenir. Sonuçlar Ruszczak et al. (2024) OPS-SAT baseline'ı ile karşılaştırılır
+(gözetimli tarafta ortalama **|ΔAUC-PR| = 0,004**, en iyi model **ExtraTrees,
+AUC-PR 0,983**).
 
-### 🎯 Hedefler
+### Model envanteri (46)
 
-- Uydu telemetri verilerinin analizi ve görselleştirilmesi
-- Veri ön işleme ve feature engineering pipeline'ı oluşturulması
-- Supervised modeller (Random Forest, XGBoost, SVM, MLP) ile anomali sınıflandırma
-- Unsupervised modeller (Isolation Forest, One-Class SVM, Autoencoder, DBSCAN) ile anomali tespiti
-- Model performanslarının karşılaştırılması ve en iyi modelin seçilmesi
-- Streamlit tabanlı interaktif dashboard ile sonuçların sunulması
+| Kategori | Sayı | Açıklama |
+|---|---|---|
+| **Gözetimli (tabular)** | 23 | RF, ExtraTrees, XGBoost, XGBOD, LightGBM, CatBoost, GBM, HistGBM, AdaBoost, Bagging, DecisionTree, KNN, SVM, LSVC, MLP, LogReg, Ridge, SGD, LDA, QDA, NaiveBayes, Voting, Stacking |
+| **Gözetimsiz (tabular)** | 19 | IsolationForest, OneClassSVM, LOF, KMeans, GMM, EllipticEnvelope, PCA, DBSCAN, ECOD, COPOD, HBOS, CBLOF, ABOD, COF, SOD, SOS, LODA, INNE, LMDD |
+| **Derin sıralı (ham sinyal)** | 2 | CNN1D, TCN — 18 özellik yerine her segmentin ham örnek dizisini girdi alır (NB04 Bölüm 9) |
+| **ESA-ADB literatür baseline** | 2 | Telemanom-ESA, DC-VAE-ESA — ayrı benchmark'tan referans; OPS-SAT Ψ'de ölçülmez |
 
-### 📊 Kullanılan Veri Seti
+Bunlardan **44'ü** (42 tabular + 2 derin) resmi Ψ test setinde fiilen ölçülür;
+2 ESA-ADB baseline'ı yalnızca literatür referansıdır. Tam liste ve kaynak
+atıfları için **[`models_trained.txt`](models_trained.txt)**'ye bakınız.
 
-Proje, **ESA OPS-SAT** uydu misyonu veya benzeri açık kaynaklı uydu telemetri veri setlerini kullanmaktadır. Veri seti; sıcaklık, voltaj, akım, jiroskop ve güneş paneli gibi çeşitli sensör ölçümlerini içerir.
+### Değerlendirme metrikleri (7 zorunlu)
+
+`Accuracy`, `Precision`, `Recall`, `F1`, **`MCC`**, `AUC_ROC`, **`AUC_PR`**
+(birincil sıralama ölçütü AUC-PR). Kaynak: [`src/metrics.py`](src/metrics.py).
 
 ---
 
@@ -28,78 +44,50 @@ Proje, **ESA OPS-SAT** uydu misyonu veya benzeri açık kaynaklı uydu telemetri
 ```
 Uydu-Telemetri-Anomali-Tespiti/
 ├── data/
-│   ├── raw/                  # Ham veri setleri (ESA OPS-SAT veya benzeri)
-│   ├── processed/            # Ön işlenmiş veriler
-│   └── features/             # Feature engineering çıktıları
-├── notebooks/
-│   ├── 01_veri_inceleme.ipynb        # Keşifsel veri analizi (EDA)
-│   ├── 02_on_isleme.ipynb            # Veri temizleme ve ön işleme
-│   ├── 03_feature_engineering.ipynb  # Özellik mühendisliği
-│   ├── 04_model_supervised.ipynb     # Denetimli öğrenme modelleri
-│   ├── 05_model_unsupervised.ipynb   # Denetimsiz öğrenme modelleri
-│   └── 06_model_karsilastirma.ipynb  # Model karşılaştırma ve değerlendirme
+│   ├── raw/                  # dataset.csv (18 özellik), segments.csv (ham sinyal)
+│   ├── processed/            # NB02 çıktıları (ölçekli/SMOTE'lu bölmeler)
+│   ├── features/             # özellik çıktıları
+│   └── synthetic/            # sentetik telemetri (NB09)
+├── notebooks/                # 01–14 (aşağıdaki tablo)
 ├── src/
-│   ├── __init__.py
-│   ├── data_loader.py        # Veri yükleme ve bağlantı modülü
-│   ├── preprocessor.py       # Veri ön işleme fonksiyonları
-│   ├── feature_engineer.py   # Özellik mühendisliği modülü
-│   ├── models/
-│   │   ├── __init__.py
-│   │   ├── supervised.py     # Denetimli öğrenme modelleri
-│   │   ├── unsupervised.py   # Denetimsiz öğrenme modelleri
-│   │   └── evaluator.py      # Model değerlendirme metrikleri
-│   └── utils.py              # Yardımcı fonksiyonlar
-├── models/                   # Eğitilmiş model dosyaları (.pkl, .h5)
+│   ├── data_loader.py        # veri yükleme
+│   ├── preprocessor.py       # ön işleme (RobustScaler, outlier, impute)
+│   ├── feature_engineer.py   # özellik mühendisliği
+│   ├── synthetic_generator.py# profil-temelli sentetik üretici
+│   ├── metrics.py            # 7 zorunlu metrik (BENCHMARK_METRICS)
+│   ├── benchmark_reference.py# Ruszczak et al. 2024 Tablo 3 baseline
+│   └── models/{supervised,unsupervised,evaluator}.py
+├── models/                   # eğitilmiş modeller (joblib/keras) + unsupervised/ + deep_sequence/
 ├── reports/
-│   ├── figures/              # Grafik ve görselleştirmeler
-│   └── metrics/              # Performans metrikleri
-├── app/                      # Streamlit arayüzü
-│   ├── main.py               # Ana uygulama dosyası
-│   ├── components/           # UI bileşenleri
-│   └── assets/               # Statik dosyalar (CSS, görseller)
-├── tests/                    # Birim testleri
-├── requirements.txt          # Python bağımlılıkları
-├── environment.yml           # Conda ortam dosyası
-├── .gitignore                # Git tarafından yoksayılacak dosyalar
-└── README.md                 # Bu dosya
+│   ├── figures/              # grafikler (SHAP, ROC, vb.)
+│   └── metrics/              # final_comparison.json, deep_sequence_comparison.json, ...
+├── app/                      # Plotly Dash arayüzü
+│   ├── app.py                # ana orkestratör (giriş noktası)
+│   ├── core/                 # state.py (Singleton), constants.py (kanonik sabitler)
+│   ├── layout/sidebar.py
+│   ├── pages/                # 14 sayfa (dashboard, upload, analysis, ...)
+│   └── utils/                # model_loader, feature_extractor, ui
+├── tests/                    # pytest birim testleri
+├── train_all_models.py       # KANONİK eğitim motoru -> reports/metrics/final_comparison.json
+├── models_trained.txt        # 46 model listesi + kaynak atıfları
+├── requirements.txt / environment.yml
+└── README.md
 ```
 
 ---
 
 ## 🚀 Kurulum
 
-### Ön Gereksinimler
-
-- Python 3.9 veya üzeri
-- pip veya conda paket yöneticisi
-- Git
-
-### 1. Depoyu Klonlayın
-
 ```bash
 git clone https://github.com/tahayasincicek/Uydu-Telemetri-Anomali-Tespiti.git
 cd Uydu-Telemetri-Anomali-Tespiti
-```
 
-### 2a. pip ile Kurulum
-
-```bash
-# Sanal ortam oluşturun
+# pip ile
 python -m venv venv
-
-# Sanal ortamı etkinleştirin
-# Windows:
-venv\Scripts\activate
-# macOS/Linux:
-source venv/bin/activate
-
-# Bağımlılıkları yükleyin
+source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-```
 
-### 2b. Conda ile Kurulum
-
-```bash
+# veya conda ile
 conda env create -f environment.yml
 conda activate uydu-anomali
 ```
@@ -108,182 +96,88 @@ conda activate uydu-anomali
 
 ## 💻 Kullanım
 
+### Kanonik eğitim motoru
+
+Tüm tabular modelleri tek noktadan eğitip kanonik artefaktları üretir
+(`final_comparison.json`, eğitilmiş modeller, ölçekleyici, test verisi):
+
+```bash
+python train_all_models.py
+```
+
 ### Jupyter Notebook'lar
 
-Notebook'ları sırasıyla çalıştırarak tüm pipeline'ı deneyimleyebilirsiniz:
-
-```bash
-jupyter notebook notebooks/
-```
-
 | Notebook | Açıklama |
-|----------|----------|
-| `01_veri_inceleme.ipynb` | Veri keşfi, istatistiksel analiz ve görselleştirme |
-| `02_on_isleme.ipynb` | Eksik veri, aykırı değer ve normalizasyon işlemleri |
-| `03_feature_engineering.ipynb` | İstatistiksel özellikler, zaman serisi özellikleri çıkarımı |
-| `04_model_supervised.ipynb` | 36 gözetimli model: 20 klasik (RF/ExtraTrees/Boosting'ler/SVM/KNN/LogReg/DT/NB/LDA/QDA/Bagging/Ridge/SGD/Voting/Stacking) + 16 derin (MLP, 1D-CNN, FCN, ResNet-1D, InceptionTime, LSTM-FCN, LSTM, BiLSTM, GRU, BiGRU, CNN-LSTM, CNN-BiLSTM, CNN-GRU, Attention-BiLSTM, Transformer, TCN) |
-| `05_model_unsupervised.ipynb` | 14 gözetimsiz: IsolationForest, OneClassSVM, KMeans, LOF, GMM, EllipticEnvelope, PCA, DBSCAN, Autoencoder, VAE + PyOD (ECOD, COPOD, HBOS, CBLOF) |
-| `06_model_karsilastirma.ipynb` | Tüm modellerin karşılaştırılması ve raporlanması |
+|---|---|
+| `01_veri_inceleme.ipynb` | Keşifsel veri analizi (EDA), kanal/segment istatistikleri |
+| `02_on_isleme.ipynb` | RobustScaler ölçekleme, outlier, resmi bölme + SMOTE (tek ön işleme kaynağı) |
+| `03_feature_engineering.ipynb` | Özellik mühendisliği ve seçimi |
+| `04_model_supervised.ipynb` | 23 gözetimli model + Bölüm 9: 2 derin sıralı model (ham sinyal) |
+| `05_model_unsupervised.ipynb` | 19 gözetimsiz model (val-F1 eşik protokolü) |
+| `06_model_karsilastirma.ipynb` | 46 modelin karşılaştırması; ESA-ADB baseline paneli; benchmark |
+| `07_shap_analizi.ipynb` | SHAP yorumlanabilirliği (39 model: ağaç=TreeExplainer, diğer=KernelExplainer) |
+| `08_ablation_study.ipynb` | Özellik ablasyonu (18 özelliğin 11'i yeterli) |
+| `09_sentetik_veri_uretimi.ipynb` | Profil-temelli sentetik telemetri üretimi |
+| `10_esa_feature_pipeline.ipynb` | Ham sinyalden 18 ESA özelliğini otomatik çıkarma |
+| `11_guc_tuketimi_analizi.ipynb` | 44 modelin güç/enerji/karbon/bellek maliyeti |
+| `12_benchmark_karsilastirma.ipynb` | Ruszczak et al. (2024) baseline'ı ile yeniden üretim |
+| `13_sentetik_augmentasyon_ablasyonu.ipynb` | Sentetik augmentasyon ablasyonu (gerçek Ψ) |
+| `14_augmentasyon_karsilastirma.ipynb` | SMOTE / ICCS-ω / sentetik augmentasyon karşılaştırması |
 
-### Streamlit Dashboard
+### Dashboard (Plotly Dash)
 
 ```bash
-streamlit run app/main.py
+python app/app.py
 ```
 
-### Komut Satırından Çalıştırma
+14 sayfa: Operasyon Paneli, Veri Yükle, Anomali Analizi, Sonuçlar, Anomali Detay,
+Canlı İzleme, Model Performans, SHAP Analiz, Güç Tüketimi, Benchmark, Ablasyon,
+Sentetik Veri, Augmentasyon ve ESA Pipeline.
 
-```python
-from src.data_loader import TelemetryDataLoader
-from src.preprocessor import TelemetryPreprocessor
-from src.feature_engineer import FeatureEngineer
-from src.models.supervised import SupervisedAnomalyDetector
+### Testler
 
-# Veri yükleme
-loader = TelemetryDataLoader(data_path="data/raw/")
-data = loader.load_data()
-
-# Ön işleme
-preprocessor = TelemetryPreprocessor()
-clean_data = preprocessor.fit_transform(data)
-
-# Feature engineering
-fe = FeatureEngineer()
-features = fe.create_features(clean_data)
-
-# Model eğitimi
-detector = SupervisedAnomalyDetector(model_type="random_forest")
-detector.fit(features, labels)
-predictions = detector.predict(test_features)
+```bash
+pytest tests/ -q
 ```
 
 ---
 
-## 🧠 Kullanılan Yöntemler
+## 🧪 Yöntem Notları
 
-Proje toplam **50 model** içerir: 36 gözetimli + 14 gözetimsiz.
-
-### Supervised (Denetimli) Modeller — 36
-
-**Klasik / Ağaç & Boosting (20)**
-| Model | Açıklama |
-|-------|----------|
-| **Random Forest** | Ensemble tabanlı karar ağacı sınıflandırıcı |
-| **Extra Trees** | Aşırı rastgeleleştirilmiş ağaç topluluğu |
-| **Decision Tree** | Tek karar ağacı (yorumlanabilir baseline) |
-| **XGBoost** | Gradient boosting tabanlı güçlü sınıflandırıcı |
-| **LightGBM** | Histogram tabanlı hızlı gradient boosting |
-| **CatBoost** | Kategorik-dostu gradient boosting |
-| **Gradient Boosting** | sklearn gradient boosting sınıflandırıcı |
-| **HistGradientBoosting** | Histogram tabanlı modern/hızlı boosting |
-| **AdaBoost** | Adaptif boosting topluluğu |
-| **SVM** | Destek vektör makineleri ile sınıflandırma |
-| **KNN** | K-en yakın komşu sınıflandırıcı |
-| **Logistic Regression** | Doğrusal taban (baseline) model |
-| **Gaussian Naive Bayes** | Olasılıksal baseline sınıflandırıcı |
-| **LDA** | Doğrusal diskriminant analizi |
-| **QDA** | Karesel diskriminant analizi |
-| **Bagging** | Bootstrap aggregating topluluğu |
-| **Ridge** | L2 düzenlenmiş doğrusal sınıflandırıcı |
-| **SGD** | Stokastik gradyan inişli doğrusal model (log-loss) |
-| **Voting Ensemble** | RF + GB + LogReg yumuşak (soft) oylama |
-| **Stacking Ensemble** | RF + XGB + LGBM tabanlı meta-öğrenici |
-
-**Derin Öğrenme & Sıralı/Hibrit Ağlar (16)**
-| Model | Açıklama |
-|-------|----------|
-| **MLP** | Çok katmanlı algılayıcı sinir ağı |
-| **1D-CNN** | Saf 1B evrişimli sinir ağı |
-| **FCN** | Fully Convolutional Network (TS baseline) |
-| **ResNet-1D** | Artık (residual) bloklu 1D CNN |
-| **InceptionTime** | Çok ölçekli Inception modülleri (SOTA TSC) |
-| **LSTM-FCN** | Paralel LSTM + FCN hibrit |
-| **LSTM** | Uzun-kısa vadeli bellek ağı |
-| **BiLSTM** | Çift yönlü LSTM |
-| **GRU** | Geçitli tekrarlayan birim ağı |
-| **BiGRU** | Çift yönlü GRU |
-| **CNN-LSTM** | 1D evrişim + LSTM hibrit |
-| **CNN-BiLSTM** | 1D evrişim + çift yönlü LSTM hibrit |
-| **CNN-GRU** | 1D evrişim + GRU hibrit |
-| **Attention-BiLSTM** | BiLSTM + self-attention havuzlama |
-| **Transformer** | Self-attention tabanlı encoder |
-| **TCN** | Temporal Convolutional Network (dilated causal conv) |
-
-### Unsupervised (Denetimsiz) Modeller — 14
-
-**sklearn / Derin (10)**
-| Model | Açıklama |
-|-------|----------|
-| **Isolation Forest** | Anomali tespitine özel ensemble yöntem |
-| **One-Class SVM** | Tek sınıf SVM ile anomali tespiti |
-| **K-Means** | Küme merkezine uzaklık tabanlı anomali skoru |
-| **LOF** | Local Outlier Factor (yoğunluk tabanlı) |
-| **GMM** | Gaussian Mixture; düşük olabilirlik = anomali |
-| **Elliptic Envelope** | Robust kovaryans / Mahalanobis |
-| **PCA** | Yeniden yapılandırma hatası |
-| **DBSCAN** | Çekirdek-noktaya uzaklık (novelty) |
-| **Autoencoder** | Derin yeniden yapılandırma hatası |
-| **VAE** | Variational Autoencoder (KL + recon) |
-
-**PyOD Dedektörleri (4)** — *opsiyonel, `pip install pyod`*
-| Model | Açıklama |
-|-------|----------|
-| **ECOD** | Empirik kümülatif dağılım (parametre-siz, ADBench lideri) |
-| **COPOD** | Copula tabanlı outlier tespiti |
-| **HBOS** | Histogram tabanlı (çok hızlı) |
-| **CBLOF** | Küme tabanlı yerel outlier faktörü |
-
----
-
-## 📈 Değerlendirme Metrikleri
-
-- **Accuracy** (Doğruluk)
-- **Precision** (Kesinlik)
-- **Recall** (Duyarlılık)
-- **F1-Score**
-- **ROC-AUC**
-- **Confusion Matrix**
-- **PR Curve** (Precision-Recall Eğrisi)
+- **Sızıntısız değerlendirme:** Tüm modeller resmi Ψ (529 segment) üzerinde, kendi
+  rastgele bölmesini kullanmadan değerlendirilir; ön işleme yalnız NB02'de yapılır.
+- **18 ESA özelliği:** mean, var, std, kurtosis, skew, n_peaks, duration, len,
+  gaps_squared, len_weighted, var_div_duration, var_div_len, smooth10/20_n_peaks,
+  diff/diff2_peaks, diff/diff2_var.
+- **Tekrarüretilebilirlik:** Sabit tohum (seed = 42); kanonik motor + 14 notebook ile
+  baştan üretilebilir.
+- **Tek kaynak (single source of truth):** Kanonik model listeleri
+  [`app/core/constants.py`](app/core/constants.py)'tedir; dashboard ve güç kataloğu
+  buradan türer, böylece liste değişse bile her yer tutarlı kalır.
 
 ---
 
 ## 🛠️ Teknoloji Yığını
 
 | Kategori | Kütüphaneler |
-|----------|-------------|
+|---|---|
 | **Veri İşleme** | pandas, numpy, scipy |
-| **Makine Öğrenmesi** | scikit-learn, imbalanced-learn |
-| **Derin Öğrenme** | TensorFlow, Keras |
+| **Makine Öğrenmesi** | scikit-learn, imbalanced-learn, xgboost, lightgbm, catboost, pyod |
+| **Derin Öğrenme** | TensorFlow / Keras |
+| **Yorumlanabilirlik** | SHAP |
 | **Görselleştirme** | matplotlib, seaborn, plotly |
-| **Dashboard** | Streamlit |
+| **Dashboard** | Dash, dash-bootstrap-components, dash-iconify |
 | **Model Saklama** | joblib |
-
----
-
-## 🤝 Katkıda Bulunma
-
-1. Bu depoyu fork edin
-2. Bir feature branch oluşturun (`git checkout -b feature/yeni-ozellik`)
-3. Değişikliklerinizi commit edin (`git commit -m 'feat: yeni özellik eklendi'`)
-4. Branch'inizi push edin (`git push origin feature/yeni-ozellik`)
-5. Bir Pull Request açın
 
 ---
 
 ## 📄 Lisans
 
-Bu proje MIT Lisansı altında lisanslanmıştır. Detaylar için [LICENSE](LICENSE) dosyasına bakınız.
-
----
-
-## 👤 Geliştirici
-
-**Taha Yasin Çiçek**
-
-- GitHub: [@tahayasincicek](https://github.com/tahayasincicek)
+Bu proje MIT Lisansı altında lisanslanmıştır. Detaylar için [LICENSE](LICENSE)
+dosyasına bakınız.
 
 ---
 
 <p align="center">
-  <i>⭐ Bu projeyi beğendiyseniz yıldız vermeyi unutmayın!</i>
+  <i>ESA OPS-SAT telemetri anomali tespiti — kanonik, sızıntısız, literatürle kıyaslanabilir.</i>
 </p>
