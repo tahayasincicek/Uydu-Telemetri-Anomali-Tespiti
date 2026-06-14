@@ -1,11 +1,3 @@
-"""
-Veri Ön İşleme Modülü (Time Series Preprocessing)
-==================================================
-
-Zaman serisi telemetri verilerinin temizlenmesi, gürültüden arındırılması,
-aykırı değerlerin tespiti, eksik verilerin doldurulması ve model eğitimi
-için ölçeklendirilmesi işlemlerini gerçekleştirir.
-"""
 
 import os
 import json
@@ -19,17 +11,6 @@ from sklearn.impute import KNNImputer
 
 
 class TelemetriPreprocessor:
-    """
-    Zaman serisi uydu telemetri verileri için özel ön işleme sınıfı.
-
-    Özellikler:
-        - Eksik veri politikası (varsayılan: 'none' — OPS-SAT metodolojisinde
-          boşluklar doldurulmaz, gaps_squared/len/duration ile korunur)
-        - Gürültü temizleme (Savitzky-Golay, Butterworth, Median)
-        - Aykırı değer (Outlier) tespiti ve işleme (IQR, Z-score, Modified Z-score)
-        - Normalizasyon (RobustScaler, StandardScaler, MinMaxScaler)
-        - Parametre ve metrik takibi (Metadata export)
-    """
 
     def __init__(self,
                  impute_method: str = "none",
@@ -39,20 +20,6 @@ class TelemetriPreprocessor:
                  window_length: int = 51,
                  polyorder: int = 3,
                  outlier_threshold: float = 3.5):
-        """
-        Args:
-            impute_method (str): Eksik veri politikası. Varsayılan 'none' — OPS-SAT
-                metodolojisinde (Ruszczak et al. 2024) boşluklar DOLDURULMAZ; ham
-                sinyaldeki eksik noktalar gaps_squared/len/duration özellikleriyle
-                korunur ve hatta bir anomali türüdür. Diğer seçenekler (keşif amaçlı):
-                'ffill', 'linear', 'spline', 'knn'.
-            filter_method (str): Gürültü filtresi ('savgol', 'butterworth', 'median', None).
-            outlier_method (str): Aykırı değer tespit yöntemi ('iqr', 'zscore', 'mod_zscore').
-            scaling_method (str): Ölçeklendirme ('robust', 'standard', 'minmax').
-            window_length (int): Filtreler için pencere boyutu (tek sayı olmalı).
-            polyorder (int): Savitzky-Golay filtresi polinom derecesi.
-            outlier_threshold (float): Z-score ve modified Z-score eşik değeri.
-        """
         self.impute_method = impute_method
         self.filter_method = filter_method
         self.outlier_method = outlier_method
@@ -76,7 +43,6 @@ class TelemetriPreprocessor:
         self._init_scaler()
 
     def _init_scaler(self):
-        """Seçilen ölçeklendirme yöntemini başlatır."""
         scalers = {
             "robust": RobustScaler(),
             "standard": StandardScaler(),
@@ -87,16 +53,6 @@ class TelemetriPreprocessor:
             raise ValueError(f"Geçersiz ölçeklendirme yöntemi: {self.scaling_method}")
 
     def fit(self, data: pd.DataFrame, numeric_columns: Optional[List[str]] = None) -> 'TelemetriPreprocessor':
-        """
-        Ölçeklendiriciyi eğitir.
-
-        Args:
-            data (pd.DataFrame): Eğitim verisi (Eksik veri ve outlier işlendikten sonra çağrılmalı).
-            numeric_columns (list): Sayısal sütun adları.
-
-        Returns:
-            self
-        """
         if numeric_columns is None:
             numeric_columns = data.select_dtypes(include=[np.number]).columns.tolist()
             exclude_cols = ['anomaly', 'label', 'segment', 'train']
@@ -109,16 +65,6 @@ class TelemetriPreprocessor:
         return self
 
     def transform(self, data: pd.DataFrame) -> pd.DataFrame:
-        """
-        Eksik veri doldurma, filtreleme, aykırı değer kırpma ve ölçeklendirme
-        adımlarını veriye uygular.
-
-        Args:
-            data (pd.DataFrame): Dönüştürülecek veri.
-
-        Returns:
-            pd.DataFrame: İşlenmiş veri.
-        """
         df = data.copy()
 
         df = self._impute_missing(df)
@@ -136,7 +82,6 @@ class TelemetriPreprocessor:
         return df
 
     def fit_transform(self, data: pd.DataFrame, numeric_columns: Optional[List[str]] = None) -> pd.DataFrame:
-        """Fit ve transform adımlarını sırasıyla uygular."""
         df = data.copy()
         
         if numeric_columns is None:
@@ -158,14 +103,6 @@ class TelemetriPreprocessor:
         return df
 
     def _impute_missing(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Eksik veri politikasını uygular.
-
-        Varsayılan 'none': OPS-SAT metodolojisi gereği boşluklar interpolasyonla
-        DOLDURULMAZ (ham sinyaldeki boşluklar gaps_squared/len/duration ile zaten
-        korunur). Yalnızca özellik matrisindeki dejenere NaN'ler (ör. tek-noktalı
-        segmentte kurtosis) sayısal güvenlik için nötr 0 ile doldurulur; bu bir
-        sinyal-doldurma değildir.
-        """
         missing_count = df[self.numeric_columns].isnull().sum().sum()
         self.metadata["missing_filled"] += int(missing_count)
 
@@ -189,7 +126,6 @@ class TelemetriPreprocessor:
         return df
 
     def _apply_filter(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Zaman serisine sinyal filtresi uygular (sadece sürekli sayısal verilere)."""
         for col in self.numeric_columns:
             if self.filter_method == 'savgol':
                 df[col] = signal.savgol_filter(df[col], self.window_length, self.polyorder)
@@ -201,7 +137,6 @@ class TelemetriPreprocessor:
         return df
 
     def _handle_outliers(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Aykırı değerleri tespit eder ve üst/alt sınırlarla kırpar (clip)."""
         for col in self.numeric_columns:
             if self.outlier_method == 'iqr':
                 Q1 = df[col].quantile(0.25)
@@ -232,7 +167,6 @@ class TelemetriPreprocessor:
         return df
 
     def save_scaler(self, filepath: str):
-        """Eğitilmiş scaler objesini kaydeder."""
         if not self.is_fitted:
             raise RuntimeError("Kaydedilecek eğitilmiş bir scaler yok!")
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
@@ -240,7 +174,6 @@ class TelemetriPreprocessor:
         print(f"Scaler {filepath} konumuna kaydedildi.")
 
     def load_scaler(self, filepath: str):
-        """Daha önceden kaydedilmiş scaler objesini yükler."""
         if not os.path.exists(filepath):
             raise FileNotFoundError(f"Dosya bulunamadı: {filepath}")
         self.scaler = joblib.load(filepath)
@@ -248,7 +181,6 @@ class TelemetriPreprocessor:
         print(f"Scaler {filepath} konumundan yüklendi.")
 
     def generate_report(self, filepath: Optional[str] = None) -> Dict:
-        """Uygulanan ön işleme adımlarının özetini JSON formatında döndürür ve kaydeder."""
         report = {
             "class": self.__class__.__name__,
             "is_fitted": self.is_fitted,

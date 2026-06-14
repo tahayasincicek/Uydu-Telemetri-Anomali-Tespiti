@@ -1,14 +1,3 @@
-"""
-Augmentasyon Bulguları Sayfası
-==============================
-Veri augmentasyon stratejilerinin (SMOTE / ICCS-ω / Sentetik) gerçek test seti
-(Ψ) üzerindeki etkisini ve nedenini (sentetik-gerçek dağılım açığı) gösterir.
-Kaynaklar (Notebook 13-14):
-  reports/metrics/augmentation_comparison.csv
-  reports/metrics/ablation_synthetic_fulldata.csv
-  reports/metrics/ablation_synthetic_lowdata.csv
-  reports/metrics/synthetic_real_ks_distance.csv
-"""
 import os
 import pandas as pd
 import plotly.graph_objects as go
@@ -55,7 +44,6 @@ def get_augmentation_layout():
         return _missing_layout()
     aug = pd.read_csv(AUG_CSV)
 
-    # ── 1) Strateji başına AUC-PR (model grupları) ──
     fig_auc = go.Figure()
     for strat, color in STRAT_COLOR.items():
         sub = aug[aug["Strateji"] == strat]
@@ -69,7 +57,6 @@ def get_augmentation_layout():
                           yaxis_title="AUC-PR", yaxis_range=[0.7, 1.02],
                           legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0))
 
-    # ── 2) Precision-Recall dengesi (asıl etki) ──
     fig_pr = go.Figure()
     for strat, color in STRAT_COLOR.items():
         sub = aug[aug["Strateji"] == strat]
@@ -83,7 +70,6 @@ def get_augmentation_layout():
                          xaxis_title="Recall (duyarlılık)", yaxis_title="Precision (kesinlik)",
                          legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0))
 
-    # ── 3) KS dağılım açığı (neden nötr?) ──
     ks_section = []
     ks_mean = None
     if os.path.exists(KS_CSV):
@@ -103,7 +89,6 @@ def get_augmentation_layout():
                 dcc.Graph(figure=fig_ks, config={"displayModeBar": False})]),
         ]
 
-    # ── 4) Sentetik ablasyon (tam-veri + az-veri) ──
     ablation_section = []
     figs = []
     if os.path.exists(FULL_CSV):
@@ -131,7 +116,6 @@ def get_augmentation_layout():
                     md=6) for f in figs
         ], className="mb-4 g-3")]
 
-    # ── Özet kartlar ──
     cards = stat_strip([
         ("Augmentasyon Etkisi", "Nötr", "AUC-PR ~sabit", "yellow"),
         ("Ortalama KS Açığı", f"{ks_mean:.2f}" if ks_mean is not None else "N/A", "sentetik vs gerçek", "red"),

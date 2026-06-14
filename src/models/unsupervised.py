@@ -1,10 +1,3 @@
-"""
-Gözetimsiz Anomali Tespiti Modülü (Unsupervised Learning)
-===========================================================
-
-Uydu telemetrisi (ESA OPS-SAT) verilerinde etiket kullanmadan
-(unsupervised) anomali tespiti yapan modelleri içerir.
-"""
 
 import os
 import json
@@ -77,15 +70,6 @@ PYOD_MODELS = {"ECOD", "COPOD", "HBOS", "CBLOF", "ABOD", "COF", "SOD", "SOS",
 
 
 class UnsupervisedAnomalyDetector:
-    """
-    Etiket gerektirmeyen gözetimsiz algoritmaları kullanarak anomali tespiti yapan sınıf.
-
-    sklearn/derin: Isolation Forest, One-Class SVM, K-Means, LOF, Autoencoder,
-        LSTM Autoencoder, GMM, Elliptic Envelope, PCA (recon), DBSCAN, VAE,
-        AnoGAN, ALAD.
-    PyOD: ECOD, COPOD, HBOS, CBLOF, ABOD, COF, SOD, SOS, LODA, INNE, LMDD,
-        SO-GAAL, MO-GAAL, DeepSVDD, LUNAR, DIF.
-    """
 
     def __init__(self, random_state: int = 42):
         self.random_state = random_state
@@ -93,9 +77,6 @@ class UnsupervisedAnomalyDetector:
         self.thresholds: Dict[str, float] = {}
 
     def train_isolation_forest(self, X_train: pd.DataFrame, contamination: float = 0.05) -> IsolationForest:
-        """
-        Isolation Forest modelini eğitir.
-        """
         print("Isolation Forest eğitiliyor...")
         model = IsolationForest(
             n_estimators=200, 
@@ -114,9 +95,6 @@ class UnsupervisedAnomalyDetector:
         return model
 
     def train_autoencoder(self, X_train: np.ndarray, X_val: np.ndarray, epochs: int = 50, batch_size: int = 64):
-        """
-        Derin Öğrenme tabanlı Tabular Autoencoder modelini eğitir.
-        """
         if Sequential is None:
             raise ImportError("TensorFlow/Keras bulunamadı.")
             
@@ -162,9 +140,6 @@ class UnsupervisedAnomalyDetector:
         return model, history
 
     def train_lstm_autoencoder(self, X_train_seq: np.ndarray, X_val_seq: np.ndarray, seq_len: int, features: int, epochs: int = 20, batch_size: int = 64):
-        """
-        Zaman serisi anomalileri için LSTM Autoencoder modelini eğitir.
-        """
         if Sequential is None:
             raise ImportError("TensorFlow/Keras bulunamadı.")
             
@@ -203,9 +178,6 @@ class UnsupervisedAnomalyDetector:
         return model, history
 
     def train_one_class_svm(self, X_train: pd.DataFrame, nu: float = 0.05) -> OneClassSVM:
-        """
-        One-Class SVM modelini eğitir. (Sadece normal verilerle eğitilmesi tavsiye edilir).
-        """
         print("One-Class SVM eğitiliyor...")
         model = OneClassSVM(kernel='rbf', gamma='scale', nu=nu)
         model.fit(X_train)
@@ -218,10 +190,6 @@ class UnsupervisedAnomalyDetector:
         return model
 
     def train_kmeans(self, X_train: pd.DataFrame, n_clusters: int = 3) -> KMeans:
-        """
-        K-Means Clustering modelini eğitir.
-        Küme merkezine uzaklık anomali skoru olarak kullanılır.
-        """
         print(f"K-Means (K={n_clusters}) eğitiliyor...")
         model = KMeans(n_clusters=n_clusters, random_state=self.random_state, n_init='auto')
         model.fit(X_train)
@@ -235,9 +203,6 @@ class UnsupervisedAnomalyDetector:
         return model
         
     def train_lof(self, X_train: pd.DataFrame, n_neighbors: int = 20) -> LocalOutlierFactor:
-        """
-        Local Outlier Factor (LOF) modelini eğitir. Novelty modu açık.
-        """
         print("Local Outlier Factor (LOF) eğitiliyor...")
         model = LocalOutlierFactor(n_neighbors=n_neighbors, novelty=True)
         model.fit(X_train)
@@ -251,7 +216,6 @@ class UnsupervisedAnomalyDetector:
 
 
     def train_gmm(self, X_train: np.ndarray, n_components: int = 3) -> GaussianMixture:
-        """Gaussian Mixture Model (GMM). Düşük olabilirlik = anomali."""
         print("Gaussian Mixture Model eğitiliyor...")
         model = GaussianMixture(n_components=n_components, covariance_type='full',
                                 random_state=self.random_state)
@@ -263,7 +227,6 @@ class UnsupervisedAnomalyDetector:
         return model
 
     def train_elliptic_envelope(self, X_train: np.ndarray, contamination: float = 0.05) -> EllipticEnvelope:
-        """Elliptic Envelope (robust kovaryans tabanlı Mahalanobis anomali tespiti)."""
         print("Elliptic Envelope eğitiliyor...")
         model = EllipticEnvelope(contamination=contamination, random_state=self.random_state)
         model.fit(X_train)
@@ -274,7 +237,6 @@ class UnsupervisedAnomalyDetector:
         return model
 
     def train_pca(self, X_train: np.ndarray, n_components: float = 0.95) -> PCA:
-        """PCA tabanlı yeniden yapılandırma hatası ile anomali tespiti."""
         print("PCA (reconstruction error) eğitiliyor...")
         model = PCA(n_components=n_components, random_state=self.random_state)
         model.fit(X_train)
@@ -286,10 +248,6 @@ class UnsupervisedAnomalyDetector:
         return model
 
     def train_dbscan(self, X_train: np.ndarray, eps: float = 1.5, min_samples: int = 5):
-        """DBSCAN ile çekirdek (core) noktaları bul; yeni nokta skoru = en yakın
-        çekirdek noktaya uzaklık. Kaydedilen model bir NearestNeighbors nesnesidir
-        (DBSCAN doğrudan yeni veri üzerinde predict desteklemez).
-        """
         print("DBSCAN (core-distance novelty) eğitiliyor...")
         db = DBSCAN(eps=eps, min_samples=min_samples, n_jobs=-1)
         labels = db.fit_predict(X_train)
@@ -307,7 +265,6 @@ class UnsupervisedAnomalyDetector:
 
     def train_vae(self, X_train: np.ndarray, X_val: np.ndarray, latent_dim: int = 8,
                   epochs: int = 50, batch_size: int = 64, beta: float = 1.0):
-        """Variational Autoencoder (VAE). Anomali skoru = yeniden yapılandırma hatası."""
         if Model is None:
             raise ImportError("TensorFlow/Keras bulunamadı.")
         print("Variational Autoencoder (VAE) eğitiliyor...")
@@ -358,11 +315,6 @@ class UnsupervisedAnomalyDetector:
 
 
     def train_pyod(self, X_train: np.ndarray, contamination: float = 0.05) -> Dict[str, Any]:
-        """PyOD tabanlı dedektörleri (ECOD, COPOD, HBOS, CBLOF) eğitir.
-
-        Her dedektör kendi ``threshold_`` değerini taşır; tahmin için
-        ``predict`` (0/1) ve skor için ``decision_function`` kullanılır.
-        """
         if not _PYOD_AVAILABLE:
             print("PyOD kurulu değil — atlanıyor (pip install pyod).")
             return {}
@@ -383,7 +335,6 @@ class UnsupervisedAnomalyDetector:
 
 
     def train_abod(self, X_train: np.ndarray, contamination: float = 0.05):
-        """Açı Tabanlı Aykırı Değer Dedektörü (ABOD)."""
         if not _PYOD_AVAILABLE:
             raise ImportError("PyOD bulunamadı (pip install pyod).")
         print("ABOD eğitiliyor...")
@@ -394,7 +345,6 @@ class UnsupervisedAnomalyDetector:
         return model
 
     def train_cof(self, X_train: np.ndarray, contamination: float = 0.05, n_neighbors: int = 20):
-        """Bağlantı Tabanlı Aykırı Değer Faktörü (COF)."""
         if not _PYOD_AVAILABLE:
             raise ImportError("PyOD bulunamadı (pip install pyod).")
         print("COF eğitiliyor...")
@@ -405,7 +355,6 @@ class UnsupervisedAnomalyDetector:
         return model
 
     def train_sod(self, X_train: np.ndarray, contamination: float = 0.05, n_neighbors: int = 20):
-        """Eksen Paralel Alt Uzaylarda Aykırı Değer Tespiti (SOD)."""
         if not _PYOD_AVAILABLE:
             raise ImportError("PyOD bulunamadı (pip install pyod).")
         print("SOD eğitiliyor...")
@@ -416,7 +365,6 @@ class UnsupervisedAnomalyDetector:
         return model
 
     def train_sos(self, X_train: np.ndarray, contamination: float = 0.05):
-        """Stokastik Aykırı Değer Seçimi (SOS)."""
         if not _PYOD_AVAILABLE:
             raise ImportError("PyOD bulunamadı (pip install pyod).")
         print("SOS eğitiliyor...")
@@ -427,7 +375,6 @@ class UnsupervisedAnomalyDetector:
         return model
 
     def train_loda(self, X_train: np.ndarray, contamination: float = 0.05):
-        """Hafif Çevrimiçi Anomali Dedektörü (LODA)."""
         if not _PYOD_AVAILABLE:
             raise ImportError("PyOD bulunamadı (pip install pyod).")
         print("LODA eğitiliyor...")
@@ -438,7 +385,6 @@ class UnsupervisedAnomalyDetector:
         return model
 
     def train_inne(self, X_train: np.ndarray, contamination: float = 0.05):
-        """İzolasyon Tabanlı En Yakın Komşu Toplulukları (INNE)."""
         if not _PYOD_AVAILABLE:
             raise ImportError("PyOD bulunamadı (pip install pyod).")
         print("INNE eğitiliyor...")
@@ -449,7 +395,6 @@ class UnsupervisedAnomalyDetector:
         return model
 
     def train_lmdd(self, X_train: np.ndarray, contamination: float = 0.05):
-        """Sapma Tespiti İçin Doğrusal Yöntem (LMDD)."""
         if not _PYOD_AVAILABLE:
             raise ImportError("PyOD bulunamadı (pip install pyod).")
         print("LMDD eğitiliyor...")
@@ -460,7 +405,6 @@ class UnsupervisedAnomalyDetector:
         return model
 
     def train_so_gaal(self, X_train: np.ndarray, contamination: float = 0.05):
-        """Tek Amaçlı Üretici Çekişmeli Aktif Öğrenme (SO-GAAL)."""
         if not _PYOD_AVAILABLE:
             raise ImportError("PyOD bulunamadı (pip install pyod).")
         print("SO-GAAL eğitiliyor...")
@@ -471,7 +415,6 @@ class UnsupervisedAnomalyDetector:
         return model
 
     def train_mo_gaal(self, X_train: np.ndarray, contamination: float = 0.05):
-        """Çok Amaçlı Üretici Çekişmeli Aktif Öğrenme (MO-GAAL)."""
         if not _PYOD_AVAILABLE:
             raise ImportError("PyOD bulunamadı (pip install pyod).")
         print("MO-GAAL eğitiliyor...")
@@ -483,7 +426,6 @@ class UnsupervisedAnomalyDetector:
 
 
     def train_deep_svdd(self, X_train: np.ndarray, contamination: float = 0.05, epochs: int = 50):
-        """Derin Tek Sınıf Sınıflandırma (DeepSVDD)."""
         if not _PYOD_DEEPSVDD_AVAILABLE:
             raise ImportError("PyOD DeepSVDD bulunamadı (pip install pyod torch).")
         print("DeepSVDD eğitiliyor...")
@@ -495,7 +437,6 @@ class UnsupervisedAnomalyDetector:
         return model
 
     def train_lunar(self, X_train: np.ndarray, contamination: float = 0.05):
-        """Graf Sinir Ağları ile Yerel Aykırı Değer Tespiti (LUNAR)."""
         if not _PYOD_LUNAR_AVAILABLE:
             raise ImportError("PyOD LUNAR bulunamadı (pip install pyod torch torch_geometric).")
         print("LUNAR eğitiliyor...")
@@ -506,7 +447,6 @@ class UnsupervisedAnomalyDetector:
         return model
 
     def train_dif(self, X_train: np.ndarray, contamination: float = 0.05, epochs: int = 50):
-        """Derin İzolasyon Ormanı (DIF)."""
         if not _PYOD_DIF_AVAILABLE:
             raise ImportError("PyOD DIF bulunamadı (pip install pyod torch).")
         print("DIF (Deep Isolation Forest) eğitiliyor...")
@@ -519,11 +459,6 @@ class UnsupervisedAnomalyDetector:
 
     def train_anogan(self, X_train: np.ndarray, X_val: np.ndarray, latent_dim: int = 32,
                      epochs: int = 100, batch_size: int = 64):
-        """AnoGAN — Üretici Çekişmeli Ağ ile Anomali Tespiti (f-AnoGAN yaklaşımı).
-
-        GAN eğitimi sonrası bir Encoder ağı eklenerek hızlı anomali skoru hesaplanır.
-        Skor = yeniden yapılandırma hatası (reconstruction error).
-        """
         if Model is None:
             raise ImportError("TensorFlow/Keras bulunamadı.")
         print("AnoGAN eğitiliyor...")
@@ -604,11 +539,6 @@ class UnsupervisedAnomalyDetector:
 
     def train_alad(self, X_train: np.ndarray, X_val: np.ndarray, latent_dim: int = 32,
                    epochs: int = 100, batch_size: int = 64):
-        """ALAD — Çekişmeli Öğrenimli Anomali Tespiti (BiGAN tabanlı).
-
-        Encoder-Generator çifti çekişmeli eğitilir; döngüsel tutarlılık (cycle
-        consistency) kaybı ile yeniden yapılandırma kalitesi güçlendirilir.
-        """
         if Model is None:
             raise ImportError("TensorFlow/Keras bulunamadı.")
         print("ALAD eğitiliyor...")
@@ -686,9 +616,6 @@ class UnsupervisedAnomalyDetector:
         return alad_model
 
     def compute_ensemble_score(self, X_test: np.ndarray, active_models: List[str] = None) -> np.ndarray:
-        """
-        Kayıtlı modellerin (aktif olanların) anomali skorlarını normalize edip birleştirir.
-        """
         if active_models is None:
             active_models = ['IsolationForest', 'Autoencoder', 'OneClassSVM', 'KMeans', 'LOF']
             
@@ -722,13 +649,9 @@ class UnsupervisedAnomalyDetector:
         return ensemble_score
 
     def detect_anomalies(self, ensemble_score: np.ndarray, global_threshold: float = 0.5) -> np.ndarray:
-        """
-        Ensemble skoru belirli bir threshold'u geçenleri anomali (1) olarak işaretler.
-        """
         return (ensemble_score > global_threshold).astype(int)
 
     def save_models(self, path: str):
-        """Tüm modelleri ve threshold değerlerini kaydeder."""
         os.makedirs(path, exist_ok=True)
         
         for name, model in self.models.items():

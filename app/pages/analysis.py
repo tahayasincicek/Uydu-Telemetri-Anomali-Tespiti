@@ -1,4 +1,3 @@
-"""Analiz sayfasi: layout + callback'ler."""
 import os
 import io
 import json
@@ -24,9 +23,6 @@ from core.state import (MODELS, THRESHOLDS, SCALER, TEST_DATA, ALL_METRICS, FEAT
 
 
 def page_analysis():
-    # Çalıştırılabilir (yüklü) TÜM modeller seçilebilir olmalı: kanonik sırayı koru,
-    # ardından kanonik listede olmayıp yüklü olan modelleri de ekle ki hiçbir
-    # runnable model seçim dışında kalmasın (kategori bilinmiyorsa gözetimsiz sayılır).
     sup = [n for n in SUP_MODEL_NAMES if n in MODELS]
     unsup = [n for n in UNSUP_MODEL_NAMES if n in MODELS]
     extra = [n for n in MODELS if n not in SUP_MODEL_NAMES and n not in UNSUP_MODEL_NAMES]
@@ -41,7 +37,6 @@ def page_analysis():
             html.Div(p["desc"], style={"fontSize": "11px", "color": "#64748B",
                                        "lineHeight": "1.4"}),
         ])}
-    # Varsayılan profil: Yüksek Doğruluk
     default = ANALYSIS_PRESETS["dogru"]
     def_sup = [m for m in default["sup"] if m in MODELS]
 
@@ -164,7 +159,6 @@ def run_analysis(n, sup_sel, unsup_sel, thresh_mult, data_json):
           Output("threshold-slider", "value"),
           Input("preset-select", "value"), prevent_initial_call=True)
 def apply_preset(preset):
-    """Seçilen operatör profilini gelişmiş kontrollere (model seçimi + eşik) uygular."""
     p = ANALYSIS_PRESETS.get(preset)
     if not p:
         return no_update, no_update, no_update

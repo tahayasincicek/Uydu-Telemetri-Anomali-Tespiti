@@ -1,9 +1,3 @@
-"""
-ESA Feature Extraction Pipeline Sayfasi
-========================================
-Ham segments.csv verisinden ESA OPSSAT-AD 18 handcrafted feature
-çıkarımı, görselleştirilmesi ve analiz pipeline'ina aktarimi.
-"""
 
 import os, sys, io, base64
 import numpy as np
@@ -139,7 +133,6 @@ def get_esa_pipeline_layout():
 
 
 def _build_existing_dataset_preview():
-    """Mevcut dataset.csv varsa onizleme olustur."""
     if not os.path.exists(DATASET_PATH):
         return html.Div()
     try:
@@ -167,7 +160,6 @@ def _build_existing_dataset_preview():
 
 
 def _build_extraction_results(features_df, source_label):
-    """Cikarim sonuclarini görselleştirir."""
     n = len(features_df)
     n_anom = int(features_df["anomaly"].sum()) if "anomaly" in features_df.columns else 0
     n_channels = features_df["channel"].nunique() if "channel" in features_df.columns else 0

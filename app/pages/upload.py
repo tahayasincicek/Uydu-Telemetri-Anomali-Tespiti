@@ -1,4 +1,3 @@
-"""Veri Yükle sayfasi: layout + callback'ler."""
 import os
 import io
 import json
@@ -23,7 +22,6 @@ from core.state import (MODELS, THRESHOLDS, SCALER, TEST_DATA, ALL_METRICS, FEAT
                         LIVE_DATA, SHAP_DATA, get_tree_explainer, best_model)
 
 
-# Beklenen sütunlar (tek kaynak: handle_upload algılaması + extract_features_from_raw)
 _HAM_REQUIRED = ["value"]
 _HAM_OPTIONAL = ["segment", "channel", "sampling", "timestamp", "anomaly", "train"]
 _ESA_18 = ["mean", "var", "std", "kurtosis", "skew", "n_peaks",
@@ -33,11 +31,10 @@ _ESA_18 = ["mean", "var", "std", "kurtosis", "skew", "n_peaks",
 
 
 def _chip(name, kind="req"):
-    """Sütun adı için küçük etiket (chip). kind: req | opt | esa."""
     palette = {
-        "req": ("#0C4A6E", "#E0F2FE", "#7DD3FC"),   # zorunlu · mavi
-        "opt": ("#475569", "#F1F5F9", "#CBD5E1"),   # opsiyonel · gri
-        "esa": ("#3730A3", "#EEF2FF", "#C7D2FE"),   # ESA özelliği · indigo
+        "req": ("#0C4A6E", "#E0F2FE", "#7DD3FC"),
+        "opt": ("#475569", "#F1F5F9", "#CBD5E1"),
+        "esa": ("#3730A3", "#EEF2FF", "#C7D2FE"),
     }
     color, bg, border = palette.get(kind, palette["req"])
     return html.Span(name, style={
@@ -54,7 +51,6 @@ def _fmt_label(text):
 
 
 def _format_info_panel():
-    """Yükleme formatı bilgilendirmesi: hangi sütunların beklendiğini açıklar."""
     card_style = {"backgroundColor": "#FFFFFF", "border": "1px solid #E2E8F0",
                   "borderRadius": "10px", "padding": "16px 18px", "height": "100%"}
     title_style = {"display": "flex", "alignItems": "center", "gap": "6px",

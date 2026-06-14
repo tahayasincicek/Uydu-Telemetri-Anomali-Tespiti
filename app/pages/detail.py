@@ -1,4 +1,3 @@
-"""Anomali Detay sayfasi: layout + callback'ler."""
 import os
 import io
 import json
@@ -218,8 +217,6 @@ def navigate_anomaly(n_prev, n_next, current, anomaly_list):
     if not current or not anomaly_list: return no_update
     trig = ctx.triggered_id
 
-    # NO (liste içi benzersiz sıra) ile eşleştir; canlı anomalilerde aynı segment
-    # birden çok kez geçebileceğinden _idx tek başına ayırt edici değildir.
     key = "NO" if current.get("NO") is not None else "_idx"
     current_idx = -1
     for i, a in enumerate(anomaly_list):

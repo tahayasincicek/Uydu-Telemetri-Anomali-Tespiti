@@ -1,10 +1,3 @@
-"""
-Benchmark Reprodüksiyonu Sayfası
-=================================
-Kanonik sonuçları (resmi Ψ, 18 ESA özelliği, 7 metrik) Ruszczak et al. (2024)
-Tablo 3 referans baseline'ı ile aynı test seti üzerinde karşılaştırır.
-Kaynak: reports/metrics/benchmark_comparison.csv (Notebook 12).
-"""
 import os
 import pandas as pd
 import plotly.graph_objects as go
@@ -42,8 +35,6 @@ def get_benchmark_layout():
     if not os.path.exists(BENCH_CSV):
         return _missing_layout()
     df = pd.read_csv(BENCH_CSV)
-    # CSV kategori değerleri ASCII gelebilir ("Gozetimli"); Türkçe forma normalize et
-    # (aksi halde filtreler boş kalıp "0 algoritma" ve boş saçılım grafiği oluşuyordu).
     df["Kategori"] = df["Kategori"].replace({"Gozetimli": "Gözetimli", "Gozetimsiz": "Gözetimsiz"})
 
     sup = df[df["Kategori"] == "Gözetimli"]
@@ -51,7 +42,6 @@ def get_benchmark_layout():
     mae_sup = sup["ΔAUC_PR"].abs().mean() if len(sup) else 0
     mae_uns = uns["ΔAUC_PR"].abs().mean() if len(uns) else 0
 
-    # ── 1) Araştırma vs Ruszczak et al. AUC-PR saçılım (köşegene yakınlık = reprodüksiyon) ──
     fig_sc = go.Figure()
     lo = min(df["Paper_AUC_PR"].min(), df["Bizim_AUC_PR"].min()) - 0.05
     fig_sc.add_trace(go.Scatter(x=[lo, 1], y=[lo, 1], mode="lines",
@@ -69,7 +59,6 @@ def get_benchmark_layout():
                          title="Araştırma vs Ruszczak et al. · AUC-PR (köşegen = birebir reprodüksiyon)",
                          xaxis_title="Ruszczak et al. AUC-PR", yaxis_title="Araştırma AUC-PR")
 
-    # ── 2) Algoritma başına ΔAUC-PR (bizim − makale) ──
     dff = df.sort_values("ΔAUC_PR")
     bar_clr = ["#EF4444" if v < -0.02 else "#10B981" if v > 0.02 else "#64748B" for v in dff["ΔAUC_PR"]]
     fig_d = go.Figure(go.Bar(
@@ -80,7 +69,6 @@ def get_benchmark_layout():
     fig_d.update_layout(**PLT_LAYOUT, height=520, title="ΔAUC-PR (Araştırma - Ruszczak et al.)",
                         xaxis_title="ΔAUC-PR")
 
-    # ── 3) Tablo ──
     show = ["Algoritma", "Kategori", "Paper_AUC_PR", "Bizim_AUC_PR", "ΔAUC_PR",
             "Paper_F1", "Bizim_F1", "Paper_MCC", "Bizim_MCC"]
     show = [c for c in show if c in df.columns]
