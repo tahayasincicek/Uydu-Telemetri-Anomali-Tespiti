@@ -126,12 +126,6 @@ def page_performance():
             html.Div(f"{CANONICAL_MODEL_COUNT} kanonik modelin karşılaştırmalı analizi "
                      f"({n_metric} Ψ-ölçümlü + {len(ESA_ADB_BASELINES)} ESA-ADB literatür)",
                      className="page-subtitle")]),
-        html.Div(className="info-box", style={"marginBottom": "16px"},
-                 children=f"Kanonik {CANONICAL_MODEL_COUNT} model: {len(SUP_MODEL_NAMES)} gözetimli + "
-                          f"{len(UNSUP_MODEL_NAMES)} gözetimsiz + {len(DEEP_SEQ_MODELS)} derin sıralı "
-                          f"(ham sinyal) + {len(ESA_ADB_BASELINES)} ESA-ADB literatür baseline. Aşağıdaki "
-                          f"tablo resmi Ψ test setinde ölçülen {n_metric} modeli gösterir; ESA-ADB "
-                          f"baseline'ları ayrı panelde referans olarak listelenir."),
         html.Div(className="panel mb-4", children=[
             html.Div(className="panel-title", children=[icon("mdi:table", 16),
                      f"Metrik Tablosu ({n_metric} model, AUC_PR sıralı)"]),
