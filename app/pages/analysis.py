@@ -63,7 +63,7 @@ def page_analysis():
                 html.Div(id="selection-counter", className="selection-counter"),
 
                 html.Details(open=False, style={"marginTop": "16px"}, children=[
-                    html.Summary("Gelişmiş — model seçimi", style={
+                    html.Summary("Gelişmiş · model seçimi", style={
                         "fontSize": "11px", "letterSpacing": "1px", "color": "#94A3B8",
                         "fontWeight": "600", "cursor": "pointer", "userSelect": "none",
                         "outline": "none", "padding": "4px 0"}),

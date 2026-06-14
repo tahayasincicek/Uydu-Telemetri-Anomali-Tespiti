@@ -1,4 +1,4 @@
-"""Ortak arayüz yardımcıları — sayfalar arası tekrar eden Plotly düzeni ve UI
+"""Ortak arayüz yardımcıları · sayfalar arası tekrar eden Plotly düzeni ve UI
 bileşenleri tek kaynakta toplanır (app.py, power/synthetic/esa/ablation sayfaları)."""
 from dash import html
 from dash_iconify import DashIconify

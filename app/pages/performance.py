@@ -73,7 +73,7 @@ def build_performance_figures(top_n=10):
                                     line=dict(color=c, width=2)))
     fig_roc.update_layout(**PLT_LAYOUT, height=420, title=f"ROC Eğrileri (en iyi {len(top)})",
                           xaxis_title="FPR", yaxis_title="TPR")
-    fig_pr.update_layout(**PLT_LAYOUT, height=420, title=f"PR Eğrileri (en iyi {len(top)}) — birincil ölçüt",
+    fig_pr.update_layout(**PLT_LAYOUT, height=420, title=f"PR Eğrileri (en iyi {len(top)}) · birincil ölçüt",
                          xaxis_title="Recall", yaxis_title="Precision")
 
     conf_cols = []

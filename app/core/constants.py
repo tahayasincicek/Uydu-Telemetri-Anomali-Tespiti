@@ -59,7 +59,7 @@ def model_category(name):
         return "ESA-ADB"
     return "Diğer"
 
-# Operatör tespit profilleri (preset) — gözetimli, güvenilir modeller
+# Operatör tespit profilleri (preset) · gözetimli, güvenilir modeller
 ANALYSIS_PRESETS = {
     "hizli": {"title": "Hızlı Tarama", "icon": "mdi:flash",
               "desc": "Tek hafif model ile düşük maliyetli ön tarama.",

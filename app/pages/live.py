@@ -110,14 +110,14 @@ def live_detail_records(state):
 def page_live():
     channels = LIVE_DATA['channel'].unique().tolist() if not LIVE_DATA.empty and 'channel' in LIVE_DATA.columns else []
     # Çalıştırılabilir (yüklü) TÜM modeller listelensin: kanonik liste filtresi yerine
-    # doğrudan MODELS üzerinden, performansa göre sıralı (en iyi üstte) — böylece hiçbir
+    # doğrudan MODELS üzerinden, performansa göre sıralı (en iyi üstte) · böylece hiçbir
     # runnable model dropdown dışında kalmaz.
     live_models = sorted(MODELS, key=lambda n: ALL_METRICS.get(n, {}).get("AUC_PR", 0), reverse=True)
     default_model = next((m for m in ["HistGradientBoosting", "RandomForest", "IsolationForest"] if m in MODELS),
                          live_models[0] if live_models else None)
 
     # Grafikler boş başlar; Canlı İzleme bir overlay olduğu için (app.layout'ta) DOM'da
-    # kalıcıdır — başka sekmeye gidip dönünce grafik/alarm/çalışma durumu korunur.
+    # kalıcıdır · başka sekmeye gidip dönünce grafik/alarm/çalışma durumu korunur.
     fig_sig = _empty_signal_fig()
     fig_score = _empty_score_fig()
 

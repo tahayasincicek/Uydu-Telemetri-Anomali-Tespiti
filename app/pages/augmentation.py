@@ -2,8 +2,8 @@
 Augmentasyon Bulguları Sayfası
 ==============================
 Veri augmentasyon stratejilerinin (SMOTE / ICCS-ω / Sentetik) gerçek test seti
-(Ψ) üzerindeki etkisini ve nedenini (sentetik–gerçek dağılım açığı) gösterir.
-Kaynaklar (Notebook 13–14):
+(Ψ) üzerindeki etkisini ve nedenini (sentetik-gerçek dağılım açığı) gösterir.
+Kaynaklar (Notebook 13-14):
   reports/metrics/augmentation_comparison.csv
   reports/metrics/ablation_synthetic_fulldata.csv
   reports/metrics/ablation_synthetic_lowdata.csv
@@ -66,11 +66,10 @@ def get_augmentation_layout():
                                  text=[f"{v:.3f}" for v in sub["AUC_PR"]], textposition="outside",
                                  textfont=dict(size=9)))
     fig_auc.update_layout(**PLT_LAYOUT, height=380, barmode="group",
-                          title="AUC-PR — Strateji Karşılaştırması (model bazında)",
                           yaxis_title="AUC-PR", yaxis_range=[0.7, 1.02],
                           legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0))
 
-    # ── 2) Precision–Recall dengesi (asıl etki) ──
+    # ── 2) Precision-Recall dengesi (asıl etki) ──
     fig_pr = go.Figure()
     for strat, color in STRAT_COLOR.items():
         sub = aug[aug["Strateji"] == strat]
@@ -81,7 +80,6 @@ def get_augmentation_layout():
             text=sub["Model"], textposition="top center", textfont=dict(size=8, color="#475569"),
             marker=dict(size=12, color=color, opacity=0.85), name=strat))
     fig_pr.update_layout(**PLT_LAYOUT, height=380,
-                         title="Kesinlik–Duyarlılık Dengesi (asıl etki burada)",
                          xaxis_title="Recall (duyarlılık)", yaxis_title="Precision (kesinlik)",
                          legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0))
 
@@ -98,18 +96,9 @@ def get_augmentation_layout():
             text=[f"{v:.2f}" for v in ks["KS_mesafe"]], textposition="outside",
             textfont=dict(size=9, color="#475569")))
         fig_ks.update_layout(**PLT_LAYOUT, height=520,
-                             title="Sentetik–Gerçek Dağılım Açığı (KS mesafesi, özellik başına)",
+                             title="Sentetik-Gerçek Dağılım Açığı (KS mesafesi, özellik başına)",
                              xaxis_title="KS mesafesi (0 = birebir, 1 = tamamen farklı)")
         ks_section = [
-            html.Div(className="panel mb-4", style={"borderLeft": "4px solid #EF4444", "padding": "14px"},
-                     children=[html.Div([
-                         _icon("mdi:lightbulb-on-outline", 18, "#F59E0B"),
-                         html.Span(f" Neden nötr? Ortalama KS = {ks_mean:.2f}. Kritik nokta: en ayırt edici "
-                                   f"özellik olan '{worst['Özellik']}', sentetik tarafta en kötü taklit edilen "
-                                   f"özelliktir (KS = {worst['KS_mesafe']:.2f}). Üreteç, modelin en çok güvendiği "
-                                   "özelliğin dağılımını en zayıf yeniden ürettiği için augmentasyon kazanç "
-                                   "sağlamamaktadır — dürüst bir negatif bulgu.",
-                                   style={"color": "#334155", "fontSize": "13px", "marginLeft": "6px"})])]),
             html.Div(className="panel mb-4", children=[
                 dcc.Graph(figure=fig_ks, config={"displayModeBar": False})]),
         ]
@@ -153,11 +142,17 @@ def get_augmentation_layout():
     return html.Div([
         html.Div(className="page-header", children=[
             html.Div("Augmentasyon Bulguları", className="page-title"),
-            html.Div("SMOTE / ICCS-ω / Sentetik — gerçek Ψ üzerinde etki ve nedeni", className="page-subtitle")]),
+            html.Div("SMOTE / ICCS-ω / Sentetik · gerçek Ψ üzerinde etki ve nedeni", className="page-subtitle")]),
         cards,
         dbc.Row([
-            dbc.Col(html.Div(className="panel", children=[dcc.Graph(figure=fig_auc, config={"displayModeBar": False})]), md=6),
-            dbc.Col(html.Div(className="panel", children=[dcc.Graph(figure=fig_pr, config={"displayModeBar": False})]), md=6),
+            dbc.Col(html.Div(className="panel", children=[
+                html.Div(className="panel-title", children=[_icon("mdi:chart-bar", 16),
+                         " AUC-PR Strateji Karşılaştırması (model bazında)"]),
+                dcc.Graph(figure=fig_auc, config={"displayModeBar": False})]), md=6),
+            dbc.Col(html.Div(className="panel", children=[
+                html.Div(className="panel-title", children=[_icon("mdi:chart-scatter-plot", 16),
+                         " Kesinlik-Duyarlılık Dengesi (asıl etki burada)"]),
+                dcc.Graph(figure=fig_pr, config={"displayModeBar": False})]), md=6),
         ], className="mb-4 g-3"),
         *ks_section,
         *ablation_section,

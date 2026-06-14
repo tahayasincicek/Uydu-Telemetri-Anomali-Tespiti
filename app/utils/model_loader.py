@@ -204,7 +204,7 @@ def load_metrics():
     metrik içermez; ayrı listelenir.
 
     Not: Eski şemalı adv_metrics.json (tireli 'AUC-ROC', MCC/AUC_PR yok) bilinçli
-    olarak BİRLEŞTİRİLMEZ — kanonik anahtarları bozar ve karışık şema yaratırdı.
+    olarak BİRLEŞTİRİLMEZ · kanonik anahtarları bozar ve karışık şema yaratırdı.
     """
     metrics = {}
     p1 = os.path.join(ROOT, "reports", "metrics", "final_comparison.json")

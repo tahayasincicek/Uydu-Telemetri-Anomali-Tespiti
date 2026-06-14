@@ -24,7 +24,7 @@ from core.state import (MODELS, THRESHOLDS, SCALER, TEST_DATA, ALL_METRICS, FEAT
 
 
 def page_dashboard():
-    """Operasyon paneli — anomali tespit ekibi için telemetri sağlık durumu ve alarm özeti.
+    """Operasyon paneli · anomali tespit ekibi için telemetri sağlık durumu ve alarm özeti.
     (Model performans/benchmark görünümü Geliştirici > Model Performans sayfasındadır.)"""
     df_seg = pd.read_parquet(DEMO_PATH) if os.path.exists(DEMO_PATH) else pd.DataFrame()
     n_seg = len(df_seg)
@@ -46,7 +46,7 @@ def page_dashboard():
             y=[channel_label(c) for c in ch.index], x=ch['rate'].tolist(), orientation='h', marker_color=bar_clr,
             text=[f"{r:.0f}%  ({int(s)}/{int(c)})" for r, s, c in zip(ch['rate'], ch['sum'], ch['count'])],
             textposition='outside', textfont=dict(size=10, color="#475569")))
-        fig_health.update_layout(**PLT_LAYOUT, height=360, title="Kanal Sağlığı — Anomali Oranı (%)",
+        fig_health.update_layout(**PLT_LAYOUT, height=360, title="Kanal Sağlığı · Anomali Oranı (%)",
                                  xaxis_title="Anomali oranı (%)", xaxis_range=[0, max(ch['rate']) * 1.25 + 5])
 
     # ── Son alarmlar: anomalik segmentler, değişkenliğe (var) göre şiddet ──

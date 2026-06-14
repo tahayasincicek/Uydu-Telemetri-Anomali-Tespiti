@@ -7,14 +7,14 @@ buradan tüketir; böylece app.py'de dağınık duran global state ortadan kalka
 import os
 import sys
 
-# TensorFlow ortam ayarları — model_loader (ve dolayısıyla TF) import edilmeden ÖNCE.
+# TensorFlow ortam ayarları · model_loader (ve dolayısıyla TF) import edilmeden ÖNCE.
 os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "3")
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 os.environ["TF_NUM_INTEROP_THREADS"] = "1"
 os.environ["TF_NUM_INTRAOP_THREADS"] = "1"
 
-# app/ dizinini path'e ekle (utils.* ve core.* import'lari icin) — bagimsiz import'ta da calissin.
+# app/ dizinini path'e ekle (utils.* ve core.* import'lari icin) · bagimsiz import'ta da calissin.
 _APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _APP_DIR not in sys.path:
     sys.path.insert(0, _APP_DIR)
@@ -50,7 +50,7 @@ except Exception:
 _SHAP_EXPLAINERS = {}
 def get_tree_explainer(model):
     """TreeExplainer'ı model başına bir kez kurup önbelleğe alır (her tıklamada
-    yeniden kurmamak için — detay sayfasında belirgin hızlanma sağlar)."""
+    yeniden kurmamak için · detay sayfasında belirgin hızlanma sağlar)."""
     key = id(model)
     if key not in _SHAP_EXPLAINERS:
         import shap

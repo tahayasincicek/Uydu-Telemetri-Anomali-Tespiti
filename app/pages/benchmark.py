@@ -63,7 +63,7 @@ def get_benchmark_layout():
             marker=dict(size=10, color=color, opacity=0.85),
             name=cat))
     fig_sc.update_layout(**PLT_LAYOUT, height=460,
-                         title="Makale vs Bizim — AUC-PR (köşegen = birebir reprodüksiyon)",
+                         title="Makale vs Bizim · AUC-PR (köşegen = birebir reprodüksiyon)",
                          xaxis_title="Makale AUC-PR", yaxis_title="Bizim AUC-PR")
 
     # ── 2) Algoritma başına ΔAUC-PR (bizim − makale) ──

@@ -137,7 +137,7 @@ def update_results(pred_json, page, data_json):
                            "Kanal": channel_label(ch), "_channel": ch, "Skor": f"{score_ensemble[idx]:.2f}",
                            "Şiddet": sev, "Detay": "İncele", "_idx": int(idx)})
 
-    # Şiddet sayımları DOĞRUDAN tablodan hesaplanır — böylece kart sayıları listedeki
+    # Şiddet sayımları DOĞRUDAN tablodan hesaplanır · böylece kart sayıları listedeki
     # kayıtlarla birebir uyuşur (eskiden tablo 100 ile sınırlıyken sayımlar tüm
     # anomalilerden geliyordu ve "354 Kritik ama 112 kayıt" gibi uyuşmazlık oluyordu).
     n_shown = len(table_data)

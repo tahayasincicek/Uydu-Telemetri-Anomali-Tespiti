@@ -65,21 +65,6 @@ def get_esa_pipeline_layout():
                      className="page-subtitle"),
         ]),
 
-        html.Div(className="panel mb-4",
-                 style={"borderLeft": "4px solid #06B6D4", "padding": "16px"}, children=[
-            html.Div(style={"display": "flex", "alignItems": "center", "gap": "12px"}, children=[
-                _icon("mdi:information-outline", 24, "#06B6D4"),
-                html.Div([
-                    html.Div("Ruszczak et al. (2024)",
-                             style={"fontWeight": "600", "color": "#1E293B", "fontSize": "14px"}),
-                    html.Div("\"The OPS-SAT benchmark for detecting anomalies in satellite telemetry\" (arXiv:2407.04730)",
-                             style={"color": "#475569", "fontSize": "12px"}),
-                    html.Div("Bu pipeline, makalede tanimlanan 18 handcrafted feature'i segments.csv formatindan cikarir.",
-                             style={"color": "#64748B", "fontSize": "11px", "marginTop": "4px"}),
-                ]),
-            ]),
-        ]),
-
         dbc.Row([
             dbc.Col([html.Div(className="panel", children=[
                 html.Div(className="panel-title", children=[

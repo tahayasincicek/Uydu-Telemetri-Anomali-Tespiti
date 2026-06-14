@@ -35,9 +35,9 @@ _ESA_18 = ["mean", "var", "std", "kurtosis", "skew", "n_peaks",
 def _chip(name, kind="req"):
     """Sütun adı için küçük etiket (chip). kind: req | opt | esa."""
     palette = {
-        "req": ("#0C4A6E", "#E0F2FE", "#7DD3FC"),   # zorunlu — mavi
-        "opt": ("#475569", "#F1F5F9", "#CBD5E1"),   # opsiyonel — gri
-        "esa": ("#3730A3", "#EEF2FF", "#C7D2FE"),   # ESA özelliği — indigo
+        "req": ("#0C4A6E", "#E0F2FE", "#7DD3FC"),   # zorunlu · mavi
+        "opt": ("#475569", "#F1F5F9", "#CBD5E1"),   # opsiyonel · gri
+        "esa": ("#3730A3", "#EEF2FF", "#C7D2FE"),   # ESA özelliği · indigo
     }
     color, bg, border = palette.get(kind, palette["req"])
     return html.Span(name, style={
@@ -65,7 +65,7 @@ def _format_info_panel():
 
     return html.Div(className="panel mb-4", children=[
         html.Div(className="panel-title", children=[icon("mdi:information-outline", 16),
-                 "Yükleme Formatı — Beklenen Sütunlar"]),
+                 "Yükleme Formatı · Beklenen Sütunlar"]),
         html.Div(className="info-box", style={"marginBottom": "14px"},
                  children=["Sistem yüklediğiniz dosyanın hangi formatta olduğunu ",
                            html.B("sütun adlarına"), " bakarak otomatik anlar. Aşağıdaki iki "
