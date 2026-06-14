@@ -1,0 +1,13 @@
+Model,Strateji,AUC_PR,F1,MCC,Precision,Recall
+RandomForest,Baseline (augmentasyonsuz),0.9673,0.9108,0.891,0.97,0.8584
+RandomForest,+SMOTE,0.9643,0.8899,0.8598,0.886,0.8938
+RandomForest,+ICCS-ω,0.9512,0.8657,0.8447,0.9886,0.7699
+RandomForest,+Sentetik,0.9691,0.9005,0.8793,0.9694,0.8407
+ExtraTrees,Baseline (augmentasyonsuz),0.9829,0.9309,0.9143,0.9712,0.8938
+ExtraTrees,+SMOTE,0.9845,0.9196,0.8981,0.9279,0.9115
+ExtraTrees,+ICCS-ω,0.9607,0.87,0.8512,1.0,0.7699
+ExtraTrees,+Sentetik,0.9801,0.9108,0.891,0.97,0.8584
+LogReg,Baseline (augmentasyonsuz),0.9271,0.7716,0.7327,0.9048,0.6726
+LogReg,+SMOTE,0.9211,0.8533,0.8137,0.8571,0.8496
+LogReg,+ICCS-ω,0.9053,0.6667,0.6585,0.9828,0.5044
+LogReg,+Sentetik,0.8282,0.6629,0.6338,0.9077,0.5221

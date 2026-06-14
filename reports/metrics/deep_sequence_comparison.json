@@ -1,0 +1,26 @@
+{
+  "CNN1D": {
+    "Accuracy": 0.9187,
+    "Precision": 0.85,
+    "Recall": 0.7522,
+    "F1": 0.7981,
+    "MCC": 0.7497,
+    "AUC_ROC": 0.9635,
+    "AUC_PR": 0.9105,
+    "FAR": 0.0361,
+    "FNR": 0.2478,
+    "Inf.Time(ms)": 27.6486
+  },
+  "TCN": {
+    "Accuracy": 0.9168,
+    "Precision": 0.9059,
+    "Recall": 0.6814,
+    "F1": 0.7778,
+    "MCC": 0.739,
+    "AUC_ROC": 0.969,
+    "AUC_PR": 0.9096,
+    "FAR": 0.0192,
+    "FNR": 0.3186,
+    "Inf.Time(ms)": 86.3533
+  }
+}
